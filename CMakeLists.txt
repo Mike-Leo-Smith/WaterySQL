@@ -11,4 +11,17 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/opt/llvm/lib"
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -lc++fs")
 
-add_executable(WaterySQL main.cpp)
+set(SOURCE_FILES
+    main.cpp
+    filesystem/bufmanager/BufPageManager.h
+    filesystem/bufmanager/FindReplace.h
+    filesystem/fileio/FileManager.h
+    filesystem/fileio/FileTable.h
+    filesystem/utils/compare.h
+    filesystem/utils/MyBitMap.h
+    filesystem/utils/MyHashMap.h
+    filesystem/utils/MyLinkList.h
+    filesystem/utils/pagedef.h
+    filesystem/testfilesystem.cpp)
+
+add_executable(WaterySQL ${SOURCE_FILES})

@@ -2,5 +2,7 @@
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
-    return 0;
+    
+    extern int test_filesystem();
+    return test_filesystem();
 }
