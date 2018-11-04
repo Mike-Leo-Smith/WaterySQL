@@ -4,7 +4,6 @@
 #include "../utils/MyLinkList.h"
 #include "../utils/MyHashMap.h"
 #include "../utils/pagedef.h"
-//template <int CAP_>
 /*
  * FindReplace
  * 提供替换算法接口，这里实现的是栈式LRU算法

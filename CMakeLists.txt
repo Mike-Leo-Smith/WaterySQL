@@ -13,15 +13,32 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -lc++f
 
 set(SOURCE_FILES
     main.cpp
-    filesystem/bufmanager/BufPageManager.h
-    filesystem/bufmanager/FindReplace.h
-    filesystem/fileio/FileManager.h
-    filesystem/fileio/FileTable.h
-    filesystem/utils/compare.h
-    filesystem/utils/MyBitMap.h
-    filesystem/utils/MyHashMap.h
-    filesystem/utils/MyLinkList.h
-    filesystem/utils/pagedef.h
-    filesystem/testfilesystem.cpp)
+    filesystem_demo/bufmanager/BufPageManager.h
+    filesystem_demo/bufmanager/FindReplace.h
+    filesystem_demo/fileio/FileManager.h
+    filesystem_demo/fileio/FileTable.h
+    filesystem_demo/utils/compare.h
+    filesystem_demo/utils/MyBitMap.h
+    filesystem_demo/utils/MyHashMap.h
+    filesystem_demo/utils/MyLinkList.h
+    filesystem_demo/utils/pagedef.h
+    filesystem_demo/testfilesystem.cpp
+    record_management/record_manager.cpp
+    record_management/record_manager.h
+    filesystem/file_manager.cpp
+    filesystem/file_manager.h
+    filesystem/page.cpp
+    filesystem/page.h
+    filesystem/page_buffer.cpp
+    filesystem/page_buffer.h
+    record_management/table_descriptor.h
+    config/config.h
+    record_management/record_descriptor.h
+    record_management/field_descriptor.h
+    data_storage/type_tag.h
+    data_storage/data_descriptor.h
+    data_storage/data.h
+    data_storage/data.cpp
+    utility/noncopyable.h)
 
 add_executable(WaterySQL ${SOURCE_FILES})

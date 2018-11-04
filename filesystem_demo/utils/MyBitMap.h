@@ -182,9 +182,9 @@ public:
         return data[0];
     }
     void setBit(int index, uint k) {
-        //cout << data[0]<<endl;
+        //cout << data_storage[0]<<endl;
         int p = setLeafBit(index, k);
-        //cout <<"seting "<<data[0]<<endl;
+        //cout <<"seting "<<data_storage[0]<<endl;
         //cout << "ok" << endl;
         uint c = 1;
         if (getLeafData(p) == 0) {
@@ -197,11 +197,11 @@ public:
         int i = _findLeftOne(rootLevel, rootIndex, 0, rootBit);
         /*
         for (i = 0; i < size;++i){
-            if (data[i] !=0)break;
+            if (data_storage[i] !=0)break;
         }*/
         //cout << "nPosi " << i << " " << getLeafData(i) << endl;
         //cout << i << endl;
-        //cout << data[0] << endl;
+        //cout << data_storage[0] << endl;
         uint lb = lowbit(getLeafData(i));
         int index = h[_hash(lb)];
         return (i << BIAS) + index;
