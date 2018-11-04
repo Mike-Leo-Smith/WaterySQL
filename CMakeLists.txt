@@ -39,6 +39,6 @@ set(SOURCE_FILES
     data_storage/data_descriptor.h
     data_storage/data.h
     data_storage/data.cpp
-    utility/noncopyable.h)
+    utility/noncopyable.h record_management/record.cpp record_management/record.h)
 
 add_executable(WaterySQL ${SOURCE_FILES})

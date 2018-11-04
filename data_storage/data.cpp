@@ -12,4 +12,8 @@ std::unique_ptr<Data> Data::decode(DataDescriptor descriptor, const uint8_t *buf
     return std::unique_ptr<Data>();
 }
 
+const DataDescriptor &Data::descriptor() const {
+    return _descriptor;
+}
+
 }

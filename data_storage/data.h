@@ -22,7 +22,7 @@ protected:
 
 public:
     virtual ~Data() = default;
-    
+    const DataDescriptor &descriptor() const;
     static std::unique_ptr<Data> decode(DataDescriptor descriptor, const uint8_t *raw);
     virtual void encode(uint8_t *buffer) const = 0;
 };

@@ -4,6 +4,13 @@
 #include "config/config.h"
 #include "record_management/record_descriptor.h"
 #include "data_storage/data.h"
+#include "record_management/record.h"
+
+struct A {
+    static A a() {
+        return A{};
+    }
+};
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
@@ -19,8 +26,9 @@ int main() {
     auto record_descriptor = watery::RecordDescriptor{2, {field_descriptor, field_descriptor}};
     
     std::cout << record_descriptor.length() << std::endl;
+    std::cout << sizeof(watery::Record) << std::endl;
     
-    std::cout << sizeof(SomeThing) << std::endl;
+    A x = A::a();
     
 //    extern int test_filesystem();
 //    return test_filesystem();

@@ -14,6 +14,7 @@ struct TableDescriptor final {
     
     uint32_t page_count;
     uint32_t record_count;
+    uint32_t record_count_per_page;
     
     RecordDescriptor record_descriptor;
     

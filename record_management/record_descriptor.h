@@ -17,10 +17,10 @@ namespace watery {
 struct RecordDescriptor final {
     
     uint32_t field_count;
-    std::array<FieldDescriptor, MAX_FIELD_COUNT> fields;
+    std::array<FieldDescriptor, MAX_FIELD_COUNT> field_descriptors;
     
     uint32_t length() const {
-        return std::reduce(fields.begin(), fields.begin() + field_count, 0u,
+        return std::reduce(field_descriptors.begin(), field_descriptors.begin() + field_count, 0u,
             [](auto lhs, auto rhs) { return lhs + rhs.data_descriptor.size; });
     }
     
