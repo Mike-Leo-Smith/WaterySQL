@@ -15,10 +15,10 @@
 class FileManager {
 private:
     //FileTable* ftable;
-    int fd[MAX_FILE_NUM];
-    MyBitMap *fm;
-    MyBitMap *tm;
-    int _createFile(const char *name) {
+    int _fd[MAX_FILE_NUM]{};
+    MyBitMap *_fm;
+    MyBitMap *_tm;
+    int _create_file(const char *name) {
         FILE *f = fopen(name, "a+");
         if (f == NULL) {
             std::cout << "fail" << std::endl;
@@ -27,12 +27,12 @@ private:
         fclose(f);
         return 0;
     }
-    int _openFile(const char *name, int fileID) {
+    int _open_file(const char *name, int fileID) {
         int f = open(name, O_RDWR);
         if (f == -1) {
             return -1;
         }
-        fd[fileID] = f;
+        _fd[fileID] = f;
         return 0;
     }
 public:
@@ -40,8 +40,8 @@ public:
      * FilManager构造函数
      */
     FileManager() {
-        fm = new MyBitMap(MAX_FILE_NUM, 1);
-        tm = new MyBitMap(MAX_TYPE_NUM, 1);
+        _fm = new MyBitMap(MAX_FILE_NUM, 1);
+        _tm = new MyBitMap(MAX_TYPE_NUM, 1);
     }
     /*
      * @函数名writePage
@@ -52,8 +52,8 @@ public:
      * 功能:将buf+off开始的2048个四字节整数(8kb信息)写入fileID和pageID指定的文件页中
      * 返回:成功操作返回0
      */
-    int writePage(int fileID, int pageID, BufType buf, int off) {
-        int f = fd[fileID];
+    int write_page(int fileID, int pageID, BufType buf, int off) {
+        int f = _fd[fileID];
         off_t offset = pageID;
         offset = (offset << PAGE_SIZE_IDX);
         off_t error = lseek(f, offset, SEEK_SET);
@@ -73,9 +73,9 @@ public:
      * 功能:将fileID和pageID指定的文件页中2048个四字节整数(8kb)读入到buf+off开始的内存中
      * 返回:成功操作返回0
      */
-    int readPage(int fileID, int pageID, BufType buf, int off) {
-        //int f = fd[fID[type]];
-        int f = fd[fileID];
+    int read_page(int fileID, int pageID, BufType buf, int off) {
+        //int f = _fd[fID[type]];
+        int f = _fd[fileID];
         off_t offset = pageID;
         offset = (offset << PAGE_SIZE_IDX);
         off_t error = lseek(f, offset, SEEK_SET);
@@ -92,9 +92,9 @@ public:
      * 功能:关闭文件
      * 返回:操作成功，返回0
      */
-    int closeFile(int fileID) {
-        fm->setBit(fileID, 1);
-        int f = fd[fileID];
+    int close_file(int fileID) {
+        _fm->setBit(fileID, 1);
+        int f = _fd[fileID];
         close(f);
         return 0;
     }
@@ -104,8 +104,8 @@ public:
      * 功能:新建name指定的文件名
      * 返回:操作成功，返回true
      */
-    bool createFile(const char *name) {
-        _createFile(name);
+    bool create_file(const char *name) {
+        _create_file(name);
         return true;
     }
     /*
@@ -115,23 +115,23 @@ public:
      * 功能:打开文件
      * 返回:如果成功打开，在fileID中存储为该文件分配的id，返回true，否则返回false
      */
-    bool openFile(const char *name, int &fileID) {
-        fileID = fm->findLeftOne();
-        fm->setBit(fileID, 0);
-        _openFile(name, fileID);
+    bool open_file(const char *name, int &fileID) {
+        fileID = _fm->findLeftOne();
+        _fm->setBit(fileID, 0);
+        _open_file(name, fileID);
         return true;
     }
-    int newType() {
-        int t = tm->findLeftOne();
-        tm->setBit(t, 0);
+    int new_type() {
+        int t = _tm->findLeftOne();
+        _tm->setBit(t, 0);
         return t;
     }
-    void closeType(int typeID) {
-        tm->setBit(typeID, 1);
+    void close_type(int typeID) {
+        _tm->setBit(typeID, 1);
     }
     void shutdown() {
-        delete tm;
-        delete fm;
+        delete _tm;
+        delete _fm;
     }
     ~FileManager() {
         this->shutdown();

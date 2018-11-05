@@ -8,7 +8,7 @@
 #include <string>
 #include <optional>
 #include "../filesystem_demo/fileio/FileManager.h"
-#include "../filesystem_demo/bufmanager/BufPageManager.h"
+#include "../filesystem_demo/bufmanager/BufferedPageManager.h"
 #include "record.h"
 #include "table.h"
 
@@ -18,7 +18,7 @@ class RecordManager {
 
 private:
     FileManager _file_manager{};
-    BufPageManager _page_manager{&_file_manager};
+    BufferedPageManager _page_manager{&_file_manager};
     
     static int32_t _record_offset(int32_t slot, uint32_t slots_per_page, uint32_t record_length);
     static uint32_t _slot_bitset_offset(uint32_t slots_per_page, int32_t slot);
@@ -37,6 +37,11 @@ public:
     void update_record(Table &table, const Record &record);
     void delete_record(Table &table, int32_t slot);
     Record get_record(Table &table, int32_t slot);
+    
+    template<typename Filter>
+    std::vector<Record> filter_records(Table &table, Filter &&filter) {
+        
+    }
     
 };
 

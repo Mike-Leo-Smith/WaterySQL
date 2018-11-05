@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 
 set(SOURCE_FILES
     main.cpp
-    filesystem_demo/bufmanager/BufPageManager.h
+    filesystem_demo/bufmanager/BufferedPageManager.h
     filesystem_demo/bufmanager/FindReplace.h
     filesystem_demo/fileio/FileManager.h
     filesystem_demo/fileio/FileTable.h

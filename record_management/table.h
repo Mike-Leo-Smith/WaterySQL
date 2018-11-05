@@ -16,22 +16,37 @@
 namespace watery {
 
 class Table : Noncopyable {
-public:
-    std::string name;
-    RecordDescriptor record_descriptor;
-    int32_t file_id;
-    uint32_t page_count;
-    uint32_t record_count;
-    uint32_t record_length;
-    uint32_t slot_count_per_page;
-    int32_t current_rid;
-    std::unordered_set<int32_t> buffer_ids;
+private:
+    std::string _name;
+    RecordDescriptor _record_descriptor;
+    int32_t _file_id;
+    uint32_t _page_count;
+    uint32_t _record_count;
+    uint32_t _record_length;
+    uint32_t _slot_count_per_page;
+    int32_t _current_rid;
+    std::unordered_set<int32_t> _buffer_ids;
     
+public:
     Table(std::string name, const RecordDescriptor &rd, int32_t fid = -1,
-          int32_t curr_rid = 0, uint32_t pc = 0, uint32_t rc = 0)
-        : name{std::move(name)}, record_descriptor{rd}, file_id{fid}, current_rid{curr_rid},
-          page_count{pc}, record_count{rc}, record_length{rd.length()}, slot_count_per_page{
-            (PAGE_SIZE - SLOT_BITSET_SIZE - static_cast<uint32_t>(sizeof(uint32_t))) / record_length} {}
+          int32_t curr_rid = 0, uint32_t pc = 0, uint32_t rc = 0);
+    
+    void increase_page_count();
+    void increase_record_count();
+    void decrease_record_count();
+    void add_buffer_id(int32_t id);
+    void increase_current_record_id();
+    
+    const std::string &name() const;
+    const RecordDescriptor &record_descriptor() const;
+    int32_t file_id() const;
+    uint32_t page_count() const;
+    uint32_t record_count() const;
+    uint32_t record_length() const;
+    uint32_t slot_count_per_page() const;
+    int32_t current_record_id() const;
+    const std::unordered_set<int32_t> &buffer_ids() const;
+    
 };
 
 }

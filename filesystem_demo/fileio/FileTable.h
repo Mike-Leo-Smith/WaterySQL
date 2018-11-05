@@ -9,89 +9,90 @@
 
 class FileTable {
 private:
-	std::multiset<std::string> isExist;
-	std::multiset<std::string> isOpen;
-	std::vector<std::string> fname;
-	std::vector<std::string> format;
-	std::map<std::string, int> nameToID;
-	std::string* idToName;
-	MyBitMap* ft, *ff;
-	int n;
-	void load() {
+	std::multiset<std::string> _exists;
+	std::multiset<std::string> _opened;
+	std::vector<std::string> _file_name;
+	std::vector<std::string> _format;
+	std::map<std::string, int> _name_to_id;
+	std::string* _id_to_name;
+	MyBitMap *_ff;
+	MyBitMap *_ft;
+	int _n;
+	void _load() {
 		std::ifstream fin("filenames");
-		fin >> n;
-		for (int i = 0; i < n; ++ i) {
+		fin >> _n;
+		for (int i = 0; i < _n; ++ i) {
 			std::string s, a;
 			fin >> s;
-			isExist.insert(s);
-			fname.push_back(s);
+			_exists.insert(s);
+			_file_name.push_back(s);
 			fin >> a;
-			format.push_back(a);
+			_format.push_back(a);
 		}
 		fin.close();
 	}
-	void save() {
+	void _save() {
 		std::ofstream fout("filenames");
-		fout << fname.size() << std::endl;
-		for (uint i = 0; i < fname.size(); ++ i) {
-			fout << fname[i] << std::endl;
-			fout << format[i] << std::endl;
+		fout << _file_name.size() << std::endl;
+		for (uint i = 0; i < _file_name.size(); ++ i) {
+			fout << _file_name[i] << std::endl;
+			fout << _format[i] << std::endl;
 		}
 		fout.close();
 	}
 public:
 	int newTypeID() {
-		int k = ft->findLeftOne();
-		ft->setBit(k, 0);
+		int k = _ft->findLeftOne();
+		_ft->setBit(k, 0);
 		return k;
 	}
 	int newFileID(const std::string& name) {
-		int k = ff->findLeftOne();
-		ff->setBit(k, 0);
-		nameToID[name] = k;
-		isOpen.insert(name);
-		idToName[k] = name;
+		int k = _ff->findLeftOne();
+		_ff->setBit(k, 0);
+		_name_to_id[name] = k;
+		_opened.insert(name);
+		_id_to_name[k] = name;
 		return k;
 	}
 	bool ifexist(const std::string& name) {
-		return (isExist.find(name) != isExist.end());
+		return (_exists.find(name) != _exists.end());
 	}
 	void addFile(const std::string& name, const std::string& fm) {
-		isExist.insert(name);
-		fname.push_back(name);
-		format.push_back(fm);
+		_exists.insert(name);
+		_file_name.push_back(name);
+		_format.push_back(fm);
 	}
 	int getFileID(const std::string& name) {
-		if (isOpen.find(name) == isOpen.end()) {
+		if (_opened.find(name) == _opened.end()) {
 			return -1;
 		}
-		return nameToID[name];
+		return _name_to_id[name];
 	}
 	void freeTypeID(int typeID) {
-		ft->setBit(typeID, 1);
+		_ft->setBit(typeID, 1);
 	}
 	void freeFileID(int fileID) {
-		ff->setBit(fileID, 1);
-		std::string name = idToName[fileID];
-		isOpen.erase(name);
+		_ff->setBit(fileID, 1);
+		std::string name = _id_to_name[fileID];
+		_opened.erase(name);
 	}
 	std::string getFormat(std::string name) {
-		for (uint i = 0; i < fname.size(); ++ i) {
-			if (name == fname[i]) {
-				return format[i];
+		for (uint i = 0; i < _file_name.size(); ++ i) {
+			if (name == _file_name[i]) {
+				return _format[i];
 			}
 		}
 		return "-";
 	}
 	FileTable(int fn, int tn) {
-		load();
-		ft = new MyBitMap(tn, 1);
-		ff = new MyBitMap(fn, 1);
-		idToName = new std::string[fn];
-		isOpen.clear();
+		_load();
+		_ft = new MyBitMap(tn, 1);
+		_ff = new MyBitMap(fn, 1);
+		_id_to_name = new std::string[fn];
+		_opened.clear();
 	}
 	~FileTable() {
-		save();
+		_save();
 	}
 };
 #endif

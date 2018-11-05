@@ -143,14 +143,14 @@ CTestTestfile.cmake
 
 # CMake
 cmake-build-debug/
-cmake-build-release/
+cmake-build-_release/
 cmake-build-minsizerel/
 cmake-build-relwithdebinfo/
 
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
 
-# File-based project format
+# File-based project _format
 *.iws
 
 # IntelliJ

@@ -19,11 +19,11 @@ int main() {
     
     record_manager.create_table("test3", record_descriptor);
     if (auto &&table = record_manager.open_table("test3")) {
-        std::cout << table->record_length << std::endl;
-        std::cout << table->record_count << std::endl;
-        std::cout << table->page_count << std::endl;
-        std::cout << table->slot_count_per_page << std::endl;
-        auto &&rd = table->record_descriptor;
+        std::cout << table->record_length() << std::endl;
+        std::cout << table->record_count() << std::endl;
+        std::cout << table->page_count() << std::endl;
+        std::cout << table->slot_count_per_page() << std::endl;
+        auto &&rd = table->record_descriptor();
         std::for_each_n(rd.field_descriptors.begin(), rd.field_count, [](auto &&fd) {
             std::cout << fd.name << ", " << fd.data_descriptor.size << std::endl;
         });

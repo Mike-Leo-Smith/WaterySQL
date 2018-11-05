@@ -48,8 +48,8 @@ public:
         while (!list->isHead(p)) {
             if (a[p].key1 == k1 && a[p].key2 == k2) {
                 /*
-                list.del(p);
-                list.insertFirst(p);
+                _list.del(p);
+                _list.insertFirst(p);
                 */
                 return p;
             }

@@ -9,40 +9,39 @@
 #include "../utils/MyLinkList.h"
 
 /*
- * BufPageManager
+ * BufferedPageManager
  * 实现了一个缓存的管理器
  */
-struct BufPageManager {
+struct BufferedPageManager {
 private:
-    int last;
-    FileManager *fileManager;
-    MyHashMap *hash;
-    FindReplace *replace;
-    //MyLinkList* bpl;
-    bool *dirty;
+    int _last;
+    FileManager *_fileManager;
+    MyHashMap *_hash;
+    FindReplace *_replace;
+    bool *_dirty;
     /*
      * 缓存页面数组
      */
     BufType *addr;
-    BufType allocMem() {
+    BufType _allocate_memory() {
         return new unsigned int[(PAGE_SIZE >> 2)];
     }
-    BufType fetchPage(int typeID, int pageID, int &index) {
+    BufType _fetch_page(int typeID, int pageID, int &index) {
         BufType b;
-        index = replace->find();
+        index = _replace->find();
         b = addr[index];
         if (b == NULL) {
-            b = allocMem();
+            b = _allocate_memory();
             addr[index] = b;
         } else {
-            if (dirty[index]) {
+            if (_dirty[index]) {
                 int k1, k2;
-                hash->getKeys(index, k1, k2);
-                fileManager->writePage(k1, k2, b, 0);
-                dirty[index] = false;
+                _hash->getKeys(index, k1, k2);
+                _fileManager->write_page(k1, k2, b, 0);
+                _dirty[index] = false;
             }
         }
-        hash->replace(index, typeID, pageID);
+        _hash->replace(index, typeID, pageID);
         return b;
     }
     /*
@@ -50,11 +49,12 @@ private:
      * @参数index:缓存页面数组中的下标，用来表示一个缓存页面
      * 功能:将index代表的缓存页面归还给缓存管理器，在归还前，缓存页面中的数据不标记写回
      */
-    void release(int index) {
-        dirty[index] = false;
-        replace->free(index);
-        hash->remove(index);
+    void _release(int index) {
+        _dirty[index] = false;
+        _replace->free(index);
+        _hash->remove(index);
     }
+    
 public:
     /*
      * @函数名allocPage
@@ -69,10 +69,10 @@ public:
      * 注意:在调用函数allocPage之前，调用者必须确信(fileID,pageID)指定的文件页面不存在缓存中
      *           如果确信指定的文件页面不在缓存中，那么就不用在hash表中进行查找，直接调用替换算法，节省时间
      */
-    BufType allocPage(int fileID, int pageID, int &index, bool ifRead = false) {
-        BufType b = fetchPage(fileID, pageID, index);
+    BufType allocate_page(int fileID, int pageID, int &index, bool ifRead = false) {
+        BufType b = _fetch_page(fileID, pageID, index);
         if (ifRead) {
-            fileManager->readPage(fileID, pageID, b, 0);
+            _fileManager->read_page(fileID, pageID, b, 0);
         }
         return b;
     }
@@ -89,14 +89,14 @@ public:
      *           如果能找到，那么表示文件页面在缓存中
      *           如果没有找到，那么就利用替换算法获取一个页面
      */
-    BufType getPage(int fileID, int pageID, int &index) {
-        index = hash->findIndex(fileID, pageID);
+    BufType get_page(int fileID, int pageID, int &index) {
+        index = _hash->findIndex(fileID, pageID);
         if (index != -1) {
-            markAccess(index);
+            mark_access(index);
             return addr[index];
         } else {
-            BufType b = fetchPage(fileID, pageID, index);
-            fileManager->readPage(fileID, pageID, b, 0);
+            BufType b = _fetch_page(fileID, pageID, index);
+            _fileManager->read_page(fileID, pageID, b, 0);
             return b;
         }
     }
@@ -105,12 +105,12 @@ public:
      * @参数index:缓存页面数组中的下标，用来表示一个缓存页面
      * 功能:标记index代表的缓存页面被访问过，为替换算法提供信息
      */
-    void markAccess(int index) {
-        if (index == last) {
+    void mark_access(int index) {
+        if (index == _last) {
             return;
         }
-        replace->access(index);
-        last = index;
+        _replace->access(index);
+        _last = index;
     }
     /*
      * @函数名markDirty
@@ -118,24 +118,24 @@ public:
      * 功能:标记index代表的缓存页面被写过，保证替换算法在执行时能进行必要的写回操作，
      *           保证数据的正确性
      */
-    void markDirty(int index) {
-        dirty[index] = true;
-        markAccess(index);
+    void mark_dirty(int index) {
+        _dirty[index] = true;
+        mark_access(index);
     }
     /*
      * @函数名writeBack
      * @参数index:缓存页面数组中的下标，用来表示一个缓存页面
      * 功能:将index代表的缓存页面归还给缓存管理器，在归还前，缓存页面中的数据需要根据脏页标记决定是否写到对应的文件页面中
      */
-    void writeBack(int index) {
-        if (dirty[index]) {
+    void write_back(int index) {
+        if (_dirty[index]) {
             int f, p;
-            hash->getKeys(index, f, p);
-            fileManager->writePage(f, p, addr[index], 0);
-            dirty[index] = false;
+            _hash->getKeys(index, f, p);
+            _fileManager->write_page(f, p, addr[index], 0);
+            _dirty[index] = false;
         }
-        replace->free(index);
-        hash->remove(index);
+        _replace->free(index);
+        _hash->remove(index);
     }
     /*
      * @函数名close
@@ -143,7 +143,7 @@ public:
      */
     void close() {
         for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
-            writeBack(i);
+            write_back(i);
         }
     }
     /*
@@ -152,25 +152,25 @@ public:
      * @参数fileID:函数返回时，用于存储指定缓存页面所属的文件号
      * @参数pageID:函数返回时，用于存储指定缓存页面对应的文件页号
      */
-    void getKey(int index, int &fileID, int &pageID) {
-        hash->getKeys(index, fileID, pageID);
+    void get_key(int index, int &fileID, int &pageID) {
+        _hash->getKeys(index, fileID, pageID);
     }
     /*
      * 构造函数
      * @参数fm:文件管理器，缓存管理器需要利用文件管理器与磁盘进行交互
      */
-    BufPageManager(FileManager *fm) {
+    BufferedPageManager(FileManager *fm) {
         int c = MAX_BUFFERED_PAGE_COUNT;
         int m = MOD;
-        last = -1;
-        fileManager = fm;
+        _last = -1;
+        _fileManager = fm;
         //bpl = new MyLinkList(MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM);
-        dirty = new bool[MAX_BUFFERED_PAGE_COUNT];
+        _dirty = new bool[MAX_BUFFERED_PAGE_COUNT];
         addr = new BufType[MAX_BUFFERED_PAGE_COUNT];
-        hash = new MyHashMap(c, m);
-        replace = new FindReplace(c);
+        _hash = new MyHashMap(c, m);
+        _replace = new FindReplace(c);
         for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
-            dirty[i] = false;
+            _dirty[i] = false;
             addr[i] = NULL;
         }
     }
