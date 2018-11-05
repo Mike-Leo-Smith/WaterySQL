@@ -15,6 +15,7 @@
 namespace watery {
 
 class RecordManager {
+
 public:
     template<typename Filter>
     class FilteredRecordIterator {
@@ -47,9 +48,7 @@ public:
             _move_to_next_record();
         }
         
-        FilteredRecordIterator begin() {
-            return *this;
-        }
+        FilteredRecordIterator begin() { return *this; }
         
         FilteredRecordIterator end() {
             auto it = FilteredRecordIterator{this};
@@ -69,13 +68,8 @@ public:
             return it;
         }
         
-        bool operator!=(const FilteredRecordIterator &rhs) const {
-            return _slot == rhs._slot;
-        }
-        
-        Record operator*() {
-            return _current_record;
-        }
+        bool operator!=(const FilteredRecordIterator &rhs) const { return _slot != rhs._slot; }
+        Record operator*() { return _current_record; }
         
     };
 
