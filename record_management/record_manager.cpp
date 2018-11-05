@@ -223,12 +223,18 @@ int32_t RecordManager::_record_offset(int32_t slot, uint32_t slots_per_page, uin
     return sizeof(uint32_t) + SLOT_BITSET_SIZE + slot % slots_per_page * record_length;
 }
 
-Record RecordManager::get_record(Table &table, int32_t slot) {
+std::optional<Record> RecordManager::get_record(Table &table, int32_t slot) {
     
     auto index = 0;
     auto buffer = _page_manager.get_page(table.file_id(), slot / table.slot_count_per_page(), index);
     _page_manager.mark_access(index);
     table.add_buffer_id(index);
+    
+    auto byte_pos = _slot_bitset_offset(table.slot_count_per_page(), slot);
+    auto bit_mask = _slot_bitset_switcher(table.slot_count_per_page(), slot);
+    if ((reinterpret_cast<uint8_t *>(buffer)[byte_pos] & bit_mask) == 0) {
+        return std::nullopt;
+    }
     
     auto offset = _record_offset(slot, table.slot_count_per_page(), table.record_length());
     auto record = _decode_record(reinterpret_cast<uint8_t *>(buffer) + offset, table.record_descriptor());
