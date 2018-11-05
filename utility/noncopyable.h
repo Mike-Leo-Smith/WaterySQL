@@ -10,9 +10,10 @@ namespace watery {
 struct Noncopyable {
     
     Noncopyable() = default;
-    Noncopyable(Noncopyable &&) = delete;
+    Noncopyable(Noncopyable &&) = default;
+    Noncopyable &operator=(Noncopyable &&) = default;
+    
     Noncopyable(const Noncopyable &) = delete;
-    Noncopyable &operator=(Noncopyable &&) = delete;
     Noncopyable &operator=(const Noncopyable &) = delete;
     
 };

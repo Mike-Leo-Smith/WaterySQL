@@ -6,7 +6,8 @@
 #define WATERYSQL_DATA_TYPE_H
 
 #include <cstdint>
-#include <memory>
+#include <functional>
+#include <optional>
 #include "type_tag.h"
 #include "data_descriptor.h"
 #include "../utility/noncopyable.h"
@@ -18,12 +19,12 @@ private:
     DataDescriptor _descriptor;
 
 protected:
-    Data(DataDescriptor descriptor);
+    explicit Data(DataDescriptor descriptor);
 
 public:
     virtual ~Data() = default;
     const DataDescriptor &descriptor() const;
-    static std::unique_ptr<Data> decode(DataDescriptor descriptor, const uint8_t *raw);
+    static std::optional<std::unique_ptr<Data>> decode(DataDescriptor descriptor, const uint8_t *raw);
     virtual void encode(uint8_t *buffer) const = 0;
 };
 

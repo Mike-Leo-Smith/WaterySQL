@@ -12,11 +12,13 @@ namespace watery {
 
 struct TableDescriptor final {
     
+    RecordDescriptor record_descriptor;
+    
     uint32_t page_count;
     uint32_t record_count;
-    uint32_t record_count_per_page;
     
-    RecordDescriptor record_descriptor;
+    explicit TableDescriptor(const RecordDescriptor &rd, uint32_t page_count = 0, uint32_t record_count = 0)
+        : record_descriptor{rd},  page_count{page_count}, record_count{record_count} {}
     
 };
 

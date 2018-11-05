@@ -58,10 +58,10 @@ int test_filesystem() {
         //注意，在allocPage或者getPage后，千万不要进行delete[] b这样的操作
         //内存的分配和管理都在BufPageManager中做好，不需要关心，如果自行释放会导致问题
         cout << b[0] << ":" << b[1] << endl;        //读取缓存页中第一个整数
-        bpm->access(index); //标记访问
+        bpm->markAccess(index); //标记访问
         b = bpm->getPage(f2, pageID, index);
         cout << b[0] << ":" << b[1] << endl;
-        bpm->access(index);
+        bpm->markAccess(index);
     }
     //程序结束前可以调用BufPageManager的某个函数将缓存中的内容写回
     //具体的函数大家可以看看ppt或者程序的注释
