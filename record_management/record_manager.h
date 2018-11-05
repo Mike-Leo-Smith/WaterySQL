@@ -24,8 +24,8 @@ private:
     static uint32_t _slot_bitset_offset(uint32_t slots_per_page, int32_t slot);
     static uint8_t _slot_bitset_switcher(uint32_t slots_per_page, int32_t slot);
     
-    void _encode_record(uint8_t *buffer, const Record &record);
-//    Record _decode_record(uint8_t *page, )
+    static void _encode_record(uint8_t *buffer, const Record &record);
+    static Record _decode_record(const uint8_t *buffer, const RecordDescriptor &record_descriptor);
 
 public:
     void create_table(const std::string &name, const RecordDescriptor &record_descriptor);
@@ -33,11 +33,11 @@ public:
     void close_table(const Table &table);
     void delete_table(const std::string &name);
     
-    Record insert_record(Table &table,
-                             const RecordDescriptor &descriptor,
-                             std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> fields);
+    Record insert_record(Table &table, const RecordDescriptor &descriptor, std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> fields);
     void update_record(Table &table, const Record &record);
     void delete_record(Table &table, int32_t slot);
+    Record get_record(Table &table, int32_t slot);
+    
 };
 
 }

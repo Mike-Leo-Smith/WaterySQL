@@ -8,8 +8,8 @@ namespace watery {
 
 Data::Data(DataDescriptor descriptor) : _descriptor{descriptor} {}
 
-std::optional<std::unique_ptr<Data>> Data::decode(DataDescriptor descriptor, const uint8_t *buffer) {
-    return std::nullopt;
+std::unique_ptr<Data> Data::decode(DataDescriptor descriptor, const uint8_t *buffer) {
+    return nullptr;
 }
 
 const DataDescriptor &Data::descriptor() const {

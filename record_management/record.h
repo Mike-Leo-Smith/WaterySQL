@@ -18,6 +18,9 @@ class Record : Noncopyable {
 private:
     int32_t _id;
     int32_t _slot;
+public:
+    void set_slot(int32_t slot);
+private:
     std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> _fields;
     
 public:

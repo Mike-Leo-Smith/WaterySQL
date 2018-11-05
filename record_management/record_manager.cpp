@@ -91,16 +91,16 @@ void RecordManager::delete_table(const std::string &name) {
     }
 }
 
-//Record Record::decode(const RecordDescriptor &record_descriptor, const uint8_t *raw) {
-//    auto &&record = Record{*reinterpret_cast<const int32_t *>(raw)};
-//    auto ptr = raw + sizeof(uint32_t);
-//    for (auto i = 0; i < record_descriptor.field_count; i++) {
-//        auto &&data_descriptor = record_descriptor.field_descriptors[i].data_descriptor;
-//        record.set_field(i, Data::decode(data_descriptor, ptr));
-//        ptr += data_descriptor.size;
-//    }
-//    return std::move(record);
-//}
+Record RecordManager::_decode_record(const uint8_t *buffer, const RecordDescriptor &record_descriptor) {
+    auto &&record = Record{record_descriptor.field_count, *reinterpret_cast<const int32_t *>(buffer)};
+    auto ptr = buffer + sizeof(uint32_t);
+    for (auto i = 0; i < record_descriptor.field_count; i++) {
+        auto &&data_descriptor = record_descriptor.field_descriptors[i].data_descriptor;
+        record.set_field(i, Data::decode(data_descriptor, ptr));
+        ptr += data_descriptor.size;
+    }
+    return std::move(record);
+}
 
 void RecordManager::_encode_record(uint8_t *buffer, const Record &record) {
     *reinterpret_cast<int32_t *>(buffer) = record.id();
@@ -172,13 +172,15 @@ Record RecordManager::insert_record(
     ostream.seek(byte_offset);
     ostream << (istream.get<uint8_t>() | _slot_bitset_switcher(table.slot_count_per_page, slot));
     
-    
-    
     // create new record
-    auto record = Record{table.record_descriptor, table.current_rid, slot};
+    auto record = Record{table.record_descriptor.field_count, table.current_rid, slot};
     table.current_rid++;
+    table.record_count++;
     
+    auto offset = _record_offset(slot, table.slot_count_per_page, table.record_length);
+    _encode_record(reinterpret_cast<uint8_t *>(buffer) + offset, record);
     
+    return record;
 }
 
 void RecordManager::update_record(Table &table, const Record &record) {
@@ -220,6 +222,20 @@ uint32_t RecordManager::_slot_bitset_offset(uint32_t slots_per_page, int32_t slo
 
 int32_t RecordManager::_record_offset(int32_t slot, uint32_t slots_per_page, uint32_t record_length) {
     return sizeof(uint32_t) + SLOT_BITSET_SIZE + slot % slots_per_page * record_length;
+}
+
+Record RecordManager::get_record(Table &table, int32_t slot) {
+    
+    auto index = 0;
+    auto buffer = _page_manager.getPage(table.file_id, slot / table.slot_count_per_page, index);
+    _page_manager.markAccess(index);
+    table.buffer_ids.emplace(index);
+    
+    auto offset = _record_offset(slot, table.slot_count_per_page, table.record_length);
+    auto record = _decode_record(reinterpret_cast<uint8_t *>(buffer) + offset, table.record_descriptor);
+    record.set_slot(slot);
+    
+    return record;
 }
 
 }

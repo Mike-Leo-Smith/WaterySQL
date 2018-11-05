@@ -29,4 +29,8 @@ const std::array<std::unique_ptr<Data>, 32> &Record::fields() const {
     return _fields;
 }
 
+void Record::set_slot(int32_t slot) {
+    _slot = slot;
+}
+
 }
