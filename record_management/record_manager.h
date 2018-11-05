@@ -10,7 +10,6 @@
 #include "../filesystem_demo/fileio/FileManager.h"
 #include "../filesystem_demo/bufmanager/BufPageManager.h"
 #include "record.h"
-#include "table_descriptor.h"
 #include "table.h"
 
 namespace watery {
@@ -21,18 +20,24 @@ private:
     FileManager _file_manager{};
     BufPageManager _page_manager{&_file_manager};
     
-//    Record decode_record(const Table &table, )
+    static int32_t _record_offset(int32_t slot, uint32_t slots_per_page, uint32_t record_length);
+    static uint32_t _slot_bitset_offset(uint32_t slots_per_page, int32_t slot);
+    static uint8_t _slot_bitset_switcher(uint32_t slots_per_page, int32_t slot);
+    
+    void _encode_record(uint8_t *buffer, const Record &record);
+//    Record _decode_record(uint8_t *page, )
 
 public:
-    void create_table(const std::string &name, const TableDescriptor &descriptor);
+    void create_table(const std::string &name, const RecordDescriptor &record_descriptor);
     std::optional<Table> open_table(const std::string &name);
-    void close_table(int32_t id);
+    void close_table(const Table &table);
     void delete_table(const std::string &name);
     
-    void insert_record(const Table &table, const Record &record);
-    void update_record(const Table &table, const Record &record);
-    void delete_record(const Table &table, int32_t slot);
-    
+    Record insert_record(Table &table,
+                             const RecordDescriptor &descriptor,
+                             std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> fields);
+    void update_record(Table &table, const Record &record);
+    void delete_record(Table &table, int32_t slot);
 };
 
 }

@@ -10,13 +10,12 @@
 namespace watery {
 inline namespace config {
 
-static constexpr uint32_t SOME_VALUE = 10;
-
 static constexpr uint32_t MAX_TABLE_NAME_LENGTH = 64;
 static constexpr uint32_t MAX_FIELD_NAME_LENGTH = 32;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;
 
 static constexpr uint32_t MAX_RECORD_COUNT_PER_PAGE = 256;
+static constexpr uint32_t SLOT_BITSET_SIZE = (MAX_RECORD_COUNT_PER_PAGE + 7) / 8;
 static constexpr uint32_t MAX_DATA_SIZE = 32767;
 
 }

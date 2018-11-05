@@ -11,7 +11,6 @@
 #include "pagedef.h"
 #include <cstring>
 
-using namespace std;
 #define LL_TYPE 0
 #define DB_TYPE 1
 #define ST_TYPE 2
@@ -56,4 +55,5 @@ cf *kcmp[3][2] = {
     {&keyu<db>, &keyn<db>},
     {&su,       &sn}
 };
+
 #endif /* PARSER_H_ */

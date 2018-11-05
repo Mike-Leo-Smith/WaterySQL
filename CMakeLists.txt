@@ -25,7 +25,6 @@ set(SOURCE_FILES
     filesystem_demo/testfilesystem.cpp
     record_management/record_manager.cpp
     record_management/record_manager.h
-    record_management/table_descriptor.h
     config/config.h
     record_management/record_descriptor.h
     record_management/field_descriptor.h
@@ -36,6 +35,6 @@ set(SOURCE_FILES
     utility/noncopyable.h
     record_management/record.cpp
     record_management/record.h
-    record_management/table.h)
+    record_management/table.h utility/binary_stream.h record_management/table.cpp)
 
 add_executable(WaterySQL ${SOURCE_FILES})

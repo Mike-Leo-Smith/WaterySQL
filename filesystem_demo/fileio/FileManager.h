@@ -12,7 +12,6 @@
 #include "../utils/pagedef.h"
 #include "../utils/MyBitMap.h"
 
-using namespace std;
 class FileManager {
 private:
     //FileTable* ftable;
@@ -22,7 +21,7 @@ private:
     int _createFile(const char *name) {
         FILE *f = fopen(name, "a+");
         if (f == NULL) {
-            cout << "fail" << endl;
+            std::cout << "fail" << std::endl;
             return -1;
         }
         fclose(f);

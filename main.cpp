@@ -5,31 +5,34 @@
 #include "record_management/record_descriptor.h"
 #include "data_storage/data.h"
 #include "record_management/record.h"
-
-struct A {
-    static A a() {
-        return A{};
-    }
-};
+#include "record_management/record_manager.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
     
-    std::array<int, 10> a{};
-    std::cout << sizeof(a) << std::endl;
+    using namespace watery;
     
-    std::cout << watery::SOME_VALUE << std::endl;
+    auto record_manager = RecordManager{};
+    auto record_descriptor = RecordDescriptor{
+        {"SomeThing", TypeTag::INTEGER, 4},
+        {"Another", TypeTag::INTEGER, 8}
+    };
     
-    std::cout << sizeof(watery::RecordDescriptor) << std::endl;
+    record_manager.create_table("test3", record_descriptor);
+    if (auto &&table = record_manager.open_table("test3")) {
+        std::cout << table->record_length << std::endl;
+        std::cout << table->record_count << std::endl;
+        std::cout << table->page_count << std::endl;
+        std::cout << table->slot_count_per_page << std::endl;
+        auto &&rd = table->record_descriptor;
+        std::for_each_n(rd.field_descriptors.begin(), rd.field_count, [](auto &&fd) {
+            std::cout << fd.name << ", " << fd.data_descriptor.size << std::endl;
+        });
+        record_manager.close_table(*table);
+    }
     
-    auto field_descriptor = watery::FieldDescriptor{"Hello", {watery::TypeTag::INTEGER, 32}};
-    auto record_descriptor = watery::RecordDescriptor{2, {field_descriptor, field_descriptor}};
+    std::cout << sizeof(Record) << std::endl;
+    std::cout << sizeof(Data) << std::endl;
     
-    std::cout << record_descriptor.length() << std::endl;
-    std::cout << sizeof(watery::Record) << std::endl;
+    return 0;
     
-    A x = A::a();
-    
-//    extern int test_filesystem();
-//    return test_filesystem();
 }

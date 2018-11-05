@@ -142,7 +142,7 @@ public:
      * 功能:将所有缓存页面归还给缓存管理器，归还前需要根据脏页标记决定是否写到对应的文件页面中
      */
     void close() {
-        for (int i = 0; i < CAP; ++i) {
+        for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
             writeBack(i);
         }
     }
@@ -160,16 +160,16 @@ public:
      * @参数fm:文件管理器，缓存管理器需要利用文件管理器与磁盘进行交互
      */
     BufPageManager(FileManager *fm) {
-        int c = CAP;
+        int c = MAX_BUFFERED_PAGE_COUNT;
         int m = MOD;
         last = -1;
         fileManager = fm;
-        //bpl = new MyLinkList(CAP, MAX_FILE_NUM);
-        dirty = new bool[CAP];
-        addr = new BufType[CAP];
+        //bpl = new MyLinkList(MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM);
+        dirty = new bool[MAX_BUFFERED_PAGE_COUNT];
+        addr = new BufType[MAX_BUFFERED_PAGE_COUNT];
         hash = new MyHashMap(c, m);
         replace = new FindReplace(c);
-        for (int i = 0; i < CAP; ++i) {
+        for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
             dirty[i] = false;
             addr[i] = NULL;
         }
