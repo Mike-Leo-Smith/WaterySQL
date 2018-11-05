@@ -16,6 +16,7 @@ static constexpr uint32_t MAX_FIELD_NAME_LENGTH = 32;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;
 
 static constexpr uint32_t MAX_RECORD_COUNT_PER_PAGE = 256;
+static constexpr uint32_t MAX_DATA_SIZE = 32767;
 
 }
 }

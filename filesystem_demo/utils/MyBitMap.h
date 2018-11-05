@@ -9,14 +9,11 @@ typedef unsigned int uint;
 #define BIAS 5*/
 #include <iostream>
 
-using namespace std;
-
 #define LEAF_BIT 32
 #define MAX_LEVEL 5
 #define MAX_INNER_NUM 67
 //#define MOD 61
 #define BIAS 5
-unsigned char h[61];
 
 class MyBitMap {
 protected:
@@ -40,6 +37,7 @@ protected:
     uint inner[MAX_INNER_NUM];
     uint innerMask;
     uint rootMask;
+    inline static unsigned char h[61];
     //virtual
     uint getLeafData(int index) {
         return data[index];

@@ -9,7 +9,7 @@
 
 namespace watery {
 
-enum struct TypeTag : uint32_t {
+enum struct TypeTag : uint16_t {
     INTEGER
 };
 

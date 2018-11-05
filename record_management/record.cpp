@@ -6,7 +6,7 @@
 
 namespace watery {
 
-Record::Record(uint32_t id, uint32_t field_count)
+Record::Record(int32_t id, uint32_t field_count)
     : _id{id} {
     _fields.resize(field_count);
 }
@@ -20,7 +20,7 @@ const std::unique_ptr<Data> &Record::get_field(int index) {
 }
 
 Record Record::decode(const RecordDescriptor &descriptor, const uint8_t *raw) {
-    auto &&record = Record{*reinterpret_cast<const uint32_t *>(raw), descriptor.field_count};
+    auto &&record = Record{*reinterpret_cast<const int32_t *>(raw), descriptor.field_count};
     auto ptr = raw + sizeof(uint32_t);
     for (auto i = 0; i < descriptor.field_count; i++) {
         auto &&data_descriptor = descriptor.field_descriptors[i].data_descriptor;
@@ -31,7 +31,7 @@ Record Record::decode(const RecordDescriptor &descriptor, const uint8_t *raw) {
 }
 
 void Record::encode(uint8_t *buffer) const {
-    *reinterpret_cast<uint32_t *>(buffer) = _id;
+    *reinterpret_cast<int32_t *>(buffer) = _id;
     buffer += sizeof(uint32_t);
     for (auto &&data: _fields) {
         data->encode(buffer);
@@ -39,12 +39,8 @@ void Record::encode(uint8_t *buffer) const {
     }
 }
 
-uint32_t Record::id() const {
+int32_t Record::id() const {
     return _id;
-}
-
-uint32_t Record::slot() const {
-    return _slot;
 }
 
 }

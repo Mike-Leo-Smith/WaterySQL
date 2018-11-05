@@ -16,17 +16,17 @@ namespace watery {
 
 class Record {
 private:
-    uint32_t _id;
+    int32_t _id;
     
 private:
     std::vector<std::unique_ptr<Data>> _fields;
 
 public:
-    Record(uint32_t id, uint32_t field_count);
+    Record(int32_t id, uint32_t field_count);
     void set_field(int index, std::unique_ptr<Data> &&field);
     const std::unique_ptr<Data> &get_field(int index);
     
-    uint32_t id() const;
+    int32_t id() const;
     
     static Record decode(const RecordDescriptor &descriptor, const uint8_t *raw);
     void encode(uint8_t *buffer) const;

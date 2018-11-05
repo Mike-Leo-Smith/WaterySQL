@@ -3,3 +3,9 @@
 //
 
 #include "record_manager.h"
+
+namespace watery {
+
+
+
+}
