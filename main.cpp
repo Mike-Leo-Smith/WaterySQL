@@ -8,15 +8,15 @@
 #include "record_management/record_manager.h"
 
 int main() {
-    
+
     using namespace watery;
-    
+
     auto record_manager = RecordManager{};
     auto record_descriptor = RecordDescriptor{
         {"SomeThing", TypeTag::INTEGER, 4},
         {"Another", TypeTag::INTEGER, 8}
     };
-    
+
     record_manager.create_table("test3", record_descriptor);
     if (auto &&table = record_manager.open_table("test3")) {
         std::cout << table->record_length() << std::endl;
@@ -29,10 +29,10 @@ int main() {
         });
         record_manager.close_table(*table);
     }
-    
+
     std::cout << sizeof(Record) << std::endl;
     std::cout << sizeof(Data) << std::endl;
-    
+
     return 0;
-    
+
 }

@@ -233,6 +233,7 @@ std::optional<Record> RecordManager::get_record(Table &table, int32_t slot) {
     auto byte_pos = _slot_bitset_offset(table.slot_count_per_page(), slot);
     auto bit_mask = _slot_bitset_switcher(table.slot_count_per_page(), slot);
     if ((reinterpret_cast<uint8_t *>(buffer)[byte_pos] & bit_mask) == 0) {
+        std::cerr << "Failed to get record: record does not exist or is removed." << std::endl;
         return std::nullopt;
     }
     
