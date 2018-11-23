@@ -15,16 +15,23 @@
 namespace watery {
 
 class Record : Noncopyable {
-private:
-    int32_t _id;
-    int32_t _slot;
+
 public:
-    void set_slot(int32_t slot);
+    struct Header {
+        int32_t _id;
+    };
+    
+    
+private:
+    int32_t _rid;
+    int32_t _slot;
+    
 private:
     std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> _fields;
     
 public:
     Record(uint32_t field_count, int32_t id, int32_t slot = -1);
+    void set_slot(int32_t slot);
     void set_field(int index, std::unique_ptr<Data> field);
     const std::unique_ptr<Data> &get_field(int index);
     

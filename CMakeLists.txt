@@ -12,29 +12,29 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 
 set(SOURCE_FILES
-    main.cpp
-    filesystem_demo/bufmanager/BufferedPageManager.h
-    filesystem_demo/bufmanager/FindReplace.h
-    filesystem_demo/fileio/FileManager.h
-    filesystem_demo/fileio/FileTable.h
-    filesystem_demo/utils/compare.h
-    filesystem_demo/utils/MyBitMap.h
-    filesystem_demo/utils/MyHashMap.h
-    filesystem_demo/utils/MyLinkList.h
-    filesystem_demo/utils/pagedef.h
-    filesystem_demo/testfilesystem.cpp
-    record_management/record_manager.cpp
-    record_management/record_manager.h
-    config/config.h
-    record_management/record_descriptor.h
-    record_management/field_descriptor.h
-    data_storage/type_tag.h
-    data_storage/data_descriptor.h
-    data_storage/data.h
-    data_storage/data.cpp
-    utility/noncopyable.h
-    record_management/record.cpp
-    record_management/record.h
-    record_management/table.h utility/binary_stream.h record_management/table.cpp)
+    src/main.cpp
+    src/filesystem_demo/bufmanager/BufferedPageManager.h
+    src/filesystem_demo/bufmanager/FindReplace.h
+    src/filesystem_demo/fileio/FileManager.h
+    src/filesystem_demo/fileio/FileTable.h
+    src/filesystem_demo/utils/compare.h
+    src/filesystem_demo/utils/MyBitMap.h
+    src/filesystem_demo/utils/MyHashMap.h
+    src/filesystem_demo/utils/MyLinkList.h
+    src/filesystem_demo/utils/pagedef.h
+    src/filesystem_demo/testfilesystem.cpp
+    src/record_management/record_manager.cpp
+    src/record_management/record_manager.h
+    src/config/config.h
+    src/record_management/record_descriptor.h
+    src/record_management/field_descriptor.h
+    src/data_storage/type_tag.h
+    src/data_storage/data_descriptor.h
+    src/data_storage/data.h
+    src/data_storage/data.cpp
+    src/utility/noncopyable.h
+    src/record_management/record.cpp
+    src/record_management/record.h
+    src/record_management/table.h src/utility/binary_stream.h src/record_management/table.cpp src/utility/bitset_holder_type_selector.h)
 
 add_executable(WaterySQL ${SOURCE_FILES})

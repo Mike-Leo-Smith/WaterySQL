@@ -7,7 +7,7 @@
 namespace watery {
 
 Record::Record(uint32_t field_count, int32_t id, int32_t slot)
-    : _id{id}, _slot{slot} {}
+    : _rid{id}, _slot{slot} {}
 
 void Record::set_field(int index, std::unique_ptr<Data> field) {
     _fields[index] = std::move(field);
@@ -18,14 +18,14 @@ const std::unique_ptr<Data> &Record::get_field(int index) {
 }
 
 int32_t Record::id() const {
-    return _id;
+    return _rid;
 }
 
 int32_t Record::slot() const {
     return _slot;
 }
 
-const std::array<std::unique_ptr<Data>, 32> &Record::fields() const {
+const std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> &Record::fields() const {
     return _fields;
 }
 
