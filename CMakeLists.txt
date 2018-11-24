@@ -23,8 +23,6 @@ set(SOURCE_FILES
     src/filesystem_demo/utils/MyLinkList.h
     src/filesystem_demo/utils/pagedef.h
     src/filesystem_demo/testfilesystem.cpp
-    src/record_management/record_manager.cpp
-    src/record_management/record_manager.h
     src/config/config.h
     src/record_management/record_descriptor.h
     src/record_management/field_descriptor.h
@@ -33,8 +31,32 @@ set(SOURCE_FILES
     src/data_storage/data.h
     src/data_storage/data.cpp
     src/utility/type_constraints/non_copyable.h
-    src/record_management/record.cpp
-    src/record_management/record.h
-    src/record_management/table.h src/utility/io_helpers/binary_stream.h src/record_management/table.cpp src/utility/type_manipulators/bitset_holder_type_selector.h src/index_management/b_tree.cpp src/index_management/b_tree.h src/index_management/b_tree_node.cpp src/index_management/b_tree_node.h src/index_management/index_manager.cpp src/index_management/index_manager.h src/page_management/page_manager.cpp src/page_management/page_manager.h src/utility/type_constraints/singleton.h src/utility/type_constraints/non_movable.h src/errors/file_io_error.h src/page_management/page.h src/utility/io_helpers/error_printer.h src/utility/io_helpers/printer.h src/errors/error.h src/utility/type_constraints/non_trivial_constructible.h)
+    src/utility/memory_mapping/binary_stream.h
+    src/utility/type_manipulators/bitset_holder_type_selector.h
+    src/index_management/b_tree.cpp src/index_management/b_tree.h
+    src/index_management/b_tree_node.cpp
+    src/index_management/b_tree_node.h
+    src/index_management/index_manager.cpp
+    src/index_management/index_manager.h
+    src/page_management/page_manager.cpp
+    src/page_management/page_manager.h
+    src/utility/type_constraints/singleton.h
+    src/utility/type_constraints/non_movable.h
+    src/errors/page_manager_error.h
+    src/page_management/buffered_page.h
+    src/utility/io_helpers/error_printer.h
+    src/utility/io_helpers/printer.h
+    src/errors/error.h
+    src/utility/type_constraints/non_trivial_constructible.h
+    src/record_management/record_offset.h
+    src/record_management/record_manager.cpp
+    src/record_management/record_manager.h
+    src/record_management/table.h
+    src/record_management/data_page_header.h
+    src/utility/memory_mapping/memory_mapper.h
+    src/page_management/buffer_offset.h
+    src/record_management/table_header.h
+    src/record_management/data_page.h
+    src/errors/record_manager_error.h)
 
 add_executable(WaterySQL ${SOURCE_FILES})

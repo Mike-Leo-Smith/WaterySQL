@@ -27,7 +27,7 @@ struct RecordDescriptor final {
         std::copy(fds.begin(), fds.end(), field_descriptors.begin());
     }
     
-    uint32_t length() const {
+    uint32_t calculate_length() const {
         return sizeof(uint32_t) +
                std::reduce(field_descriptors.begin(), field_descriptors.begin() + field_count, 0u,
                            [](auto lhs, auto rhs) { return lhs + rhs.data_descriptor.size; });

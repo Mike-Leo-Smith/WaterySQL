@@ -12,7 +12,7 @@ namespace watery {
 struct Error : public std::exception {
     
     const char *what() const noexcept override {
-        return "Unknown error";
+        return "Unknown error.";
     }
     
 };

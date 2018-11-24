@@ -1,109 +1,61 @@
 //
-// Created by Mike Smith on 2018/11/4.
+// Created by Mike Smith on 2018/11/24.
 //
 
 #ifndef WATERYSQL_RECORD_MANAGER_H
 #define WATERYSQL_RECORD_MANAGER_H
 
 #include <string>
-#include <optional>
-#include "../filesystem_demo/fileio/FileManager.h"
-#include "../filesystem_demo/bufmanager/BufferedPageManager.h"
+#include <unordered_map>
 #include "../page_management/page_manager.h"
-#include "record.h"
+#include "record_descriptor.h"
 #include "table.h"
+#include "record_offset.h"
+#include "data_page.h"
+#include "../errors/record_manager_error.h"
+#include "../utility/memory_mapping/memory_mapper.h"
 
 namespace watery {
 
-class RecordManager {
-
-public:
-    template<typename Filter>
-    class FilteredRecordIterator {
-    private:
-        RecordManager &_record_manager;
-        Table &_table;
-        int32_t _slot;
-        Filter &&_filter;
-        Record _current_record;
-        uint32_t _passed_record_count;
-        
-        void _move_to_next_record() {
-            while (_passed_record_count < _table.record_count()) {
-                if (auto record = _record_manager.get_record(_table, _slot)) {
-                    _passed_record_count++;
-                    if (_filter(record)) {
-                        _current_record = std::move(record);
-                        return;
-                    }
-                    _slot++;
-                }
-            }
-            _slot = -1;
-        }
-    
-    public:
-        FilteredRecordIterator(RecordManager &record_manager, Table &table, Filter &&filter)
-            : _record_manager{record_manager}, _table{table}, _slot{0},
-              _filter{std::forward(filter)}, _passed_record_count{0} {
-            _move_to_next_record();
-        }
-        
-        FilteredRecordIterator begin() { return *this; }
-        
-        FilteredRecordIterator end() {
-            auto it = FilteredRecordIterator{this};
-            it._slot = -1;
-            return it;
-        }
-        
-        FilteredRecordIterator &operator++() {
-            _slot++;
-            _move_to_next_record();
-            return *this;
-        }
-        
-        const FilteredRecordIterator operator++(int _) {
-            auto it = *this;
-            ++*this;
-            return it;
-        }
-        
-        bool operator!=(const FilteredRecordIterator &rhs) const { return _slot != rhs._slot; }
-        Record operator*() { return _current_record; }
-        
-    };
+class RecordManager : public Singleton<RecordManager> {
 
 private:
-    FileManager _file_manager{};
-    BufferedPageManager _buffer_manager{&_file_manager};
-    
     PageManager &_page_manager = PageManager::instance();
+    std::unordered_map<std::string, std::unordered_map<BufferHandle, BufferOffset>> _used_buffers;
+
+protected:
+    RecordManager() = default;
     
-    static int32_t _record_offset(int32_t slot, uint32_t slots_per_page, uint32_t record_length);
-    static uint32_t _slot_bitset_offset(uint32_t slots_per_page, int32_t slot);
-    static uint8_t _slot_bitset_switcher(uint32_t slots_per_page, int32_t slot);
-    
-    static void _encode_record(uint8_t *buffer, const Record &record);
-    static Record _decode_record(const uint8_t *buffer, const RecordDescriptor &record_descriptor);
+private:
+    template<typename Visitor>
+    decltype(auto) _visit_record(Table &table, RecordOffset record_offset, Visitor &&visitor) {
+        if (record_offset.page_offset >= table.header.page_count) {
+            throw RecordManagerError{
+                "Failed to get record whose expected page offset is greater than table page count."};
+        }
+        auto page_handle = _page_manager.get_page(table.file_handle, record_offset.page_offset);
+        _page_manager.mark_page_accessed(page_handle);
+        _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
+        
+        auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
+        if (record_offset.slot_offset >= table.header.slot_count_per_page) {
+            throw RecordManagerError{
+                "Failed to get record whose expected slot offset is greater than slot count in page."};
+        }
+        return visitor(table, page_handle, data_page, record_offset);
+    }
 
 public:
     void create_table(const std::string &name, const RecordDescriptor &record_descriptor);
     Table open_table(const std::string &name);
+    bool is_table_open(const std::string &name) const;
     void close_table(const Table &table);
     void delete_table(const std::string &name);
     
-    Record insert_record(Table &table,
-                         const RecordDescriptor &descriptor,
-                         std::array<std::unique_ptr<Data>, MAX_FIELD_COUNT> fields);
-    void update_record(Table &table, const Record &record);
-    void delete_record(Table &table, int32_t slot);
-    std::optional<Record> get_record(Table &table, int32_t slot);
-    
-    template<typename Filter>
-    auto filter_records(Table &table, Filter &&filter) {
-        return FilteredRecordIterator<Filter>{*this, table, std::forward(filter)};
-    }
+    const Byte *get_record(Table &table, RecordOffset record_offset);
+    RecordOffset insert_record(Table &table, const Byte *data);
+    void update_record(Table &table, RecordOffset record_offset, const Byte *data);
+    void delete_record(Table &table, RecordOffset record_offset);
 };
 
 }
