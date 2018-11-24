@@ -7,4 +7,7 @@
   <component name="PreferredVcsStorage">
     <preferredVcsName>ApexVCS</preferredVcsName>
   </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="/usr/local/bin" />
+  </component>
 </project>

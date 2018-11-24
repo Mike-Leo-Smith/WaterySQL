@@ -9,6 +9,7 @@
 #include <optional>
 #include "../filesystem_demo/fileio/FileManager.h"
 #include "../filesystem_demo/bufmanager/BufferedPageManager.h"
+#include "../page_management/page_manager.h"
 #include "record.h"
 #include "table.h"
 
@@ -75,7 +76,9 @@ public:
 
 private:
     FileManager _file_manager{};
-    BufferedPageManager _page_manager{&_file_manager};
+    BufferedPageManager _buffer_manager{&_file_manager};
+    
+    PageManager &_page_manager = PageManager::instance();
     
     static int32_t _record_offset(int32_t slot, uint32_t slots_per_page, uint32_t record_length);
     static uint32_t _slot_bitset_offset(uint32_t slots_per_page, int32_t slot);
@@ -86,7 +89,7 @@ private:
 
 public:
     void create_table(const std::string &name, const RecordDescriptor &record_descriptor);
-    std::optional<Table> open_table(const std::string &name);
+    Table open_table(const std::string &name);
     void close_table(const Table &table);
     void delete_table(const std::string &name);
     

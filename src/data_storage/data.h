@@ -9,7 +9,7 @@
 #include <memory>
 #include "type_tag.h"
 #include "data_descriptor.h"
-#include "../utility/noncopyable.h"
+#include "../utility/type_constraints/noncopyable.h"
 
 namespace watery {
 

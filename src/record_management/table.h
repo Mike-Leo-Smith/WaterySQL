@@ -9,9 +9,10 @@
 
 #include <string>
 #include <unordered_set>
-#include "../utility/noncopyable.h"
+#include "../utility/type_constraints/noncopyable.h"
 #include "record_descriptor.h"
 #include "../filesystem_demo/utils/pagedef.h"
+#include "../utility/type_constraints/nonmovable.h"
 
 namespace watery {
 

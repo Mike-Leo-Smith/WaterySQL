@@ -9,7 +9,7 @@
 
 namespace watery {
 
-namespace _inner {
+namespace _impl {
 
 template<uint64_t byte_count>
 struct BitsetHolderTypeSelectorImpl {
@@ -39,7 +39,7 @@ struct BitsetHolderTypeSelectorImpl<8> {
 }
 
 template<uint64_t bit_count>
-using BitsetHolder = typename _inner::BitsetHolderTypeSelectorImpl<(bit_count + 7) / 8>::Type;
+using BitsetHolder = typename _impl::BitsetHolderTypeSelectorImpl<(bit_count + 7) / 8>::Type;
 
 }
 

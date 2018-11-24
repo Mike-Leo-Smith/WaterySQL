@@ -15,12 +15,6 @@
 namespace watery {
 
 class Record : Noncopyable {
-
-public:
-    struct Header {
-        int32_t _id;
-    };
-    
     
 private:
     int32_t _rid;
