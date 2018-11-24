@@ -9,7 +9,7 @@
 
 #include "../config/config.h"
 #include "../data_storage/data_descriptor.h"
-#include "../utility/type_constraints/noncopyable.h"
+#include "../utility/type_constraints/non_copyable.h"
 
 namespace watery {
 

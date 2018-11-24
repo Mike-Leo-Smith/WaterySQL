@@ -19,88 +19,78 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
             std::string{"Failed to create file for table \""}.append(name).append("\" which already exists.")};
     }
     
+    FileHandle file_handle;
     try {
         _page_manager.create_file(file_name);
+        file_handle = _page_manager.open_file(file_name);
     } catch (const FileIOError &e) {
         print_error(std::cerr, e);
         throw FileIOError{std::string{"Failed to create file for table \""}.append(name).append("\".")};
     }
     
-    FileHandle file_handle;
-    try {
-        file_handle = _page_manager.open(file_name);
-    } catch (const FileIOError &e) {
-        print_error(std::cerr, e);
-        throw FileIOError{
-            std::string{"Failed to create table \""}
-                .append(name).append("\" because the created file cannot be opened.")};
-    }
+    auto page = _page_manager.allocate_page(file_handle, 0);
+    BinaryStream{page.buffer} << uint32_t{0}  // page count
+                              << uint32_t{0}  // record count
+                              << uint32_t{0}  // current rid
+                              << record_descriptor;
+    _page_manager.mark_page_dirty(page);
+    _page_manager.flush_page(page);
+    _page_manager.close_file(file_handle);
     
-    auto file_id = 0;
-    if (!_file_manager.open_file(file_name.c_str(), file_id)) {
-        throw FileIOError{std::string{"Failed to create table \""}
-                              .append(name)
-                              .append("\" because the created file cannot be opened.")};
-    }
-    
-    auto buffer_id = 0;
-    
-    // write header to the first page.
-    auto binary_stream = BinaryStream{_buffer_manager.allocate_page(file_id, 0, buffer_id)};
-    binary_stream << uint32_t{0}  // page count
-                  << uint32_t{0}  // record count
-                  << uint32_t{0}  // current rid
-                  << record_descriptor;
-    _buffer_manager.mark_dirty(buffer_id);
-    _buffer_manager.write_back(buffer_id);
-    _file_manager.close_file(file_id);
 }
 
 Table RecordManager::open_table(const std::string &name) {
     
     auto file_name = name + ".table";
-    auto file_id = 0;
-    if (!_file_manager.open_file(file_name.c_str(), file_id)) {
+    
+    FileHandle file_handle = 0;
+    try {
+        file_handle = _page_manager.open_file(file_name);
+    } catch (const FileIOError &e) {
+        print_error(std::cerr, e);
         throw FileIOError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
     }
     
-    auto buffer_id = 0;
-    auto binary_stream = BinaryStream{_buffer_manager.get_page(file_id, 0, buffer_id)};
-    _buffer_manager.mark_access(buffer_id);
+    auto page = _page_manager.get_page(file_handle, 0);
+    _page_manager.mark_page_accessed(page);
+    
+    BinaryStream binary_stream{page.buffer};
     
     auto page_count = binary_stream.get<uint32_t>();
     auto record_count = binary_stream.get<uint32_t>();
     auto curr_rid = binary_stream.get<int32_t>();
     auto record_descriptor = binary_stream.get<RecordDescriptor>();
-    auto table = Table{name, record_descriptor, file_id, curr_rid, page_count, record_count};
-    table.add_buffer_id(buffer_id);
+    Table table{name, record_descriptor, file_handle, curr_rid, page_count, record_count};
+    table.add_page_handle(page.page_handle);
     
     return table;
 }
 
 void RecordManager::close_table(const Table &table) {
     
-    auto buffer_id = 0;
-    auto binary_stream = BinaryStream{_buffer_manager.get_page(table.file_id(), 0, buffer_id)};
-    _buffer_manager.mark_access(buffer_id);
+    auto page = _page_manager.get_page(table.file_handle(), 0);
+    _page_manager.mark_page_accessed(page);
     
-    binary_stream << table.page_count() << table.record_count() << table.current_record_id();
-    _buffer_manager.mark_dirty(buffer_id);
-    _buffer_manager.write_back(buffer_id);
+    BinaryStream{page.buffer} << table.page_count() << table.record_count() << table.current_record_id();
     
-    for (auto &&id : table.buffer_ids()) {
-        auto file_id = 0;
-        auto page_id = 0;
-        _buffer_manager.get_key(id, file_id, page_id);
-        if (file_id == table.file_id()) {
-            _buffer_manager.write_back(id);
+    _page_manager.mark_page_dirty(page);
+    _page_manager.flush_page(page);
+    
+    for (auto &&handle : table.page_handles()) {
+        if (!_page_manager.is_replaced(page)) {
+            _page_manager.flush_page(page);
         }
     }
-    _file_manager.close_file(table.file_id());
+    _page_manager.close_file(table.file_handle());
 }
 
 void RecordManager::delete_table(const std::string &name) {
-    throw FileIOError{std::string{"Failed to delete file for table \""}.append(name).append("\".")};
+    try {
+        _page_manager.delete_file(name + ".table");
+    } catch (const FileIOError &e) {
+        print_error(std::cerr, e);
+        throw FileIOError{std::string{"Failed to delete file for table \""}.append(name).append("\".")};
+    }
 }
 
 Record RecordManager::_decode_record(const uint8_t *buffer, const RecordDescriptor &record_descriptor) {
@@ -133,9 +123,9 @@ Record RecordManager::insert_record(
     for (auto i = 0; i < table.page_count(); i++) {
         
         auto buffer_id = 0;
-        buffer = _buffer_manager.get_page(table.file_id(), i, buffer_id);
+        buffer = _buffer_manager.get_page(table.file_handle(), i, buffer_id);
         _buffer_manager.mark_access(buffer_id);
-        table.add_buffer_id(buffer_id);
+        table.add_page_handle(buffer_id);
         
         auto binary_stream = BinaryStream{buffer};
         if (binary_stream.get<uint32_t>() == table.slot_count_per_page()) {
@@ -158,9 +148,9 @@ Record RecordManager::insert_record(
     
     if (buffer == nullptr) {  // no available page found, alloc new
         auto buffer_id = 0;
-        buffer = _buffer_manager.allocate_page(table.file_id(), table.page_count(), buffer_id);
+        buffer = _buffer_manager.allocate_page(table.file_handle(), table.page_count(), buffer_id);
         table.increase_page_count();
-        table.add_buffer_id(buffer_id);
+        table.add_page_handle(buffer_id);
         _buffer_manager.mark_dirty(buffer_id);
         
         // initialize the page
@@ -196,9 +186,9 @@ Record RecordManager::insert_record(
 
 void RecordManager::update_record(Table &table, const Record &record) {
     auto index = 0;
-    auto buffer = _buffer_manager.get_page(table.file_id(), record.slot() / table.slot_count_per_page(), index);
+    auto buffer = _buffer_manager.get_page(table.file_handle(), record.slot() / table.slot_count_per_page(), index);
     _buffer_manager.mark_dirty(index);
-    table.add_buffer_id(index);
+    table.add_page_handle(index);
     
     auto offset = _record_offset(record.slot(), table.slot_count_per_page(), table.record_length());
     _encode_record(reinterpret_cast<uint8_t *>(buffer) + offset, record);
@@ -206,9 +196,9 @@ void RecordManager::update_record(Table &table, const Record &record) {
 
 void RecordManager::delete_record(Table &table, int32_t slot) {
     auto index = 0;
-    auto buffer = _buffer_manager.get_page(table.file_id(), slot / table.slot_count_per_page(), index);
+    auto buffer = _buffer_manager.get_page(table.file_handle(), slot / table.slot_count_per_page(), index);
     _buffer_manager.mark_dirty(index);
-    table.add_buffer_id(index);
+    table.add_page_handle(index);
     
     auto istream = BinaryStream{buffer};
     auto ostream = BinaryStream{buffer};
@@ -239,9 +229,9 @@ int32_t RecordManager::_record_offset(int32_t slot, uint32_t slots_per_page, uin
 std::optional<Record> RecordManager::get_record(Table &table, int32_t slot) {
     
     auto index = 0;
-    auto buffer = _buffer_manager.get_page(table.file_id(), slot / table.slot_count_per_page(), index);
+    auto buffer = _buffer_manager.get_page(table.file_handle(), slot / table.slot_count_per_page(), index);
     _buffer_manager.mark_access(index);
-    table.add_buffer_id(index);
+    table.add_page_handle(index);
     
     auto byte_pos = _slot_bitset_offset(table.slot_count_per_page(), slot);
     auto bit_mask = _slot_bitset_switcher(table.slot_count_per_page(), slot);

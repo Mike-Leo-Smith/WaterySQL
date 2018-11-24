@@ -5,13 +5,13 @@
 #ifndef WATERYSQL_SINGLETON_H
 #define WATERYSQL_SINGLETON_H
 
-#include "noncopyable.h"
-#include "nonmovable.h"
+#include "non_copyable.h"
+#include "non_movable.h"
 
 namespace watery {
 
 template<typename UnderlyingClass>
-class Singleton : Noncopyable, Nonmovable {
+class Singleton : NonCopyable, NonMovable {
 
 protected:
     Singleton() = default;

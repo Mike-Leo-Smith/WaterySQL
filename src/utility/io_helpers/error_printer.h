@@ -16,7 +16,7 @@ template<typename OStream>
 void _print_error_impl(
     OStream &os, std::string_view file, std::string_view function,
     size_t line, const std::exception &e) {
-    Printer::print(std::cerr, "Error occurred in ",
+    Printer::print(std::cerr, "Error caught in ",
                    "file \"", file, "\", ",
                    "function \"", function, "\", ",
                    "line #", line, ", ",

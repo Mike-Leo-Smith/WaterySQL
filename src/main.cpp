@@ -13,11 +13,11 @@
 
 int main() {
     
-    watery::print_error(std::cerr, watery::FileIOError{"Reason unknown..."});
-    
     using namespace watery;
     
     auto &&page_manager = PageManager::instance();
+    
+    page_manager.delete_file("test3.table");
 
     auto record_manager = RecordManager{};
     auto record_descriptor = RecordDescriptor{
@@ -27,7 +27,12 @@ int main() {
 
     try {
         record_manager.create_table("test3", record_descriptor);
-        auto && table = record_manager.open_table("test3");
+    } catch (const std::exception &e) {
+        print_error(std::cerr, e);
+    }
+    
+    try {
+        auto &&table = record_manager.open_table("test3");
         std::cout << table.record_length() << std::endl;
         std::cout << table.record_count() << std::endl;
         std::cout << table.page_count() << std::endl;
@@ -37,10 +42,10 @@ int main() {
             std::cout << fd.name << ", " << fd.data_descriptor.size << std::endl;
         });
         record_manager.close_table(table);
-    } catch (const FileIOError &e) {
-        std::cerr << e.what() << std::endl;
+    } catch (const std::exception &e) {
+        print_error(std::cerr, e);
     }
-
+    
     std::cout << sizeof(Record) << std::endl;
     std::cout << sizeof(Data) << std::endl;
     

@@ -9,11 +9,11 @@
 #include <memory>
 #include "type_tag.h"
 #include "data_descriptor.h"
-#include "../utility/type_constraints/noncopyable.h"
+#include "../utility/type_constraints/non_copyable.h"
 
 namespace watery {
 
-class Data : Noncopyable {
+class Data : NonCopyable {
 private:
     DataDescriptor _descriptor;
 

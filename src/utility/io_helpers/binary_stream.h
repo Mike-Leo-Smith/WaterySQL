@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <memory>
-#include "../type_constraints/noncopyable.h"
+#include "../type_constraints/non_copyable.h"
 
 namespace watery {
 

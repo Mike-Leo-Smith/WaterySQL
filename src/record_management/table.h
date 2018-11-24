@@ -9,14 +9,14 @@
 
 #include <string>
 #include <unordered_set>
-#include "../utility/type_constraints/noncopyable.h"
+#include "../utility/type_constraints/non_copyable.h"
 #include "record_descriptor.h"
 #include "../filesystem_demo/utils/pagedef.h"
-#include "../utility/type_constraints/nonmovable.h"
+#include "../utility/type_constraints/non_movable.h"
 
 namespace watery {
 
-class Table : Noncopyable {
+class Table : NonCopyable {
 private:
     std::string _name;
     RecordDescriptor _record_descriptor;
@@ -35,18 +35,18 @@ public:
     void increase_page_count();
     void increase_record_count();
     void decrease_record_count();
-    void add_buffer_id(int32_t id);
+    void add_page_handle(int32_t id);
     void increase_current_record_id();
     
     const std::string &name() const;
     const RecordDescriptor &record_descriptor() const;
-    int32_t file_id() const;
+    int32_t file_handle() const;
     uint32_t page_count() const;
     uint32_t record_count() const;
     uint32_t record_length() const;
     uint32_t slot_count_per_page() const;
     int32_t current_record_id() const;
-    const std::unordered_set<int32_t> &buffer_ids() const;
+    const std::unordered_set<int32_t> &page_handles() const;
     
 };
 

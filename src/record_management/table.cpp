@@ -19,7 +19,7 @@ const RecordDescriptor &Table::record_descriptor() const {
     return _record_descriptor;
 }
 
-int32_t Table::file_id() const {
+int32_t Table::file_handle() const {
     return _file_id;
 }
 
@@ -39,7 +39,7 @@ uint32_t Table::slot_count_per_page() const {
     return _slot_count_per_page;
 }
 
-const std::unordered_set<int32_t> &Table::buffer_ids() const {
+const std::unordered_set<int32_t> &Table::page_handles() const {
     return _buffer_ids;
 }
 
@@ -55,7 +55,7 @@ void Table::decrease_record_count() {
     _record_count--;
 }
 
-void Table::add_buffer_id(int32_t id) {
+void Table::add_page_handle(int32_t id) {
     _buffer_ids.emplace(id);
 }
 

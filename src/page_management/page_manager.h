@@ -24,14 +24,15 @@ protected:
 public:
     bool file_exists(const std::string &file_name) const;
     void create_file(const std::string &file_name);
-    FileHandle open(const std::string &file_name);
-    void close(FileHandle file_handle) noexcept;
-    Page get_page(FileHandle file_handle, PageOffset page_offset);
-    Page allocate_page(FileHandle file_handle, PageOffset page_offset);
-    void mark_page_dirty(PageHandle page_handle);
-    void write_page_back(PageHandle page_handle);
-    void mark_page_accessed(PageHandle page_handle);
-    bool is_replaced(Page page);
+    void delete_file(const std::string &file_name);
+    FileHandle open_file(const std::string &file_name);
+    void close_file(FileHandle file_handle) noexcept;
+    Page get_page(FileHandle file_handle, PageOffset page_offset) noexcept;
+    Page allocate_page(FileHandle file_handle, PageOffset page_offset) noexcept;
+    void mark_page_dirty(Page page) noexcept;
+    void flush_page(Page page) noexcept;
+    void mark_page_accessed(Page page) noexcept;
+    bool is_replaced(Page page) noexcept;
 };
 
 }

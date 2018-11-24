@@ -14,7 +14,7 @@
 
 namespace watery {
 
-class Record : Noncopyable {
+class Record : NonCopyable {
     
 private:
     int32_t _rid;
