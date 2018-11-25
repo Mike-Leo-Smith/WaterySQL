@@ -16,7 +16,11 @@ int main() {
     
     auto &&page_manager = PageManager::instance();
     
-    page_manager.delete_file("test3.table");
+    try {
+        page_manager.delete_file("test3.table");
+    } catch (const std::exception &e) {
+        print_error(std::cerr, e);
+    }
     
     auto &&record_manager = RecordManager::instance();
     auto record_descriptor = RecordDescriptor{
@@ -78,6 +82,15 @@ int main() {
             print_error(std::cerr, e);
         }
     }
+    
+    std::cout << "------- speed test -------" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto i = 0; i < 100000; i++) {
+        record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, World!!! I am happy!!!"));
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    using namespace std::chrono_literals;
+    std::cout << "time: " << (stop - start) / 1ms << "ms" << std::endl;
     
     try {
         record_manager.close_table(table);

@@ -1,6 +1,9 @@
 #ifndef BUF_PAGE_MANAGER
 #define BUF_PAGE_MANAGER
 
+#include <vector>
+#include <unordered_map>
+
 #include "../utils/MyHashMap.h"
 #include "../utils/MyBitMap.h"
 #include "FindReplace.h"
@@ -8,15 +11,69 @@
 #include "../fileio/FileManager.h"
 #include "../utils/MyLinkList.h"
 
+#include "../../buffer_offset.h"
+
 /*
  * BufferedPageManager
  * 实现了一个缓存的管理器
  */
 struct BufferedPageManager {
+
+public:
+    class DualWayMap {
+    public:
+        struct Hash {
+            uint64_t operator()(watery::BufferOffset offset) const {
+                return std::hash<uint64_t>{}(
+                    (static_cast<uint64_t>(offset.file_handle) << 32) |
+                    static_cast<uint64_t>(offset.page_offset));
+            }
+        };
+    
+        struct Pred {
+            bool operator()(watery::BufferOffset lhs, watery::BufferOffset rhs) const {
+                return lhs.page_offset == rhs.page_offset && lhs.file_handle == rhs.file_handle;
+            }
+        };
+    
+        using OffsetToHandleMap = std::unordered_map<watery::BufferOffset, watery::BufferHandle, Hash, Pred>;
+        using HandleToOffsetMap = std::vector<watery::BufferOffset>;
+
+    private:
+        OffsetToHandleMap _offset_to_handle_map;
+        HandleToOffsetMap _handle_to_offset_map;
+
+    public:
+        explicit DualWayMap(size_t size) {
+            _handle_to_offset_map.resize(size, {-1, -1});
+        }
+        
+        watery::BufferHandle get_handle(watery::BufferOffset offset) {
+            return _offset_to_handle_map[offset];
+        }
+        
+        watery::BufferOffset get_offset(watery::BufferHandle handle) {
+            return _handle_to_offset_map[handle];
+        }
+        
+        void set(watery::BufferHandle handle, watery::BufferOffset offset) {
+            _offset_to_handle_map[offset] = handle;
+            _handle_to_offset_map[handle] = offset;
+        }
+        
+        void remove(watery::BufferHandle handle) {
+            _offset_to_handle_map.erase(_handle_to_offset_map[handle]);
+            _handle_to_offset_map[handle] = {-1, -1};
+        }
+        
+    };
+    
+    
+
 private:
     int _last;
     FileManager *_fileManager;
-    MyHashMap *_hash;
+    DualWayMap _map{MAX_BUFFERED_PAGE_COUNT};
     FindReplace *_replace;
     bool *_dirty;
     /*
@@ -35,13 +92,12 @@ private:
             addr[index] = b;
         } else {
             if (_dirty[index]) {
-                int k1, k2;
-                _hash->getKeys(index, k1, k2);
-                _fileManager->write_page(k1, k2, b, 0);
+                auto [f, p] = _map.get_offset(index);
+                _fileManager->write_page(f, p, b, 0);
                 _dirty[index] = false;
             }
         }
-        _hash->replace(index, typeID, pageID);
+        _map.set(index, {typeID, pageID});
         return b;
     }
     /*
@@ -52,9 +108,9 @@ private:
     void _release(int index) {
         _dirty[index] = false;
         _replace->free(index);
-        _hash->remove(index);
+        _map.remove(index);
     }
-    
+
 public:
     /*
      * @函数名allocPage
@@ -90,7 +146,7 @@ public:
      *           如果没有找到，那么就利用替换算法获取一个页面
      */
     BufType get_page(int fileID, int pageID, int &index) {
-        index = _hash->findIndex(fileID, pageID);
+        index = _map.get_handle({fileID, pageID});
         if (index != -1) {
             mark_access(index);
             return addr[index];
@@ -129,13 +185,12 @@ public:
      */
     void write_back(int index) {
         if (_dirty[index]) {
-            int f, p;
-            _hash->getKeys(index, f, p);
+            auto [f, p] = _map.get_offset(index);
             _fileManager->write_page(f, p, addr[index], 0);
             _dirty[index] = false;
         }
         _replace->free(index);
-        _hash->remove(index);
+        _map.remove(index);
     }
     /*
      * @函数名close
@@ -153,7 +208,9 @@ public:
      * @参数pageID:函数返回时，用于存储指定缓存页面对应的文件页号
      */
     void get_key(int index, int &fileID, int &pageID) {
-        _hash->getKeys(index, fileID, pageID);
+        auto [f, p] = _map.get_offset(index);
+        fileID = f;
+        pageID = p;
     }
     /*
      * 构造函数
@@ -167,7 +224,6 @@ public:
         //bpl = new MyLinkList(MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM);
         _dirty = new bool[MAX_BUFFERED_PAGE_COUNT];
         addr = new BufType[MAX_BUFFERED_PAGE_COUNT];
-        _hash = new MyHashMap(c, m);
         _replace = new FindReplace(c);
         for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
             _dirty[i] = false;

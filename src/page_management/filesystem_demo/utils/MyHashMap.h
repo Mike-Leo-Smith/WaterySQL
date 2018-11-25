@@ -1,6 +1,7 @@
 #ifndef MY_HASH_MAP
 #define MY_HASH_MAP
 
+#include <utility>
 #include "pagedef.h"
 #include "MyLinkList.h"
 
@@ -31,8 +32,10 @@ private:
     /*
      * hash函数
      */
-    int hash(int k1, int k2) {
-        return (k1 * A + k2 * B) % MOD_;
+    uint32_t hash(int k1, int k2) {
+        auto &&hasher = std::hash<uint64_t>{};
+        return static_cast<uint32_t>(hasher((static_cast<uint64_t>(k1) << 32) | static_cast<uint64_t>(k2)) % MOD_);
+//        return (k1 * A + k2 * B) % MOD_;
     }
 public:
     /*

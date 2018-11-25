@@ -6,10 +6,13 @@
 #define WATERYSQL_DATA_PAGE_H
 
 #include "data_page_header.h"
+#include "../utility/type_constraints/non_copyable.h"
+#include "../utility/type_constraints/non_movable.h"
+#include "../utility/type_constraints/non_trivial_constructible.h"
 
 namespace watery {
 
-struct DataPage {
+struct DataPage : NonCopyable, NonTrivialConstructible, NonMovable {
     DataPageHeader header;
     Byte data[];
 };

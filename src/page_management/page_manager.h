@@ -6,8 +6,8 @@
 #define WATERYSQL_PAGE_MANAGER_H
 
 #include "../utility/type_constraints/singleton.h"
-#include "../filesystem_demo/fileio/FileManager.h"
-#include "../filesystem_demo/bufmanager/BufferedPageManager.h"
+#include "filesystem_demo/fileio/FileManager.h"
+#include "filesystem_demo/bufmanager/BufferedPageManager.h"
 #include "buffered_page.h"
 
 namespace watery {

@@ -148,7 +148,7 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
             }
         }
     }
-    throw RecordManagerError{"Failed to insert new record int the data file that might be corrupt."};
+    throw RecordManagerError{"Failed to insert new record in the data file that might be corrupt."};
 }
 
 void RecordManager::update_record(Table &table, RecordOffset record_offset, const Byte *data) {

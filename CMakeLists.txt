@@ -8,21 +8,21 @@ set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/opt/llvm/lib -lc++fs")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune=native")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune=native")
 
 set(SOURCE_FILES
     src/main.cpp
-    src/filesystem_demo/bufmanager/BufferedPageManager.h
-    src/filesystem_demo/bufmanager/FindReplace.h
-    src/filesystem_demo/fileio/FileManager.h
-    src/filesystem_demo/fileio/FileTable.h
-    src/filesystem_demo/utils/compare.h
-    src/filesystem_demo/utils/MyBitMap.h
-    src/filesystem_demo/utils/MyHashMap.h
-    src/filesystem_demo/utils/MyLinkList.h
-    src/filesystem_demo/utils/pagedef.h
-    src/filesystem_demo/testfilesystem.cpp
+    src/page_management/filesystem_demo/bufmanager/BufferedPageManager.h
+    src/page_management/filesystem_demo/bufmanager/FindReplace.h
+    src/page_management/filesystem_demo/fileio/FileManager.h
+    src/page_management/filesystem_demo/fileio/FileTable.h
+    src/page_management/filesystem_demo/utils/compare.h
+    src/page_management/filesystem_demo/utils/MyBitMap.h
+    src/page_management/filesystem_demo/utils/MyHashMap.h
+    src/page_management/filesystem_demo/utils/MyLinkList.h
+    src/page_management/filesystem_demo/utils/pagedef.h
+    src/page_management/filesystem_demo/testfilesystem.cpp
     src/config/config.h
     src/record_management/record_descriptor.h
     src/record_management/field_descriptor.h
@@ -57,6 +57,6 @@ set(SOURCE_FILES
     src/page_management/buffer_offset.h
     src/record_management/table_header.h
     src/record_management/data_page.h
-    src/errors/record_manager_error.h)
+    src/errors/record_manager_error.h src/index_management/b_tree_node_offset.cpp src/index_management/b_tree_node_offset.h)
 
 add_executable(WaterySQL ${SOURCE_FILES})
