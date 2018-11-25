@@ -11,13 +11,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "../utils/pagedef.h"
-#include "../utils/MyBitMap.h"
+#include "pagedef.h"
 
 class FileManager {
+
 private:
     std::array<int, MAX_FILE_NUM> _fd{};
     std::bitset<MAX_FILE_NUM> _fm;
+    
     int _create_file(const char *name) {
         FILE *f = fopen(name, "a+");
         if (f == nullptr) {
@@ -27,6 +28,7 @@ private:
         fclose(f);
         return 0;
     }
+    
     int _open_file(const char *name, int fileID) {
         int f = open(name, O_RDWR);
         if (f == -1) {
@@ -35,6 +37,7 @@ private:
         _fd[fileID] = f;
         return 0;
     }
+    
 public:
     /*
      * FilManager构造函数
@@ -128,4 +131,5 @@ public:
     
     ~FileManager() = default;
 };
+
 #endif

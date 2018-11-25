@@ -1,9 +1,10 @@
 #ifndef BUF_SEARCH
 #define BUF_SEARCH
 
-#include "../utils/MyLinkList.h"
-#include "../utils/MyHashMap.h"
-#include "../utils/pagedef.h"
+#include "MyLinkList.h"
+#include "MyHashMap.h"
+#include "pagedef.h"
+
 /*
  * FindReplace
  * 提供替换算法接口，这里实现的是栈式LRU算法
@@ -11,7 +12,7 @@
 class FindReplace {
 private:
     MyLinkList _list;
-    int _capacity;
+
 public:
     /*
      * @函数名free
@@ -44,12 +45,11 @@ public:
      * 构造函数
      * @参数c:表示缓存页面的容量上限
      */
-    explicit FindReplace(int c)
-        : _capacity{c}, _list{c, 1} {
-        _capacity = c;
-        for (int i = 0; i < _capacity; ++i) {
+    explicit FindReplace(size_t c) : _list{c, 1} {
+        for (int i = 0; i < c; ++i) {
             _list.insert(0, i);
         }
     }
 };
+
 #endif

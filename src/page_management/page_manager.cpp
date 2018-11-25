@@ -62,10 +62,6 @@ bool PageManager::not_flushed(PageHandle page) noexcept {
            page_offset == page.buffer_offset.page_offset;
 }
 
-PageManager::PageManager() {
-    MyBitMap::initConst();   //新加的初始化
-}
-
 void PageManager::delete_file(const std::string &file_name) {
     if (!std::filesystem::remove(file_name)) {
         throw PageManagerError(std::string{"Failed to delete file \""}.append(file_name).append("\"."));

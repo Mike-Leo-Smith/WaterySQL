@@ -26,17 +26,16 @@ class MyHashMap {
 private:
     static const int A = 1;
     static const int B = 1;
-    int CAP_, MOD_;
-    MyLinkList *list;
-    DataNode *a;
+    size_t _capacity, _mod;
+    MyLinkList list;
+    std::vector<DataNode> a;
     /*
      * hash函数
      */
-    uint32_t hash(int k1, int k2) {
-        auto &&hasher = std::hash<uint64_t>{};
-        return static_cast<uint32_t>(hasher((static_cast<uint64_t>(k1) << 32) | static_cast<uint64_t>(k2)) % MOD_);
-//        return (k1 * A + k2 * B) % MOD_;
+    uint64_t hash(int k1, int k2) {
+        return std::hash<uint64_t>{}((static_cast<uint64_t>(k1) << 32) | static_cast<uint64_t>(k2)) % _mod;
     }
+    
 public:
     /*
      * @函数名findIndex
@@ -46,17 +45,12 @@ public:
      *           这里的value是自然数，如果没有找到，则返回-1
      */
     int findIndex(int k1, int k2) {
-        int h = hash(k1, k2);
-        int p = list->getFirst(h);
-        while (!list->isHead(p)) {
+        auto p = list.getFirst(hash(k1, k2));
+        while (!list.isHead(p)) {
             if (a[p].key1 == k1 && a[p].key2 == k2) {
-                /*
-                _list.del(p);
-                _list.insertFirst(p);
-                */
                 return p;
             }
-            p = list->next(p);
+            p = list.next(p);
         }
         return -1;
     }
@@ -68,9 +62,7 @@ public:
      * 功能:在hash表中，将指定value对应的两个key设置为k1和k2
      */
     void replace(int index, int k1, int k2) {
-        int h = hash(k1, k2);
-        //cout << h << endl;
-        list->insertFirst(h, index);
+        list.insertFirst(hash(k1, k2), index);
         a[index].key1 = k1;
         a[index].key2 = k2;
     }
@@ -80,7 +72,7 @@ public:
      * 功能:在hash表中，将指定的value删掉
      */
     void remove(int index) {
-        list->del(index);
+        list.del(index);
         a[index].key1 = -1;
         a[index].key2 = -1;
     }
@@ -99,15 +91,9 @@ public:
      * @参数c:hash表的容量上限
      * @参数m:hash函数的mod
      */
-    MyHashMap(int c, int m) {
-        CAP_ = c;
-        MOD_ = m;
-        a = new DataNode[c];
-        for (int i = 0; i < CAP_; ++i) {
-            a[i].key1 = -1;
-            a[i].key2 = -1;
-        }
-        list = new MyLinkList(CAP_, MOD_);
+    MyHashMap(size_t c, size_t m)
+        : _capacity{c}, _mod{m}, list{c, m} {
+        a.resize(c, {-1, -1});
     }
 };
 #endif

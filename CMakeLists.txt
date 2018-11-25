@@ -13,15 +13,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune
 
 set(SOURCE_FILES
     src/main.cpp
-    src/page_management/filesystem_demo/bufmanager/BufferedPageManager.h
-    src/page_management/filesystem_demo/bufmanager/FindReplace.h
-    src/page_management/filesystem_demo/fileio/FileManager.h
-    src/page_management/filesystem_demo/fileio/FileTable.h
-    src/page_management/filesystem_demo/utils/compare.h
-    src/page_management/filesystem_demo/utils/MyBitMap.h
-    src/page_management/filesystem_demo/utils/MyHashMap.h
-    src/page_management/filesystem_demo/utils/MyLinkList.h
-    src/page_management/filesystem_demo/utils/pagedef.h
+    src/page_management/filesystem_demo/BufferedPageManager.h
+    src/page_management/filesystem_demo/FindReplace.h
+    src/page_management/filesystem_demo/FileManager.h
+    src/page_management/filesystem_demo/MyHashMap.h
+    src/page_management/filesystem_demo/MyLinkList.h
+    src/page_management/filesystem_demo/pagedef.h
     src/config/config.h
     src/record_management/record_descriptor.h
     src/record_management/field_descriptor.h

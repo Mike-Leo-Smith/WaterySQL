@@ -6,11 +6,10 @@
 #include <vector>
 #include <unordered_map>
 
-#include "../utils/MyHashMap.h"
-#include "../utils/MyBitMap.h"
-#include "../utils/pagedef.h"
-#include "../fileio/FileManager.h"
-#include "../utils/MyLinkList.h"
+#include "MyHashMap.h"
+#include "pagedef.h"
+#include "FileManager.h"
+#include "MyLinkList.h"
 
 #include "FindReplace.h"
 
@@ -38,7 +37,7 @@ private:
         BufType b;
         index = _replace.find();
         b = _addr[index];
-        if (b == NULL) {
+        if (b == nullptr) {
             b = _allocate_memory();
             _addr[index] = b;
         } else {
@@ -51,16 +50,6 @@ private:
         }
         _map.replace(index, typeID, pageID);
         return b;
-    }
-    /*
-     * @函数名release
-     * @参数index:缓存页面数组中的下标，用来表示一个缓存页面
-     * 功能:将index代表的缓存页面归还给缓存管理器，在归还前，缓存页面中的数据不标记写回
-     */
-    void _release(int index) {
-        _dirty[index] = false;
-        _replace.free(index);
-        _map.remove(index);
     }
 
 public:
