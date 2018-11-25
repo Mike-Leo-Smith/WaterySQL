@@ -22,7 +22,6 @@ set(SOURCE_FILES
     src/page_management/filesystem_demo/utils/MyHashMap.h
     src/page_management/filesystem_demo/utils/MyLinkList.h
     src/page_management/filesystem_demo/utils/pagedef.h
-    src/page_management/filesystem_demo/testfilesystem.cpp
     src/config/config.h
     src/record_management/record_descriptor.h
     src/record_management/field_descriptor.h

@@ -1,7 +1,9 @@
 #ifndef FILE_MANAGER
 #define FILE_MANAGER
 
+#include <array>
 #include <string>
+#include <bitset>
 #include <stdio.h>
 #include <iostream>
 #include <sys/types.h>
@@ -14,13 +16,11 @@
 
 class FileManager {
 private:
-    //FileTable* ftable;
-    int _fd[MAX_FILE_NUM]{};
-    MyBitMap *_fm;
-    MyBitMap *_tm;
+    std::array<int, MAX_FILE_NUM> _fd{};
+    std::bitset<MAX_FILE_NUM> _fm;
     int _create_file(const char *name) {
         FILE *f = fopen(name, "a+");
-        if (f == NULL) {
+        if (f == nullptr) {
             std::cout << "fail" << std::endl;
             return -1;
         }
@@ -40,9 +40,9 @@ public:
      * FilManager构造函数
      */
     FileManager() {
-        _fm = new MyBitMap(MAX_FILE_NUM, 1);
-        _tm = new MyBitMap(MAX_TYPE_NUM, 1);
-    }
+        _fd.fill(-1);
+    };
+    
     /*
      * @函数名writePage
      * @参数fileID:文件id，用于区别已经打开的文件
@@ -61,7 +61,7 @@ public:
             return -1;
         }
         BufType b = buf + off;
-        error = write(f, (void *)b, PAGE_SIZE);
+        write(f, (void *)b, PAGE_SIZE);
         return 0;
     }
     /*
@@ -74,7 +74,6 @@ public:
      * 返回:成功操作返回0
      */
     int read_page(int fileID, int pageID, BufType buf, int off) {
-        //int f = _fd[fID[type]];
         int f = _fd[fileID];
         off_t offset = pageID;
         offset = (offset << PAGE_SIZE_IDX);
@@ -83,7 +82,7 @@ public:
             return -1;
         }
         BufType b = buf + off;
-        error = read(f, (void *)b, PAGE_SIZE);
+        read(f, (void *)b, PAGE_SIZE);
         return 0;
     }
     /*
@@ -93,7 +92,7 @@ public:
      * 返回:操作成功，返回0
      */
     int close_file(int fileID) {
-        _fm->setBit(fileID, 1);
+        _fm[fileID] = false;
         int f = _fd[fileID];
         close(f);
         return 0;
@@ -116,25 +115,17 @@ public:
      * 返回:如果成功打开，在fileID中存储为该文件分配的id，返回true，否则返回false
      */
     bool open_file(const char *name, int &fileID) {
-        fileID = _fm->findLeftOne();
-        _fm->setBit(fileID, 0);
-        _open_file(name, fileID);
-        return true;
+        for (auto i = 0; i < MAX_FILE_NUM; i++) {
+            if (!_fm[i]) {
+                if (_open_file(name, fileID) == 0) {
+                    _fm[i] = true;
+                    return true;
+                }
+            }
+        }
+        return false;
     }
-    int new_type() {
-        int t = _tm->findLeftOne();
-        _tm->setBit(t, 0);
-        return t;
-    }
-    void close_type(int typeID) {
-        _tm->setBit(typeID, 1);
-    }
-    void shutdown() {
-        delete _tm;
-        delete _fm;
-    }
-    ~FileManager() {
-        this->shutdown();
-    }
+    
+    ~FileManager() = default;
 };
 #endif

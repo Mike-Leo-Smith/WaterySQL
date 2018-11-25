@@ -1,103 +1,55 @@
-#ifndef BUF_PAGE_MANAGER
-#define BUF_PAGE_MANAGER
+#ifndef BUFFERED_PAGE_MANAGER
+#define BUFFERED_PAGE_MANAGER
 
+#include <array>
+#include <bitset>
 #include <vector>
 #include <unordered_map>
 
 #include "../utils/MyHashMap.h"
 #include "../utils/MyBitMap.h"
-#include "FindReplace.h"
 #include "../utils/pagedef.h"
 #include "../fileio/FileManager.h"
 #include "../utils/MyLinkList.h"
 
-#include "../../buffer_offset.h"
+#include "FindReplace.h"
 
 /*
  * BufferedPageManager
  * 实现了一个缓存的管理器
  */
 struct BufferedPageManager {
-
-public:
-    class DualWayMap {
-    public:
-        struct Hash {
-            uint64_t operator()(watery::BufferOffset offset) const {
-                return std::hash<uint64_t>{}(
-                    (static_cast<uint64_t>(offset.file_handle) << 32) |
-                    static_cast<uint64_t>(offset.page_offset));
-            }
-        };
     
-        struct Pred {
-            bool operator()(watery::BufferOffset lhs, watery::BufferOffset rhs) const {
-                return lhs.page_offset == rhs.page_offset && lhs.file_handle == rhs.file_handle;
-            }
-        };
-    
-        using OffsetToHandleMap = std::unordered_map<watery::BufferOffset, watery::BufferHandle, Hash, Pred>;
-        using HandleToOffsetMap = std::vector<watery::BufferOffset>;
-
-    private:
-        OffsetToHandleMap _offset_to_handle_map;
-        HandleToOffsetMap _handle_to_offset_map;
-
-    public:
-        explicit DualWayMap(size_t size) {
-            _handle_to_offset_map.resize(size, {-1, -1});
-        }
-        
-        watery::BufferHandle get_handle(watery::BufferOffset offset) {
-            return _offset_to_handle_map[offset];
-        }
-        
-        watery::BufferOffset get_offset(watery::BufferHandle handle) {
-            return _handle_to_offset_map[handle];
-        }
-        
-        void set(watery::BufferHandle handle, watery::BufferOffset offset) {
-            _offset_to_handle_map[offset] = handle;
-            _handle_to_offset_map[handle] = offset;
-        }
-        
-        void remove(watery::BufferHandle handle) {
-            _offset_to_handle_map.erase(_handle_to_offset_map[handle]);
-            _handle_to_offset_map[handle] = {-1, -1};
-        }
-        
-    };
-    
-    
-
 private:
     int _last;
-    FileManager *_fileManager;
-    DualWayMap _map{MAX_BUFFERED_PAGE_COUNT};
-    FindReplace *_replace;
-    bool *_dirty;
+    FileManager &_file_manager;
+    MyHashMap _map{MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM};
+    FindReplace _replace{MAX_BUFFERED_PAGE_COUNT};
+    std::bitset<MAX_BUFFERED_PAGE_COUNT> _dirty;
+    std::array<BufType, MAX_BUFFERED_PAGE_COUNT> _addr{};
     /*
      * 缓存页面数组
      */
-    BufType *addr;
     BufType _allocate_memory() {
         return new unsigned int[(PAGE_SIZE >> 2)];
     }
+    
     BufType _fetch_page(int typeID, int pageID, int &index) {
         BufType b;
-        index = _replace->find();
-        b = addr[index];
+        index = _replace.find();
+        b = _addr[index];
         if (b == NULL) {
             b = _allocate_memory();
-            addr[index] = b;
+            _addr[index] = b;
         } else {
             if (_dirty[index]) {
-                auto [f, p] = _map.get_offset(index);
-                _fileManager->write_page(f, p, b, 0);
+                int f = 0, p = 0;
+                _map.getKeys(index, f, p);
+                _file_manager.write_page(f, p, b, 0);
                 _dirty[index] = false;
             }
         }
-        _map.set(index, {typeID, pageID});
+        _map.replace(index, typeID, pageID);
         return b;
     }
     /*
@@ -107,7 +59,7 @@ private:
      */
     void _release(int index) {
         _dirty[index] = false;
-        _replace->free(index);
+        _replace.free(index);
         _map.remove(index);
     }
 
@@ -128,7 +80,7 @@ public:
     BufType allocate_page(int fileID, int pageID, int &index, bool ifRead = false) {
         BufType b = _fetch_page(fileID, pageID, index);
         if (ifRead) {
-            _fileManager->read_page(fileID, pageID, b, 0);
+            _file_manager.read_page(fileID, pageID, b, 0);
         }
         return b;
     }
@@ -146,13 +98,13 @@ public:
      *           如果没有找到，那么就利用替换算法获取一个页面
      */
     BufType get_page(int fileID, int pageID, int &index) {
-        index = _map.get_handle({fileID, pageID});
+        index = _map.findIndex(fileID, pageID);
         if (index != -1) {
             mark_access(index);
-            return addr[index];
+            return _addr[index];
         } else {
             BufType b = _fetch_page(fileID, pageID, index);
-            _fileManager->read_page(fileID, pageID, b, 0);
+            _file_manager.read_page(fileID, pageID, b, 0);
             return b;
         }
     }
@@ -165,7 +117,7 @@ public:
         if (index == _last) {
             return;
         }
-        _replace->access(index);
+        _replace.access(index);
         _last = index;
     }
     /*
@@ -185,22 +137,15 @@ public:
      */
     void write_back(int index) {
         if (_dirty[index]) {
-            auto [f, p] = _map.get_offset(index);
-            _fileManager->write_page(f, p, addr[index], 0);
+            int f = 0, p = 0;
+            _map.getKeys(index, f, p);
+            _file_manager.write_page(f, p, _addr[index], 0);
             _dirty[index] = false;
         }
-        _replace->free(index);
+        _replace.free(index);
         _map.remove(index);
     }
-    /*
-     * @函数名close
-     * 功能:将所有缓存页面归还给缓存管理器，归还前需要根据脏页标记决定是否写到对应的文件页面中
-     */
-    void close() {
-        for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
-            write_back(i);
-        }
-    }
+    
     /*
      * @函数名getKey
      * @参数index:缓存页面数组中的下标，用来指定一个缓存页面
@@ -208,27 +153,27 @@ public:
      * @参数pageID:函数返回时，用于存储指定缓存页面对应的文件页号
      */
     void get_key(int index, int &fileID, int &pageID) {
-        auto [f, p] = _map.get_offset(index);
-        fileID = f;
-        pageID = p;
+        _map.getKeys(index, fileID, pageID);
     }
     /*
      * 构造函数
      * @参数fm:文件管理器，缓存管理器需要利用文件管理器与磁盘进行交互
      */
-    BufferedPageManager(FileManager *fm) {
-        int c = MAX_BUFFERED_PAGE_COUNT;
-        int m = MOD;
+    explicit BufferedPageManager(FileManager &fm)
+        : _file_manager{fm} {
         _last = -1;
-        _fileManager = fm;
-        //bpl = new MyLinkList(MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM);
-        _dirty = new bool[MAX_BUFFERED_PAGE_COUNT];
-        addr = new BufType[MAX_BUFFERED_PAGE_COUNT];
-        _replace = new FindReplace(c);
+        _addr.fill(nullptr);
+    }
+    
+    ~BufferedPageManager() {
         for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
-            _dirty[i] = false;
-            addr[i] = NULL;
+            write_back(i);
+            if (_addr[i] != nullptr) {
+                delete[] _addr[i];
+            }
         }
     }
+    
 };
+
 #endif

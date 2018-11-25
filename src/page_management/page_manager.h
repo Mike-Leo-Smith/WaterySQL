@@ -16,10 +16,11 @@ class PageManager : public Singleton<PageManager> {
 
 private:
     FileManager _file_manager{};
-    BufferedPageManager _buffer_manager{&_file_manager};
+    BufferedPageManager _buffer_manager{_file_manager};
 
 protected:
     PageManager();
+    ~PageManager() = default;
 
 public:
     bool file_exists(const std::string &file_name) const;

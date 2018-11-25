@@ -1,6 +1,8 @@
 #ifndef MY_LINK_LIST
 #define MY_LINK_LIST
 
+#include <vector>
+
 class MyLinkList {
 private:
     struct ListNode {
@@ -9,7 +11,7 @@ private:
     };
     int cap;
     int LIST_NUM;
-    ListNode *a;
+    std::vector<ListNode> a;
     void link(int prev, int next) {
         a[prev].next = next;
         a[next].prev = prev;
@@ -52,7 +54,7 @@ public:
     MyLinkList(int c, int n) {
         cap = c;
         LIST_NUM = n;
-        a = new ListNode[n + c];
+        a.resize(n + c);
         for (int i = 0; i < cap + LIST_NUM; ++i) {
             a[i].next = i;
             a[i].prev = i;
