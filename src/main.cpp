@@ -14,18 +14,20 @@ int main() {
     
     using namespace watery;
     
-    auto &&page_manager = PageManager::instance();
+    auto &&record_manager = RecordManager::instance();
     
     try {
-        page_manager.delete_file("test3.table");
+        record_manager.delete_table("test3");
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
     
-    auto &&record_manager = RecordManager::instance();
     auto record_descriptor = RecordDescriptor{
         {"SomeThing", TypeTag::INTEGER, 4},
-        {"Another",   TypeTag::INTEGER, 8}
+        {"Another",   TypeTag::INTEGER, 8},
+        {"Another",   TypeTag::INTEGER, 8},
+        {"Another",   TypeTag::INTEGER, 8},
+        {"Another",   TypeTag::INTEGER, 8},
     };
     
     try {

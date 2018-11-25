@@ -6,13 +6,22 @@
 #define WATERYSQL_ERROR_H
 
 #include <exception>
+#include <string>
 
 namespace watery {
 
-struct Error : public std::exception {
+class Error : public std::exception {
+
+private:
+    std::string _message;
+    
+public:
+    Error(std::string_view type, std::string_view reason) {
+        _message.append(type).append(": ").append(reason);
+    }
     
     const char *what() const noexcept override {
-        return "Unknown error.";
+        return _message.c_str();
     }
     
 };

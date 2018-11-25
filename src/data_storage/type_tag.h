@@ -6,13 +6,13 @@
 #define WATERYSQL_TYPE_TAG_H
 
 #include <cstdint>
+#include <string>
 
 namespace watery {
 
 enum struct TypeTag : uint16_t {
     INTEGER,
     FLOAT,
-    CHAR,
     VARCHAR
 };
 

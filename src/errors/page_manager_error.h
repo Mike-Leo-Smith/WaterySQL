@@ -5,19 +5,13 @@
 #ifndef WATERYSQL_PAGE_MANAGER_ERROR_H
 #define WATERYSQL_PAGE_MANAGER_ERROR_H
 
-#include <string>
 #include "error.h"
 
 namespace watery {
 
-class PageManagerError : public Error {
-
-private:
-    std::string _message{"Page Manager Error: "};
-
-public:
-    explicit PageManagerError(std::string_view reason) { _message.append(reason); }
-    const char *what() const noexcept override { return _message.c_str(); }
+struct PageManagerError : public Error {
+    explicit PageManagerError(std::string_view reason):
+        Error{"PageManagerError", reason} {}
 };
 
 }

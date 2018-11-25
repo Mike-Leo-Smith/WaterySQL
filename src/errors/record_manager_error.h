@@ -5,18 +5,13 @@
 #ifndef WATERYSQL_RECORD_MANAGER_ERROR_H
 #define WATERYSQL_RECORD_MANAGER_ERROR_H
 
-#include <string>
 #include "error.h"
 
 namespace watery {
 
-class RecordManagerError : public Error {
-private:
-    std::string _message{"Record Manager Error: "};
-
-public:
-    explicit RecordManagerError(std::string_view reason) { _message.append(reason); }
-    const char *what() const noexcept override { return _message.c_str(); }
+struct RecordManagerError : public Error {
+    explicit RecordManagerError(std::string_view reason)
+        : Error{"RecordManagerError", reason} {}
 };
 
 }

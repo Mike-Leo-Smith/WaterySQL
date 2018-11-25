@@ -20,17 +20,15 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
         throw RecordManagerError{std::string{"Failed to create table because the records are too long ("}
                                      .append(std::to_string(rl)).append(" bytes).")};
     }
-    
-    auto file_name = name + ".table";
-    if (_page_manager.file_exists(file_name)) {
+    if (_page_manager.file_exists(name)) {
         throw RecordManagerError{
             std::string{"Failed to create file for table \""}.append(name).append("\" which already exists.")};
     }
     
     FileHandle file_handle;
     try {
-        _page_manager.create_file(file_name);
-        file_handle = _page_manager.open_file(file_name);
+        _page_manager.create_file(name);
+        file_handle = _page_manager.open_file(name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw RecordManagerError{std::string{"Failed to create file for table \""}.append(name).append("\".")};
@@ -45,18 +43,16 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
 }
 
 Table RecordManager::open_table(const std::string &name) {
-    
     if (is_table_open(name)) {
         throw RecordManagerError{std::string{"Failed to open table \""}
                                      .append(name).append("\" which is already open.")};
     }
-    auto file_name = name + ".table";
     FileHandle file_handle = 0;
     try {
-        file_handle = _page_manager.open_file(file_name);
+        file_handle = _page_manager.open_file(name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
-        throw PageManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
+        throw RecordManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
     }
     _used_buffers.emplace(name, std::unordered_map<BufferHandle, BufferOffset>{});
     
@@ -91,13 +87,13 @@ void RecordManager::close_table(const Table &table) {
 
 void RecordManager::delete_table(const std::string &name) {
     if (is_table_open(name)) {
-        throw RecordManagerError{std::string{"Failed to close table \""}.append(name).append("\" which is in use.")};
+        throw RecordManagerError{std::string{"Failed to delete table \""}.append(name).append("\" which is in use.")};
     }
     try {
-        _page_manager.delete_file(name + ".table");
+        _page_manager.delete_file(name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
-        throw PageManagerError{std::string{"Failed to delete file for table \""}.append(name).append("\".")};
+        throw RecordManagerError{std::string{"Failed to delete file for table \""}.append(name).append("\".")};
     }
 }
 
@@ -122,7 +118,7 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
         auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
         data_page.header.record_count = 1;
         data_page.header.slot_usage_bitmap[0] = true;
-        std::copy_n(data, table.header.record_length, &data_page.data[0]);
+        std::uninitialized_copy_n(data, table.header.record_length, &data_page.data[0]);
         table.header.page_count++;
         table.header.record_count++;
         return {page_handle.buffer_offset.page_offset, 0};
@@ -136,7 +132,7 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
                 for (auto slot = 0; slot < table.header.slot_count_per_page; slot++) {
                     if (!data_page.header.slot_usage_bitmap[slot]) {
                         data_page.header.slot_usage_bitmap[slot] = true;
-                        std::copy_n(
+                        std::uninitialized_copy_n(
                             data, table.header.record_length,
                             &data_page.data[table.header.record_length * slot]);
                         data_page.header.record_count++;
@@ -158,7 +154,7 @@ void RecordManager::update_record(Table &table, RecordOffset record_offset, cons
                       if (!dp.header.slot_usage_bitmap[ro.slot_offset]) {
                           throw RecordManagerError{"Failed to update record that does not exist."};
                       }
-                      std::copy_n(d, l, &dp.data[t.header.record_length * ro.slot_offset]);
+                      std::uninitialized_copy_n(d, l, &dp.data[t.header.record_length * ro.slot_offset]);
                       pm.mark_page_dirty(bp);
                   });
 }

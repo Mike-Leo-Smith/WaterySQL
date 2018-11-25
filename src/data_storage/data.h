@@ -7,24 +7,41 @@
 
 #include <cstdint>
 #include <memory>
+
+#include "../config/config.h"
 #include "type_tag.h"
 #include "data_descriptor.h"
 #include "../utility/type_constraints/non_copyable.h"
+#include "../errors/data_error.h"
 
 namespace watery {
 
-class Data : NonCopyable {
-private:
-    DataDescriptor _descriptor;
-
-protected:
-    explicit Data(DataDescriptor descriptor);
-
-public:
+struct Data : NonCopyable {
     virtual ~Data() = default;
-    const DataDescriptor &descriptor() const;
-    static std::unique_ptr<Data> decode(DataDescriptor descriptor, const uint8_t *raw);
-    virtual void encode(uint8_t *buffer) const = 0;
+    virtual TypeTag type() const = 0;
+    virtual uint32_t length() const = 0;
+    static std::unique_ptr<Data> decode(DataDescriptor descriptor, const Byte *raw);
+    virtual void encode(Byte *buffer) const = 0;
+    
+    virtual bool operator<(const Data &rhs) const {
+        throw DataError{"Failed to compare data due to unsupported operator [<]."};
+    }
+    
+    virtual bool operator<=(const Data &rhs) const {
+        throw DataError{"Failed to compare data due to unsupported operator [<=]."};
+    }
+    
+    virtual bool operator==(const Data &rhs) const {
+        throw DataError{"Failed to compare data due to unsupported operator [==]."};
+    }
+    
+    virtual bool operator>=(const Data &rhs) const {
+        throw DataError{"Failed to compare data due to unsupported operator [>=]."};
+    }
+    
+    virtual bool operator>(const Data &rhs) const {
+        throw DataError{"Failed to compare data due to unsupported operator [>]."};
+    }
 };
 
 }

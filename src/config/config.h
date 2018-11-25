@@ -17,21 +17,15 @@ using BufferHandle = int32_t;
 
 using PageOffset = int32_t;
 using SlotOffset = int32_t;
+using ChildOffset = int32_t;
 
 using Byte = uint8_t;
 
-static constexpr uint32_t MAX_TABLE_NAME_LENGTH = 64;
 static constexpr uint32_t MAX_FIELD_NAME_LENGTH = 32;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;
 
-static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 256;
-static constexpr uint32_t SLOT_BITSET_SIZE = (MAX_SLOT_COUNT_PER_PAGE + 7) / 8;
-static constexpr uint32_t MAX_DATA_SIZE = 32767;
-
-static constexpr uint32_t MAX_BTREE_NODE_POINTER_COUNT = 32;
-static constexpr uint32_t MAX_BTREE_NODE_KEY_COUNT = MAX_BTREE_NODE_POINTER_COUNT - 1;
-static constexpr uint32_t MIN_BTREE_NODE_POINTER_COUNT = (MAX_BTREE_NODE_POINTER_COUNT + 1) / 2;
-static constexpr uint32_t MIN_BTREE_NODE_KEY_COUNT = MIN_BTREE_NODE_POINTER_COUNT - 1;
+static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 512;
+static constexpr uint32_t MAX_CHILD_COUNT_PER_INDEX_NODE = 512;
 
 using FieldNullBitset = BitsetHolder<MAX_FIELD_COUNT>;
 

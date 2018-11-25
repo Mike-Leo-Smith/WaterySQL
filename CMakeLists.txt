@@ -25,13 +25,9 @@ set(SOURCE_FILES
     src/data_storage/type_tag.h
     src/data_storage/data_descriptor.h
     src/data_storage/data.h
-    src/data_storage/data.cpp
     src/utility/type_constraints/non_copyable.h
     src/utility/memory_mapping/binary_stream.h
     src/utility/type_manipulators/bitset_holder_type_selector.h
-    src/index_management/b_tree.cpp src/index_management/b_tree.h
-    src/index_management/b_tree_node.cpp
-    src/index_management/b_tree_node.h
     src/index_management/index_manager.cpp
     src/index_management/index_manager.h
     src/page_management/page_manager.cpp
@@ -53,6 +49,6 @@ set(SOURCE_FILES
     src/page_management/buffer_offset.h
     src/record_management/table_header.h
     src/record_management/data_page.h
-    src/errors/record_manager_error.h src/index_management/b_tree_node_offset.cpp src/index_management/b_tree_node_offset.h)
+    src/errors/record_manager_error.h src/index_management/index_node.h src/index_management/index.h src/index_management/index_header.h src/index_management/index_node_header.h src/errors/index_manager_error.h src/index_management/index_node_pointer_offset.h src/errors/data_error.h src/data_storage/integer.h src/data_storage/data.cpp src/data_storage/float.h src/data_storage/varchar.h)
 
 add_executable(WaterySQL ${SOURCE_FILES})

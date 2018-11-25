@@ -25,8 +25,8 @@ private:
 
 protected:
     RecordManager() = default;
-    
-private:
+
+protected:
     template<typename Visitor>
     decltype(auto) _visit_record(Table &table, RecordOffset record_offset, Visitor &&visitor) {
         if (record_offset.page_offset >= table.header.page_count) {
