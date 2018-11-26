@@ -12,7 +12,6 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune=n
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -mtune=native")
 
 set(SOURCE_FILES
-    src/main.cpp
     src/page_management/filesystem_demo/BufferedPageManager.h
     src/page_management/filesystem_demo/FindReplace.h
     src/page_management/filesystem_demo/FileManager.h
@@ -49,6 +48,19 @@ set(SOURCE_FILES
     src/page_management/buffer_offset.h
     src/record_management/table_header.h
     src/record_management/data_page.h
-    src/errors/record_manager_error.h src/index_management/index_node.h src/index_management/index.h src/index_management/index_header.h src/index_management/index_node_header.h src/errors/index_manager_error.h src/index_management/index_node_pointer_offset.h src/errors/data_error.h src/data_storage/integer.h src/data_storage/data.cpp src/data_storage/float.h src/data_storage/varchar.h)
+    src/errors/record_manager_error.h
+    src/index_management/index_node.h
+    src/index_management/index.h
+    src/index_management/index_header.h
+    src/index_management/index_node_header.h
+    src/errors/index_manager_error.h
+    src/index_management/index_node_pointer_offset.h
+    src/errors/data_error.h
+    src/data_storage/integer.h
+    src/data_storage/data.cpp
+    src/data_storage/float.h
+    src/data_storage/varchar.h)
 
-add_executable(WaterySQL ${SOURCE_FILES})
+add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
+add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
+add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)

@@ -10,14 +10,37 @@
 #include "index.h"
 #include "index_node.h"
 #include "../data_storage/data.h"
+#include "index_node_pointer_offset.h"
 
 namespace watery {
 
-class IndexManager {
+class IndexManager : public Singleton<IndexManager> {
 
 private:
     PageManager &_page_manager{PageManager::instance()};
     std::unordered_map<std::string, std::unordered_map<BufferHandle, BufferOffset>> _used_buffers;
+
+protected:
+    IndexManager() = default;
+    ~IndexManager() = default;
+
+private:
+    PageHandle _get_node_page(const Index &index, PageOffset node_offset);
+    PageHandle _allocate_node_page(Index &index);
+    
+    void _insert_below(Index &index, PageOffset offset, const Data &data, RecordOffset record_offset);
+    void _split_and_insert(Index &index, PageOffset node_offset, const Data &insertion_key, RecordOffset record_offset);
+    IndexEntryOffset _search_below(Index &index, PageOffset node_offset, const Data &data);
+    
+    static uint32_t _get_child_pointer_offset(const Index &index, ChildOffset i);
+    static uint32_t _get_child_key_offset(const Index &index, ChildOffset i);
+    static PageOffset _get_child_page_offset(const Index &index, IndexNode &node, ChildOffset i);
+    static std::unique_ptr<Data> _get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i);
+    static RecordOffset _get_index_entry_record_offset(const Index &index, const IndexNode &node, ChildOffset i);
+    
+    static void _write_index_entry(const Index &idx, IndexNode &n, ChildOffset i, const Data &d, RecordOffset &ro);
+    static void _move_trailing_index_entries(
+        const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i);
 
 public:
     void create_index(const std::string &name, DataDescriptor key_descriptor);
@@ -26,16 +49,12 @@ public:
     void close_index(const Index &index);
     bool is_index_open(const std::string &name) const noexcept;
     
-    template<typename Cmp>
-    void insert_index_node(const Index &index, const Data &data, RecordOffset record_offset) {
+    void insert_index_entry(Index &index, const Data &data, RecordOffset record_offset);
+    void delete_index_entry(Index &index, const Data &data, RecordOffset record_offset);
     
-    }
+    IndexEntryOffset search_index_entry(Index &index, const Data &data);
     
-    template<typename Cmp>
-    void delete_index_node(const Index &index, const Data &data, RecordOffset record_offset, Cmp &&comparator) {
-    
-    }
-    
+    IndexNode &map_index_node_page(const PageHandle &page_handle) const;
 };
 
 }

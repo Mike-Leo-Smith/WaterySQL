@@ -16,7 +16,7 @@ private:
 
 public:
     Varchar(const char *buffer, uint32_t size) {
-        _val.resize(size, ' ');
+        _val.resize(size);
         std::copy_n(buffer, size, _val.begin());
     }
     

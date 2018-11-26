@@ -9,7 +9,7 @@
 
 namespace watery {
 
-struct IndexNodePointerOffset {
+struct IndexEntryOffset {
     
     PageOffset page_offset;
     ChildOffset child_offset;

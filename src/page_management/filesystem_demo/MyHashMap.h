@@ -24,8 +24,6 @@ struct DataNode {
  */
 class MyHashMap {
 private:
-    static const int A = 1;
-    static const int B = 1;
     size_t _capacity, _mod;
     MyLinkList list;
     std::vector<DataNode> a;
@@ -35,7 +33,7 @@ private:
     uint64_t hash(int k1, int k2) {
         return std::hash<uint64_t>{}((static_cast<uint64_t>(k1) << 32) | static_cast<uint64_t>(k2)) % _mod;
     }
-    
+
 public:
     /*
      * @函数名findIndex

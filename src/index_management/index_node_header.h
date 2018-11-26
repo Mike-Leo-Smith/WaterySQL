@@ -14,10 +14,9 @@
 namespace watery {
 
 struct IndexNodeHeader {
-    
     uint32_t child_count;
     PageOffset parent_page_offset;
-    
+    bool is_leaf;
 };
 
 }

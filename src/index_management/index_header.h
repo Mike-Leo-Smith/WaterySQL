@@ -6,6 +6,7 @@
 #define WATERYSQL_INDEX_HEADER_H
 
 #include <cstdint>
+#include "../config/config.h"
 #include "../data_storage/data_descriptor.h"
 
 namespace watery {
@@ -17,7 +18,7 @@ struct IndexHeader {
     uint32_t key_length;
     uint32_t pointer_length;
     uint32_t child_count_per_node;
-    
+    PageOffset root_offset;
 };
 
 }
