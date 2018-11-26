@@ -153,41 +153,9 @@ void IndexManager::_move_trailing_index_entries(
     auto *dest = &dest_node.fields[0] + _get_child_key_offset(index, _get_child_pointer_offset(index, dest_i));
     std::memmove(dest, src, src_end - src);
 }
-void IndexManager::_split_and_insert(
-    Index &index, PageOffset node_offset, const Data &insertion_key, RecordOffset record_offset) {
-    
-    PageHandle page_handle = _get_node_page(index, node_offset);
-    auto &node = map_index_node_page(page_handle);
-    
-    auto child_count_in_current_page = node.header.child_count / 2;
-    auto child_count_in_split_page = node.header.child_count - child_count_in_current_page;
-    
-    auto split_page_handle = _page_manager.allocate_page(index.file_handle, index.header.page_count);
-}
 
-void IndexManager::_insert_below(Index &index, PageOffset offset, const Data &data, RecordOffset record_offset) {
-    
-    auto page_handle = _get_node_page(index, offset);
-    auto &node = map_index_node_page(page_handle);
-    
-    if (node.header.is_leaf) {  // arrived at leaf, try to insert directly.
-        if (node.header.child_count < index.header.child_count_per_node) {  // can be insert directly
-            // find place for insertion.
-            for (auto i = 0; i < node.header.child_count; i++) {
-                auto key = _get_index_entry_key(index, node, i);
-                if (*key < data) {
-                    // make space for insertion.
-                    _move_trailing_index_entries(index, node, i, node, i + 1);
-                    _write_index_entry(index, node, i, data, record_offset);
-                    node.header.child_count++;
-                    _page_manager.mark_page_dirty(page_handle);
-                    return;
-                }
-            }
-        } else {  // otherwise, split will occur.
-            _split_and_insert(index, offset, data, record_offset);
-        }
-    }
+void IndexManager::_split_and_insert(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r) {
+    // TODO: needs to be implemented...
 }
 
 void IndexManager::insert_index_entry(Index &index, const Data &data, RecordOffset record_offset) {
@@ -203,9 +171,14 @@ void IndexManager::insert_index_entry(Index &index, const Data &data, RecordOffs
         auto entry_offset = _search_below(index, index.header.root_offset, data);
         auto page_handle = _get_node_page(index, entry_offset.page_offset);
         auto &node = map_index_node_page(page_handle);
-        
-        // TODO: insertion not tested...
-        _insert_below(index, index.header.root_offset, data, record_offset);
+        if (entry_offset.child_offset < index.header.key_count_per_node) {  // can be inserted directly.
+            _move_trailing_index_entries(index, node, entry_offset.child_offset, node, entry_offset.child_offset + 1);
+            _write_index_entry(index, node, entry_offset.child_offset, data, record_offset);
+            node.header.child_count++;
+            _page_manager.mark_page_dirty(page_handle);
+        } else {
+            _split_and_insert(index, entry_offset, data, record_offset);
+        }
     }
 }
 

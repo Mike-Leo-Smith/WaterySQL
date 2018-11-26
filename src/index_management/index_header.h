@@ -17,7 +17,7 @@ struct IndexHeader {
     uint32_t page_count;
     uint32_t key_length;
     uint32_t pointer_length;
-    uint32_t child_count_per_node;
+    uint32_t key_count_per_node;
     PageOffset root_offset;
 };
 

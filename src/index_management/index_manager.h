@@ -28,8 +28,7 @@ private:
     PageHandle _get_node_page(const Index &index, PageOffset node_offset);
     PageHandle _allocate_node_page(Index &index);
     
-    void _insert_below(Index &index, PageOffset offset, const Data &data, RecordOffset record_offset);
-    void _split_and_insert(Index &index, PageOffset node_offset, const Data &insertion_key, RecordOffset record_offset);
+    void _split_and_insert(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r);
     IndexEntryOffset _search_below(Index &index, PageOffset node_offset, const Data &data);
     
     static uint32_t _get_child_pointer_offset(const Index &index, ChildOffset i);
@@ -49,10 +48,9 @@ public:
     void close_index(const Index &index);
     bool is_index_open(const std::string &name) const noexcept;
     
+    IndexEntryOffset search_index_entry(Index &index, const Data &data);
     void insert_index_entry(Index &index, const Data &data, RecordOffset record_offset);
     void delete_index_entry(Index &index, const Data &data, RecordOffset record_offset);
-    
-    IndexEntryOffset search_index_entry(Index &index, const Data &data);
     
     IndexNode &map_index_node_page(const PageHandle &page_handle) const;
 };

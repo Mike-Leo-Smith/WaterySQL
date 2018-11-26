@@ -44,7 +44,7 @@ int main() {
     try {
         index = index_manager.open_index(name);
         std::cout << index.header.page_count << std::endl;
-        std::cout << index.header.child_count_per_node << std::endl;
+        std::cout << index.header.key_count_per_node << std::endl;
         std::cout << index.header.key_length << std::endl;
         std::cout << index.header.pointer_length << std::endl;
     } catch (const std::exception &e) {
