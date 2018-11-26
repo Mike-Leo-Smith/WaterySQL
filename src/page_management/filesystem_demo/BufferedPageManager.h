@@ -25,16 +25,16 @@ private:
     MyHashMap _map{MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM};
     FindReplace _replace{MAX_BUFFERED_PAGE_COUNT};
     std::bitset<MAX_BUFFERED_PAGE_COUNT> _dirty;
-    std::array<BufType, MAX_BUFFERED_PAGE_COUNT> _addr{};
+    std::array<Buffer, MAX_BUFFERED_PAGE_COUNT> _addr{};
     /*
      * 缓存页面数组
      */
-    BufType _allocate_memory() {
-        return new unsigned int[(PAGE_SIZE >> 2)];
+    Buffer _allocate_memory() {
+        return reinterpret_cast<Buffer>(new uint8_t[PAGE_SIZE]);
     }
     
-    BufType _fetch_page(int typeID, int pageID, int &index) {
-        BufType b;
+    Buffer _fetch_page(int typeID, int pageID, int &index) {
+        Buffer b;
         index = _replace.find();
         b = _addr[index];
         if (b == nullptr) {
@@ -66,8 +66,8 @@ public:
      * 注意:在调用函数allocPage之前，调用者必须确信(fileID,pageID)指定的文件页面不存在缓存中
      *           如果确信指定的文件页面不在缓存中，那么就不用在hash表中进行查找，直接调用替换算法，节省时间
      */
-    BufType allocate_page(int fileID, int pageID, int &index, bool ifRead = false) {
-        BufType b = _fetch_page(fileID, pageID, index);
+    Buffer allocate_page(int fileID, int pageID, int &index, bool ifRead = false) {
+        Buffer b = _fetch_page(fileID, pageID, index);
         if (ifRead) {
             _file_manager.read_page(fileID, pageID, b, 0);
         }
@@ -86,13 +86,13 @@ public:
      *           如果能找到，那么表示文件页面在缓存中
      *           如果没有找到，那么就利用替换算法获取一个页面
      */
-    BufType get_page(int fileID, int pageID, int &index) {
+    Buffer get_page(int fileID, int pageID, int &index) {
         index = _map.findIndex(fileID, pageID);
         if (index != -1) {
             mark_access(index);
             return _addr[index];
         } else {
-            BufType b = _fetch_page(fileID, pageID, index);
+            Buffer b = _fetch_page(fileID, pageID, index);
             _file_manager.read_page(fileID, pageID, b, 0);
             return b;
         }

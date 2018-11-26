@@ -207,7 +207,7 @@ IndexEntryOffset IndexManager::_search_below(Index &index, PageOffset node_offse
     if (node.header.is_leaf) {
         for (auto i = 0; i < node.header.child_count; i++) {
             auto key = _get_index_entry_key(index, node, i);
-            if (*key < data) {
+            if (!(*key < data)) {  // data <= key indicates the entry is found.
                 return {node_offset, i};
             }
         }
@@ -216,7 +216,7 @@ IndexEntryOffset IndexManager::_search_below(Index &index, PageOffset node_offse
     
     for (auto i = 0; i < node.header.child_count; i++) {
         auto key = _get_index_entry_key(index, node, i);
-        if (*key < data) {
+        if (!(*key < data)) {  // data <= key indicate the entry is found.
             return _search_below(index, _get_child_page_offset(index, node, i), data);
         }
     }

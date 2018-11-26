@@ -55,7 +55,7 @@ public:
      * 功能:将buf+off开始的2048个四字节整数(8kb信息)写入fileID和pageID指定的文件页中
      * 返回:成功操作返回0
      */
-    int write_page(int fileID, int pageID, BufType buf, int off) {
+    int write_page(int fileID, int pageID, Buffer buf, int off) {
         int f = _fd[fileID];
         off_t offset = pageID;
         offset = (offset << PAGE_SIZE_IDX);
@@ -63,7 +63,7 @@ public:
         if (error != offset) {
             return -1;
         }
-        BufType b = buf + off;
+        Buffer b = buf + off;
         write(f, (void *)b, PAGE_SIZE);
         return 0;
     }
@@ -76,7 +76,7 @@ public:
      * 功能:将fileID和pageID指定的文件页中2048个四字节整数(8kb)读入到buf+off开始的内存中
      * 返回:成功操作返回0
      */
-    int read_page(int fileID, int pageID, BufType buf, int off) {
+    int read_page(int fileID, int pageID, Buffer buf, int off) {
         int f = _fd[fileID];
         off_t offset = pageID;
         offset = (offset << PAGE_SIZE_IDX);
@@ -84,7 +84,7 @@ public:
         if (error != offset) {
             return -1;
         }
-        BufType b = buf + off;
+        Buffer b = buf + off;
         read(f, (void *)b, PAGE_SIZE);
         return 0;
     }
