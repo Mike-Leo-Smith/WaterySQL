@@ -15,17 +15,15 @@ private:
     std::string _val;
 
 public:
-    Varchar(const char *buffer, uint32_t size) {
-        _val.resize(size);
-        std::copy_n(buffer, size, _val.begin());
-    }
+    Varchar(const char *buffer, uint32_t size)
+        : _val{buffer, size} {}
     
     TypeTag type() const override { return TypeTag::VARCHAR; }
     uint32_t length() const override { return static_cast<uint32_t>(_val.size()); }
     const std::string &value() const { return _val; }
     
     void encode(Byte *buffer) const override {
-        std::copy_n(_val.cbegin(), _val.size(), buffer);
+        std::memmove(buffer, _val.c_str(), _val.size());
     }
     
     bool operator<(const Data &rhs) const override {

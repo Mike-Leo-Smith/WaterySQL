@@ -150,7 +150,7 @@ void IndexManager::_move_trailing_index_entries(
     const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) {
     auto *src = &src_node.fields[0] + _get_child_pointer_offset(index, src_i);
     auto *src_end = &src_node.fields[0] + _get_child_key_offset(index, src_node.header.child_count);
-    auto *dest = &dest_node.fields[0] + _get_child_key_offset(index, _get_child_pointer_offset(index, dest_i));
+    auto *dest = &dest_node.fields[0] + _get_child_pointer_offset(index, dest_i);
     std::memmove(dest, src, src_end - src);
 }
 
@@ -202,7 +202,7 @@ void IndexManager::delete_index_entry(Index &index, const Data &data, RecordOffs
 IndexEntryOffset IndexManager::_search_below(Index &index, PageOffset node_offset, const Data &data) {
     
     auto page_handle = _get_node_page(index, node_offset);
-    IndexNode node = map_index_node_page(page_handle);
+    auto &node = map_index_node_page(page_handle);
     // here we assume that the page used in the recursion will not be disposed before the function returns.
     if (node.header.is_leaf) {
         for (auto i = 0; i < node.header.child_count; i++) {

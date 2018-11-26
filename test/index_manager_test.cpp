@@ -9,6 +9,7 @@
 #include "../src/config/config.h"
 #include "../src/record_management/record_descriptor.h"
 #include "../src/data_storage/data.h"
+#include "../src/data_storage/varchar.h"
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
 
@@ -31,7 +32,7 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    DataDescriptor data_descriptor{TypeTag::VARCHAR, 400};
+    DataDescriptor data_descriptor{TypeTag::VARCHAR, 10};
     
     try {
         index_manager.create_index(name, data_descriptor);
@@ -47,6 +48,15 @@ int main() {
         std::cout << index.header.key_count_per_node << std::endl;
         std::cout << index.header.key_length << std::endl;
         std::cout << index.header.pointer_length << std::endl;
+        index_manager.insert_index_entry(index, Varchar{"hello, my dear!", 10}, RecordOffset{0xcc, 0xcc});
+        index_manager.insert_index_entry(index, Varchar{"hel222, my dear!", 10}, RecordOffset{0xdd, 0xdd});
+        index_manager.insert_index_entry(index, Varchar{"hel333, my dear!", 10}, RecordOffset{});
+        index_manager.insert_index_entry(index, Varchar{"he444, my dear!", 10}, RecordOffset{});
+        
+        std::cout << "------- testing search --------" << std::endl;
+        auto entry = index_manager.search_index_entry(index, Varchar{"hello, my dear!", 10});
+        std::cout << entry.page_offset << std::endl;
+        std::cout << entry.child_offset << std::endl;
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
