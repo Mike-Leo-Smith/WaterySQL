@@ -155,7 +155,7 @@ void IndexManager::_move_trailing_index_entries(
 }
 
 void IndexManager::_split_and_insert(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r) {
-    // TODO: needs to be implemented...
+    // TODO: Will be implemented after the completion of data storage module.
 }
 
 void IndexManager::insert_index_entry(Index &index, const Data &data, RecordOffset record_offset) {
