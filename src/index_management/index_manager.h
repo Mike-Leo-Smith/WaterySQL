@@ -28,9 +28,10 @@ private:
     PageHandle _get_node_page(const Index &index, PageOffset node_offset);
     PageHandle _allocate_node_page(Index &index);
     
-    void _split_and_insert(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r);
-    IndexEntryOffset _search_below(Index &index, PageOffset node_offset, const Data &data);
+    void _insert_entry_into(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r);
+    IndexEntryOffset _search_entry_in(Index &index, PageOffset node_offset, const Data &data);
     
+    static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const Data &k);
     static uint32_t _get_child_pointer_offset(const Index &index, ChildOffset i);
     static uint32_t _get_child_key_offset(const Index &index, ChildOffset i);
     static PageOffset _get_child_page_offset(const Index &index, IndexNode &node, ChildOffset i);

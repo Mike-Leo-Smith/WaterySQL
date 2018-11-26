@@ -154,8 +154,17 @@ void IndexManager::_move_trailing_index_entries(
     std::memmove(dest, src, src_end - src);
 }
 
-void IndexManager::_split_and_insert(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r) {
-    // TODO: Will be implemented after the completion of data storage module.
+void IndexManager::_insert_entry_into(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r) {
+    auto page_handle = _get_node_page(index, e.page_offset);
+    auto &node = map_index_node_page(page_handle);
+    if (e.child_offset < index.header.key_count_per_node) {  // can be inserted directly.
+        _move_trailing_index_entries(index, node, e.child_offset, node, e.child_offset + 1);
+        _write_index_entry(index, node, e.child_offset, k, r);
+        node.header.child_count++;
+        _page_manager.mark_page_dirty(page_handle);
+    } else {
+        // do split.
+    }
 }
 
 void IndexManager::insert_index_entry(Index &index, const Data &data, RecordOffset record_offset) {
@@ -168,17 +177,8 @@ void IndexManager::insert_index_entry(Index &index, const Data &data, RecordOffs
         root_node.header.parent_page_offset = -1;
         _write_index_entry(index, root_node, 0, data, record_offset);
     } else {
-        auto entry_offset = _search_below(index, index.header.root_offset, data);
-        auto page_handle = _get_node_page(index, entry_offset.page_offset);
-        auto &node = map_index_node_page(page_handle);
-        if (entry_offset.child_offset < index.header.key_count_per_node) {  // can be inserted directly.
-            _move_trailing_index_entries(index, node, entry_offset.child_offset, node, entry_offset.child_offset + 1);
-            _write_index_entry(index, node, entry_offset.child_offset, data, record_offset);
-            node.header.child_count++;
-            _page_manager.mark_page_dirty(page_handle);
-        } else {
-            _split_and_insert(index, entry_offset, data, record_offset);
-        }
+        auto entry_offset = _search_entry_in(index, index.header.root_offset, data);
+        _insert_entry_into(index, entry_offset, data, record_offset);
     }
 }
 
@@ -186,7 +186,7 @@ void IndexManager::delete_index_entry(Index &index, const Data &data, RecordOffs
     if (index.header.root_offset == -1) {
         throw IndexManagerError{"Failed to delete index entry in an empty index tree."};
     }
-    auto entry_offset = _search_below(index, index.header.root_offset, data);
+    auto entry_offset = _search_entry_in(index, index.header.root_offset, data);
     auto page_handle = _get_node_page(index, entry_offset.page_offset);
     auto &node = map_index_node_page(page_handle);
     auto rid = _get_index_entry_record_offset(index, node, entry_offset.child_offset);
@@ -199,35 +199,31 @@ void IndexManager::delete_index_entry(Index &index, const Data &data, RecordOffs
     }
 }
 
-IndexEntryOffset IndexManager::_search_below(Index &index, PageOffset node_offset, const Data &data) {
+IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset node_offset, const Data &data) {
     
     auto page_handle = _get_node_page(index, node_offset);
     auto &node = map_index_node_page(page_handle);
-    // here we assume that the page used in the recursion will not be disposed before the function returns.
-    if (node.header.is_leaf) {
-        for (auto i = 0; i < node.header.child_count; i++) {
-            auto key = _get_index_entry_key(index, node, i);
-            if (!(*key < data)) {  // data <= key indicates the entry is found.
-                return {node_offset, i};
-            }
-        }
-        return {node_offset, static_cast<ChildOffset>(node.header.child_count)};
-    }
-    
-    for (auto i = 0; i < node.header.child_count; i++) {
-        auto key = _get_index_entry_key(index, node, i);
-        if (!(*key < data)) {  // data <= key indicate the entry is found.
-            return _search_below(index, _get_child_page_offset(index, node, i), data);
-        }
-    }
-    return _search_below(index, _get_child_page_offset(index, node, node.header.child_count), data);
+    auto child_offset = _search_entry_in_node(index, node, data);
+    return node.header.is_leaf ?
+           IndexEntryOffset{node_offset, child_offset} :
+           _search_entry_in(index, child_offset, data);
 }
 
 IndexEntryOffset IndexManager::search_index_entry(Index &index, const Data &data) {
     if (index.header.root_offset == -1) {  // searching in empty tree.
         throw IndexManagerError{"Failed to search index entry in an empty index tree."};
     }
-    return _search_below(index, index.header.root_offset, data);
+    return _search_entry_in(index, index.header.root_offset, data);
+}
+
+ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const Data &k) {
+    for (auto i = 0; i < node.header.child_count; i++) {
+        auto key = _get_index_entry_key(index, node, i);
+        if (!(*key < k)) {
+            return i;
+        }
+    }
+    return node.header.child_count;
 }
 
 }
