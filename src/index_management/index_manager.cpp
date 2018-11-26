@@ -191,7 +191,7 @@ void IndexManager::delete_index_entry(Index &index, const Data &data, RecordOffs
     auto &node = map_index_node_page(page_handle);
     auto rid = _get_index_entry_record_offset(index, node, entry_offset.child_offset);
     if (entry_offset.child_offset < node.header.child_count && record_offset == rid) {
-        _move_trailing_index_entries(index, node, entry_offset.child_offset, node, entry_offset.child_offset - 1);
+        _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.child_count--;
         _page_manager.mark_page_dirty(page_handle);
     } else {

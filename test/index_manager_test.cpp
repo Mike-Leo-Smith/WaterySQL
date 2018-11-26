@@ -53,6 +53,8 @@ int main() {
         index_manager.insert_index_entry(index, Varchar{"hel333, my dear!", 10}, RecordOffset{});
         index_manager.insert_index_entry(index, Varchar{"he444, my dear!", 10}, RecordOffset{});
         
+        index_manager.delete_index_entry(index, Varchar{"hel333, my dear!", 10}, RecordOffset{});
+        
         std::cout << "------- testing search --------" << std::endl;
         auto entry = index_manager.search_index_entry(index, Varchar{"hello, my dear!", 10});
         std::cout << entry.page_offset << std::endl;
