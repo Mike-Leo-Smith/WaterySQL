@@ -5,11 +5,12 @@
 #include <stack>
 
 #include "index_manager.h"
-#include "index_node_pointer_offset.h"
+#include "index_entry_offset.h"
 #include "../errors/index_manager_error.h"
 #include "../errors/page_manager_error.h"
 #include "../utility/io_helpers/error_printer.h"
 #include "../utility/memory_mapping/memory_mapper.h"
+#include "../data_storage/varchar.h"
 
 namespace watery {
 
@@ -124,37 +125,37 @@ IndexNode &IndexManager::_map_index_node_page(const PageHandle &page_handle) con
 }
 
 std::unique_ptr<Data> IndexManager::_get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i) {
-    return Data::decode(index.header.key_descriptor, &node.fields[_get_child_key_offset(index, i)]);
+    return Data::decode(index.header.key_descriptor, &node.fields[_get_child_key_position(index, i)]);
 }
 
 RecordOffset IndexManager::_get_index_entry_record_offset(const Index &index, const IndexNode &node, ChildOffset i) {
-    return MemoryMapper::map_memory<RecordOffset>(&node.fields[_get_child_pointer_offset(index, i)]);
+    return MemoryMapper::map_memory<RecordOffset>(&node.fields[_get_child_pointer_position(index, i)]);
 }
 
-inline uint32_t IndexManager::_get_child_pointer_offset(const Index &index, ChildOffset i) {
+inline uint32_t IndexManager::_get_child_pointer_position(const Index &index, ChildOffset i) {
     return i * (index.header.pointer_length + index.header.key_length);
 }
 
-inline uint32_t IndexManager::_get_child_key_offset(const Index &index, ChildOffset i) {
-    return _get_child_pointer_offset(index, i) + index.header.pointer_length;
+inline uint32_t IndexManager::_get_child_key_position(const Index &index, ChildOffset i) {
+    return _get_child_pointer_position(index, i) + index.header.pointer_length;
 }
 
-PageOffset IndexManager::_get_child_page_offset(const Index &index, IndexNode &node, ChildOffset i) {
-    return MemoryMapper::map_memory<IndexEntryOffset>(&node.fields[_get_child_pointer_offset(index, i)]).page_offset;
+PageOffset IndexManager::_get_index_entry_page_offset(const Index &index, IndexNode &node, ChildOffset i) {
+    return MemoryMapper::map_memory<IndexEntryOffset>(&node.fields[_get_child_pointer_position(index, i)]).page_offset;
 }
 
 void IndexManager::_write_index_entry(
     const Index &index, IndexNode &node, ChildOffset i,
     const std::unique_ptr<Data> &data, RecordOffset &record_offset) {
-    data->encode(node.fields + _get_child_key_offset(index, i));
-    MemoryMapper::map_memory<RecordOffset>(node.fields + _get_child_pointer_offset(index, i)) = record_offset;
+    _write_index_entry_key(index, node, i, data);
+    MemoryMapper::map_memory<RecordOffset>(node.fields + _get_child_pointer_position(index, i)) = record_offset;
 }
 
 void IndexManager::_move_trailing_index_entries(
     const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) {
-    auto *src = &src_node.fields[0] + _get_child_pointer_offset(index, src_i);
-    auto *src_end = &src_node.fields[0] + _get_child_key_offset(index, src_node.header.key_count);
-    auto *dest = &dest_node.fields[0] + _get_child_pointer_offset(index, dest_i);
+    auto *src = &src_node.fields[0] + _get_child_pointer_position(index, src_i);
+    auto *src_end = &src_node.fields[0] + _get_child_key_position(index, src_node.header.key_count);
+    auto *dest = &dest_node.fields[0] + _get_child_pointer_position(index, dest_i);
     std::memmove(dest, src, src_end - src);
 }
 
@@ -166,76 +167,140 @@ void IndexManager::insert_index_entry(Index &index, const std::unique_ptr<Data> 
         index.header.root_offset = 1;
         root_node.header.key_count = 1;
         root_node.header.is_leaf = true;
-        root_node.header.parent_page_offset = -1;
         _write_index_entry(index, root_node, 0, data, record_offset);
+        _write_index_node_link(index, root_node, {-1, -1});
     } else {
-        std::stack<PageOffset> path;  // stack nodes down the path for further split operations.
+        std::stack<IndexEntryOffset> path;  // stack nodes down the path for further split operations.
         
         for (auto page_offset = index.header.root_offset;;) {
-            path.emplace(page_offset);
             auto page_handle = _get_node_page(index, page_offset);
-            _page_manager.mark_page_accessed(page_handle);
             auto &node = _map_index_node_page(page_handle);
-            if (node.header.is_leaf) { break; }
+            _page_manager.mark_page_accessed(page_handle);
             auto child_offset = _search_entry_in_node(index, node, data);
-            page_offset = _get_child_page_offset(index, node, child_offset);
+            path.emplace(page_offset, child_offset);
+            if (node.header.is_leaf) { break; }  // search terminates at leaf.
+            page_offset = _get_index_entry_page_offset(index, node, child_offset);
         }
         
-        auto k = data->replica();
-        auto e = record_offset;
+        auto leaf_offset = path.top();
+        path.pop();
+        
+        auto leaf_page = _get_node_page(index, leaf_offset.page_offset);
+        auto &leaf = _map_index_node_page(leaf_page);
+        _page_manager.mark_page_dirty(leaf_page);
+        
+        if (leaf.header.key_count < index.header.key_count_per_node) {  // can be insert directly.
+            _move_trailing_index_entries(index, leaf, leaf_offset.child_offset, leaf, leaf_offset.child_offset + 1);
+            _write_index_entry(index, leaf, leaf_offset.child_offset, data, record_offset);
+            leaf.header.key_count++;
+            return;
+        }
+        
+        // split and insert for the leaf.
+        auto split_leaf_page = _allocate_node_page(index);  // the allocated page will be marked dirty.
+        auto &split_leaf = _map_index_node_page(split_leaf_page);
+        split_leaf.header.is_leaf = true;
+        // decide where to split.
+        if (leaf_offset.child_offset <= index.header.key_count_per_node / 2) {  // insert into the former part.
+            auto split_pos = index.header.key_count_per_node / 2;
+            // move the trailing part to the split page.
+            _move_trailing_index_entries(index, leaf, split_pos, split_leaf, 0);
+            // update entry count.
+            split_leaf.header.key_count = leaf.header.key_count - split_pos;
+            leaf.header.key_count = split_pos;
+            // make space for the new entry.
+            _move_trailing_index_entries(index, leaf, leaf_offset.child_offset, leaf, leaf_offset.child_offset + 1);
+            _write_index_entry(index, leaf, leaf_offset.child_offset, data, record_offset);
+            // update entry count.
+            leaf.header.key_count++;
+        } else {  // into the latter part.
+            auto split_pos = index.header.key_count_per_node / 2 + 1;
+            auto ins_pos = leaf_offset.child_offset;
+            auto split_entry_count = leaf.header.key_count - split_pos + 1;
+            _move_trailing_index_entries(index, leaf, ins_pos, split_leaf, ins_pos - split_pos + 1);
+            leaf.header.key_count = static_cast<uint32_t>(ins_pos);
+            _move_trailing_index_entries(index, leaf, split_pos, split_leaf, 0);
+            _write_index_entry(index, split_leaf, ins_pos - split_pos, data, record_offset);
+            leaf.header.key_count = split_pos;
+            split_leaf.header.key_count = split_entry_count;
+        }
+        
+        // link with the split leaf.
+        auto link = _get_index_node_link(index, split_leaf);
+        IndexNodeLink leaf_link{link.prev, split_leaf_page.buffer_offset.page_offset};
+        IndexNodeLink split_link{leaf_offset.page_offset, link.next};
+        _write_index_node_link(index, leaf, leaf_link);
+        _write_index_node_link(index, split_leaf, split_link);
+        
+        // pop up squeezed entry.
+        auto k = _get_index_entry_key(index, leaf, leaf.header.key_count - 1);
+        auto split_page_offset = split_leaf_page.buffer_offset.page_offset;
+        
+        // insert popped up entry into upper nodes.
         while (!path.empty()) {
-            auto page_offset = path.top();
-            path.pop();
-            auto page_handle = _get_node_page(index, page_offset);
-            _page_manager.mark_page_dirty(page_handle);
-            auto &node = _map_index_node_page(page_handle);
-            auto child_offset = _search_entry_in_node(index, node, k);  // find offset for insertion insert.
             
-            if (node.header.key_count < index.header.key_count_per_node) {  // can be insert directly.
-                _move_trailing_index_entries(index, node, child_offset, node, child_offset + 1);
-                _write_index_entry(index, node, child_offset, k, e);
+            // fetch the associated node.
+            auto e = path.top();
+            path.pop();
+            auto page_handle = _get_node_page(index, e.page_offset);
+            auto &node = _map_index_node_page(page_handle);
+            _page_manager.mark_page_dirty(page_handle);
+            
+            // since the child node was split, the pointer changes.
+            auto former_offset = _get_index_entry_page_offset(index, node, e.child_offset);  // back-up
+            _write_index_entry_page_offset(index, node, e.child_offset, split_page_offset);
+            
+            if (node.header.key_count < index.header.key_count_per_node) {  // insert directly.
+                _move_trailing_index_entries(index, node, e.child_offset, node, e.child_offset + 1);
+                _write_index_entry_key(index, node, e.child_offset, k);
                 node.header.key_count++;
+                // update child pointers.
+                _write_index_entry_page_offset(index, node, e.child_offset, former_offset);
                 return;
             }
             
-            // split and insert.
             auto split_page = _allocate_node_page(index);
-            auto split_node = _map_index_node_page(split_page);
-            split_node.header.is_leaf = node.header.is_leaf;
-            if (child_offset <= index.header.key_count_per_node / 2) {
+            auto &split_node = _map_index_node_page(split_page);
+            split_node.header.is_leaf = false;
+            
+            // split and insert.
+            if (e.child_offset <= index.header.key_count_per_node / 2) {  // insert into the former part.
                 auto split_pos = index.header.key_count_per_node / 2;
-                
-                // move trailing entries to the new page.
+                // move entries to split node to make space for insertion.
                 _move_trailing_index_entries(index, node, split_pos, split_node, 0);
+                // update entry count.
                 split_node.header.key_count = node.header.key_count - split_pos;
                 node.header.key_count = split_pos;
-                
-                // link split node.
-//                _write_index_entry_page_offset(index, node, split_pos, split_page.buffer_offset.page_offset);
-                
-                // insert new entry.
-                _move_trailing_index_entries(index, node, child_offset, node, child_offset + 1);
-                _write_index_entry(index, node, child_offset, k, e);
+                // make space for the new entry.
+                _move_trailing_index_entries(index, node, e.child_offset, node, e.child_offset + 1);
+                _write_index_entry_key(index, node, e.child_offset, k);
+                _write_index_entry_page_offset(index, node, e.child_offset, former_offset);
+                // update entry count.
                 node.header.key_count++;
-                
-                // update k and e for upper level.
-                k = _get_index_entry_key(index, node, split_pos);
-                e = {page_offset, -1};
             } else {
                 auto split_pos = index.header.key_count_per_node / 2 + 1;
-                
-                // move entries.
+                auto split_entry_count = node.header.key_count - split_pos + 1;
+                _move_trailing_index_entries(index, node, e.child_offset, split_node, e.child_offset - split_pos + 1);
+                node.header.key_count = static_cast<uint32_t>(e.child_offset);
                 _move_trailing_index_entries(index, node, split_pos, split_node, 0);
-                split_node.header.key_count = node.header.key_count - split_pos;
+                _write_index_entry_key(index, split_node, e.child_offset - split_pos, k);
+                _write_index_entry_page_offset(index, split_node, e.child_offset - split_pos, former_offset);
                 node.header.key_count = split_pos;
-                
-                // link.
-//                _write_index_entry_page_offset(index, node, split_pos, split_page.buffer_offset.page_offset);
-            
-            
+                split_node.header.key_count = split_entry_count;
             }
             
+            k = _get_index_entry_key(index, node, node.header.key_count - 1);
+            split_page_offset = split_page.buffer_offset.page_offset;
         }
+        
+        // reach root, new root should be allocate.
+        auto root_page = _allocate_node_page(index);
+        auto &root = _map_index_node_page(root_page);
+        root.header.key_count = 1;
+        _write_index_entry_key(index, root, 0, k);
+        _write_index_entry_page_offset(index, root, 0, index.header.root_offset);
+        _write_index_entry_page_offset(index, root, 1, split_page_offset);
+        index.header.root_offset = root_page.buffer_offset.page_offset;
     }
 }
 
@@ -247,7 +312,9 @@ void IndexManager::delete_index_entry(Index &index, const std::unique_ptr<Data> 
     auto page_handle = _get_node_page(index, entry_offset.page_offset);
     auto &node = _map_index_node_page(page_handle);
     auto rid = _get_index_entry_record_offset(index, node, entry_offset.child_offset);
-    if (entry_offset.child_offset < node.header.key_count && record_offset == rid) {
+    if (record_offset == rid &&
+        entry_offset.child_offset < node.header.key_count &&
+        *_get_index_entry_key(index, node, entry_offset.child_offset) == *data) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
         _page_manager.mark_page_dirty(page_handle);
@@ -262,7 +329,7 @@ IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset p, cons
     auto child_offset = _search_entry_in_node(index, node, data);
     return node.header.is_leaf ?
            IndexEntryOffset{p, child_offset} :
-           _search_entry_in(index, child_offset, data);
+           _search_entry_in(index, _get_index_entry_page_offset(index, node, child_offset), data);
 }
 
 IndexEntryOffset IndexManager::search_index_entry(Index &index, const std::unique_ptr<Data> &data) {
@@ -273,25 +340,34 @@ IndexEntryOffset IndexManager::search_index_entry(Index &index, const std::uniqu
 }
 
 ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const std::unique_ptr<Data> &k) {
-    for (auto i = 0; i < node.header.key_count; i++) {
-        auto key = _get_index_entry_key(index, node, i);
-        if (!(*key < *k)) {
-            return i;
+    auto left = 0;
+    auto right = node.header.key_count;
+    while (left < right) {
+        auto mid = (left + right) / 2;
+        if (*_get_index_entry_key(index, node, mid) < *k) {
+            left = mid + 1;
+        } else {
+            right = mid;
         }
     }
-    return node.header.key_count;
+    return right;
 }
 
 void IndexManager::_write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) {
-    MemoryMapper::map_memory<RecordOffset>(&n.fields[_get_child_pointer_offset(idx, i)]).page_offset = p;
+    MemoryMapper::map_memory<RecordOffset>(&n.fields[_get_child_pointer_position(idx, i)]).page_offset = p;
 }
 
 void IndexManager::_write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) {
-    MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_offset(idx, n.header.key_count)]) = l;
+    MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_position(idx, n.header.key_count)]) = l;
 }
 
 IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNode &n) {
-    return MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_offset(idx, n.header.key_count)]);
+    return MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_position(idx, n.header.key_count)]);
+}
+
+void IndexManager::_write_index_entry_key(
+    const Index &idx, IndexNode &n, ChildOffset i, const std::unique_ptr<Data> &k) {
+    k->encode(&n.fields[_get_child_key_position(idx, i)]);
 }
 
 }

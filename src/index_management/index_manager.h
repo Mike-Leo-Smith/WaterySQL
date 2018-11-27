@@ -10,7 +10,7 @@
 #include "index.h"
 #include "index_node.h"
 #include "../data_storage/data.h"
-#include "index_node_pointer_offset.h"
+#include "index_entry_offset.h"
 #include "indexNodeLink.h"
 
 namespace watery {
@@ -32,9 +32,9 @@ private:
     IndexEntryOffset _search_entry_in(Index &index, PageOffset p, const std::unique_ptr<Data> &data);
     
     static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const std::unique_ptr<Data> &k);
-    static uint32_t _get_child_pointer_offset(const Index &index, ChildOffset i);
-    static uint32_t _get_child_key_offset(const Index &index, ChildOffset i);
-    static PageOffset _get_child_page_offset(const Index &index, IndexNode &node, ChildOffset i);
+    static uint32_t _get_child_pointer_position(const Index &index, ChildOffset i);
+    static uint32_t _get_child_key_position(const Index &index, ChildOffset i);
+    static PageOffset _get_index_entry_page_offset(const Index &index, IndexNode &node, ChildOffset i);
     static std::unique_ptr<Data> _get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i);
     static RecordOffset _get_index_entry_record_offset(const Index &index, const IndexNode &node, ChildOffset i);
     
@@ -42,6 +42,7 @@ private:
     static void _write_index_entry(
         const Index &idx, IndexNode &n, ChildOffset i,
         const std::unique_ptr<Data> &d, RecordOffset &ro);
+    static void _write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const std::unique_ptr<Data> &k);
     static void _write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l);
     static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n);
     static void _move_trailing_index_entries(

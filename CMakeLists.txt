@@ -54,7 +54,7 @@ set(SOURCE_FILES
     src/index_management/index_header.h
     src/index_management/index_node_header.h
     src/errors/index_manager_error.h
-    src/index_management/index_node_pointer_offset.h
+    src/index_management/index_entry_offset.h
     src/errors/data_error.h
     src/data_storage/integer.h
     src/data_storage/data.cpp

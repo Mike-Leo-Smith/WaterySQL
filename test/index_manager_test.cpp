@@ -58,7 +58,17 @@ int main() {
         index_manager.insert_index_entry(index, decode_data("hello3344, my dear!"), RecordOffset{0xcc, 0xcc});
         index_manager.insert_index_entry(index, decode_data("hello2233, my dear!"), RecordOffset{0xcc, 0xcc});
         
-        index_manager.delete_index_entry(index, decode_data("hello, my dear!"), RecordOffset{0xcc, 0xcc});
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto i = 0; i < 100000; i++) {
+            auto k = decode_data(std::to_string(rand()).append("helloooooo!!!"));
+            auto rid = RecordOffset{};
+            index_manager.insert_index_entry(index, k, rid);
+        }
+        auto stop = std::chrono::high_resolution_clock::now();
+        using namespace std::chrono_literals;
+        std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+        
+        index_manager.delete_index_entry(index, decode_data("hello3344, my dear!"), RecordOffset{0xcc, 0xcc});
         
         std::cout << "------- testing search --------" << std::endl;
         auto entry = index_manager.search_index_entry(index, decode_data("hello3344, my dear!"));
