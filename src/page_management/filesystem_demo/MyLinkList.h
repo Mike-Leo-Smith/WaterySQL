@@ -3,6 +3,8 @@
 
 #include <vector>
 
+namespace watery {
+
 class MyLinkList {
 private:
     struct Node {
@@ -17,7 +19,7 @@ private:
         _mem[prev].next = next;
         _mem[next].prev = prev;
     }
-    
+
 public:
     void del(int index) {
         if (_mem[index].prev == index) {
@@ -65,4 +67,7 @@ public:
         }
     }
 };
+
+}
+
 #endif

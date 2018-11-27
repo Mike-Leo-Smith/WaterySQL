@@ -17,7 +17,6 @@ set(SOURCE_FILES
     src/page_management/filesystem_demo/FileManager.h
     src/page_management/filesystem_demo/MyHashMap.h
     src/page_management/filesystem_demo/MyLinkList.h
-    src/page_management/filesystem_demo/pagedef.h
     src/config/config.h
     src/record_management/record_descriptor.h
     src/record_management/field_descriptor.h
@@ -59,7 +58,8 @@ set(SOURCE_FILES
     src/data_storage/integer.h
     src/data_storage/data.cpp
     src/data_storage/float.h
-    src/data_storage/varchar.h src/index_management/indexNodeLink.h)
+    src/data_storage/varchar.h
+    src/index_management/indexNodeLink.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

@@ -132,11 +132,11 @@ RecordOffset IndexManager::_get_index_entry_record_offset(const Index &index, co
     return MemoryMapper::map_memory<RecordOffset>(&node.fields[_get_child_pointer_position(index, i)]);
 }
 
-inline uint32_t IndexManager::_get_child_pointer_position(const Index &index, ChildOffset i) {
+uint32_t IndexManager::_get_child_pointer_position(const Index &index, ChildOffset i) {
     return i * (index.header.pointer_length + index.header.key_length);
 }
 
-inline uint32_t IndexManager::_get_child_key_position(const Index &index, ChildOffset i) {
+uint32_t IndexManager::_get_child_key_position(const Index &index, ChildOffset i) {
     return _get_child_pointer_position(index, i) + index.header.pointer_length;
 }
 
@@ -324,19 +324,15 @@ void IndexManager::delete_index_entry(Index &index, const std::unique_ptr<Data> 
 }
 
 IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset p, const std::unique_ptr<Data> &data) {
-    auto page_handle = _get_node_page(index, p);
-    auto &node = _map_index_node_page(page_handle);
-    auto child_offset = _search_entry_in_node(index, node, data);
-    return node.header.is_leaf ?
-           IndexEntryOffset{p, child_offset} :
-           _search_entry_in(index, _get_index_entry_page_offset(index, node, child_offset), data);
-}
-
-IndexEntryOffset IndexManager::search_index_entry(Index &index, const std::unique_ptr<Data> &data) {
-    if (index.header.root_offset == -1) {  // searching in empty tree.
-        throw IndexManagerError{"Failed to search index entry in an empty index tree."};
+    while (true) {
+        auto page_handle = _get_node_page(index, p);
+        auto &node = _map_index_node_page(page_handle);
+        auto child_offset = _search_entry_in_node(index, node, data);
+        if (node.header.is_leaf) {
+            return {p, child_offset};
+        }
+        p = _get_index_entry_page_offset(index, node, child_offset);
     }
-    return _search_entry_in(index, index.header.root_offset, data);
 }
 
 ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const std::unique_ptr<Data> &k) {
@@ -368,6 +364,13 @@ IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNo
 void IndexManager::_write_index_entry_key(
     const Index &idx, IndexNode &n, ChildOffset i, const std::unique_ptr<Data> &k) {
     k->encode(&n.fields[_get_child_key_position(idx, i)]);
+}
+
+IndexEntryOffset IndexManager::search_index_entry(Index &index, const std::unique_ptr<Data> &data) {
+    if (index.header.root_offset == -1) {  // searching in empty tree.
+        throw IndexManagerError{"Failed to search index entry in an empty index tree."};
+    }
+    return _search_entry_in(index, index.header.root_offset, data);
 }
 
 }

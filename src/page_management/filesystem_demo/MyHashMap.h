@@ -2,8 +2,9 @@
 #define MY_HASH_MAP
 
 #include <utility>
-#include "pagedef.h"
 #include "MyLinkList.h"
+
+namespace watery {
 
 /*
  * hash表的键
@@ -94,4 +95,7 @@ public:
         a.resize(c, {-1, -1});
     }
 };
+
+}
+
 #endif

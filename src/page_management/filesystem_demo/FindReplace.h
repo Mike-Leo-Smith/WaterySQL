@@ -3,7 +3,8 @@
 
 #include "MyLinkList.h"
 #include "MyHashMap.h"
-#include "pagedef.h"
+
+namespace watery {
 
 /*
  * FindReplace
@@ -51,5 +52,7 @@ public:
         }
     }
 };
+
+}
 
 #endif

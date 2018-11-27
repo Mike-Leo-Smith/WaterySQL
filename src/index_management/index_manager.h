@@ -16,7 +16,6 @@
 namespace watery {
 
 class IndexManager : public Singleton<IndexManager> {
-
 private:
     PageManager &_page_manager{PageManager::instance()};
     std::unordered_map<std::string, std::unordered_map<BufferHandle, BufferOffset>> _used_buffers;

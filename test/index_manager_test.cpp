@@ -52,14 +52,13 @@ int main() {
         auto &&decode_data = [data_descriptor](std::string_view s) {
             return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));
         };
-    
         index_manager.insert_index_entry(index, decode_data("hello5566, my dear!"), RecordOffset{0xcc, 0xcc});
         index_manager.insert_index_entry(index, decode_data("hello, my dear!"), RecordOffset{0xcc, 0xcc});
         index_manager.insert_index_entry(index, decode_data("hello3344, my dear!"), RecordOffset{0xcc, 0xcc});
         index_manager.insert_index_entry(index, decode_data("hello2233, my dear!"), RecordOffset{0xcc, 0xcc});
         
         auto start = std::chrono::high_resolution_clock::now();
-        for (auto i = 0; i < 100000; i++) {
+        for (auto i = 0; i < 500000; i++) {
             auto k = decode_data(std::to_string(rand()).append("helloooooo!!!"));
             auto rid = RecordOffset{};
             index_manager.insert_index_entry(index, k, rid);

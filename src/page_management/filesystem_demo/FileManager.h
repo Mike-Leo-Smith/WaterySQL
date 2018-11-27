@@ -11,13 +11,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "pagedef.h"
+#include "../../config/config.h"
+
+namespace watery {
 
 class FileManager {
-
 private:
-    std::array<int, MAX_FILE_NUM> _fd{};
-    std::bitset<MAX_FILE_NUM> _fm;
+    std::array<int, MAX_FILE_COUNT> _fd{};
+    std::bitset<MAX_FILE_COUNT> _fm;
     
     int _create_file(const char *name) {
         FILE *f = fopen(name, "a+");
@@ -37,7 +38,7 @@ private:
         _fd[fileID] = f;
         return 0;
     }
-    
+
 public:
     /*
      * FilManager构造函数
@@ -58,7 +59,7 @@ public:
     int write_page(int fileID, int pageID, Buffer buf, int off) {
         int f = _fd[fileID];
         off_t offset = pageID;
-        offset = (offset << PAGE_SIZE_IDX);
+        offset = (offset * PAGE_SIZE);
         off_t error = lseek(f, offset, SEEK_SET);
         if (error != offset) {
             return -1;
@@ -79,7 +80,7 @@ public:
     int read_page(int fileID, int pageID, Buffer buf, int off) {
         int f = _fd[fileID];
         off_t offset = pageID;
-        offset = (offset << PAGE_SIZE_IDX);
+        offset = (offset * PAGE_SIZE);
         off_t error = lseek(f, offset, SEEK_SET);
         if (error != offset) {
             return -1;
@@ -118,7 +119,7 @@ public:
      * 返回:如果成功打开，在fileID中存储为该文件分配的id，返回true，否则返回false
      */
     bool open_file(const char *name, int &fileID) {
-        for (auto i = 0; i < MAX_FILE_NUM; i++) {
+        for (auto i = 0; i < MAX_FILE_COUNT; i++) {
             if (!_fm[i]) {
                 if (_open_file(name, fileID) == 0) {
                     _fm[i] = true;
@@ -131,5 +132,7 @@ public:
     
     ~FileManager() = default;
 };
+
+}
 
 #endif

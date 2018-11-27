@@ -7,22 +7,25 @@
 #include <unordered_map>
 
 #include "MyHashMap.h"
-#include "pagedef.h"
 #include "FileManager.h"
 #include "MyLinkList.h"
 
 #include "FindReplace.h"
 
+#include "../../config/config.h"
+
+
+namespace watery {
+
 /*
  * BufferedPageManager
  * 实现了一个缓存的管理器
  */
-struct BufferedPageManager {
-    
+class BufferedPageManager {
 private:
     int _last;
     FileManager &_file_manager;
-    MyHashMap _map{MAX_BUFFERED_PAGE_COUNT, MAX_FILE_NUM};
+    MyHashMap _map{MAX_BUFFERED_PAGE_COUNT, MAX_FILE_COUNT};
     FindReplace _replace{MAX_BUFFERED_PAGE_COUNT};
     std::bitset<MAX_BUFFERED_PAGE_COUNT> _dirty;
     std::array<Buffer, MAX_BUFFERED_PAGE_COUNT> _addr{};
@@ -164,5 +167,7 @@ public:
     }
     
 };
+
+}
 
 #endif
