@@ -2,6 +2,8 @@
 // Created by Mike Smith on 2018/11/24.
 //
 
+#include <stack>
+
 #include "index_manager.h"
 #include "index_node_pointer_offset.h"
 #include "../errors/index_manager_error.h"
@@ -18,8 +20,9 @@ void IndexManager::create_index(const std::string &name, DataDescriptor key_desc
                         static_cast<uint32_t>((PAGE_SIZE - sizeof(IndexNodeHeader)) / (kl + pl)));
     
     if (cpn == 0) {
-        throw IndexManagerError{std::string{"Failed to create index because the keys are too long ("}
-                                    .append(std::to_string(kl)).append(" bytes).")};
+        throw IndexManagerError{
+            std::string{"Failed to create index because the keys are too long ("}
+                .append(std::to_string(kl)).append(" bytes).")};
     }
     if (_page_manager.file_exists(name)) {
         throw IndexManagerError{
@@ -116,7 +119,7 @@ PageHandle IndexManager::_allocate_node_page(Index &index) {
     return page_handle;
 }
 
-IndexNode &IndexManager::map_index_node_page(const PageHandle &page_handle) const {
+IndexNode &IndexManager::_map_index_node_page(const PageHandle &page_handle) const {
     return MemoryMapper::map_memory<IndexNode>(page_handle.data);
 }
 
@@ -141,89 +144,154 @@ PageOffset IndexManager::_get_child_page_offset(const Index &index, IndexNode &n
 }
 
 void IndexManager::_write_index_entry(
-    const Index &index, IndexNode &node, ChildOffset i, const Data &data, RecordOffset &record_offset) {
-    data.encode(node.fields + _get_child_key_offset(index, i));
+    const Index &index, IndexNode &node, ChildOffset i,
+    const std::unique_ptr<Data> &data, RecordOffset &record_offset) {
+    data->encode(node.fields + _get_child_key_offset(index, i));
     MemoryMapper::map_memory<RecordOffset>(node.fields + _get_child_pointer_offset(index, i)) = record_offset;
 }
 
 void IndexManager::_move_trailing_index_entries(
     const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) {
     auto *src = &src_node.fields[0] + _get_child_pointer_offset(index, src_i);
-    auto *src_end = &src_node.fields[0] + _get_child_key_offset(index, src_node.header.child_count);
+    auto *src_end = &src_node.fields[0] + _get_child_key_offset(index, src_node.header.key_count);
     auto *dest = &dest_node.fields[0] + _get_child_pointer_offset(index, dest_i);
     std::memmove(dest, src, src_end - src);
 }
 
-void IndexManager::_insert_entry_into(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r) {
-    auto page_handle = _get_node_page(index, e.page_offset);
-    auto &node = map_index_node_page(page_handle);
-    if (e.child_offset < index.header.key_count_per_node) {  // can be inserted directly.
-        _move_trailing_index_entries(index, node, e.child_offset, node, e.child_offset + 1);
-        _write_index_entry(index, node, e.child_offset, k, r);
-        node.header.child_count++;
-        _page_manager.mark_page_dirty(page_handle);
-    } else {
-        // do split.
-    }
-}
-
-void IndexManager::insert_index_entry(Index &index, const Data &data, RecordOffset record_offset) {
+void IndexManager::insert_index_entry(Index &index, const std::unique_ptr<Data> &data, RecordOffset record_offset) {
     if (index.header.root_offset == -1) {  // empty, create new root
-        PageHandle root_page_handle = _allocate_node_page(index);
-        auto &root_node = map_index_node_page(root_page_handle);
+        auto root_page_handle = _allocate_node_page(index);
+        _page_manager.mark_page_accessed(root_page_handle);
+        auto &root_node = _map_index_node_page(root_page_handle);
         index.header.root_offset = 1;
-        root_node.header.child_count = 1;
+        root_node.header.key_count = 1;
         root_node.header.is_leaf = true;
         root_node.header.parent_page_offset = -1;
         _write_index_entry(index, root_node, 0, data, record_offset);
     } else {
-        auto entry_offset = _search_entry_in(index, index.header.root_offset, data);
-        _insert_entry_into(index, entry_offset, data, record_offset);
+        std::stack<PageOffset> path;  // stack nodes down the path for further split operations.
+        
+        for (auto page_offset = index.header.root_offset;;) {
+            path.emplace(page_offset);
+            auto page_handle = _get_node_page(index, page_offset);
+            _page_manager.mark_page_accessed(page_handle);
+            auto &node = _map_index_node_page(page_handle);
+            if (node.header.is_leaf) { break; }
+            auto child_offset = _search_entry_in_node(index, node, data);
+            page_offset = _get_child_page_offset(index, node, child_offset);
+        }
+        
+        auto k = data->replica();
+        auto e = record_offset;
+        while (!path.empty()) {
+            auto page_offset = path.top();
+            path.pop();
+            auto page_handle = _get_node_page(index, page_offset);
+            _page_manager.mark_page_dirty(page_handle);
+            auto &node = _map_index_node_page(page_handle);
+            auto child_offset = _search_entry_in_node(index, node, k);  // find offset for insertion insert.
+            
+            if (node.header.key_count < index.header.key_count_per_node) {  // can be insert directly.
+                _move_trailing_index_entries(index, node, child_offset, node, child_offset + 1);
+                _write_index_entry(index, node, child_offset, k, e);
+                node.header.key_count++;
+                return;
+            }
+            
+            // split and insert.
+            auto split_page = _allocate_node_page(index);
+            auto split_node = _map_index_node_page(split_page);
+            split_node.header.is_leaf = node.header.is_leaf;
+            if (child_offset <= index.header.key_count_per_node / 2) {
+                auto split_pos = index.header.key_count_per_node / 2;
+                
+                // move trailing entries to the new page.
+                _move_trailing_index_entries(index, node, split_pos, split_node, 0);
+                split_node.header.key_count = node.header.key_count - split_pos;
+                node.header.key_count = split_pos;
+                
+                // link split node.
+//                _write_index_entry_page_offset(index, node, split_pos, split_page.buffer_offset.page_offset);
+                
+                // insert new entry.
+                _move_trailing_index_entries(index, node, child_offset, node, child_offset + 1);
+                _write_index_entry(index, node, child_offset, k, e);
+                node.header.key_count++;
+                
+                // update k and e for upper level.
+                k = _get_index_entry_key(index, node, split_pos);
+                e = {page_offset, -1};
+            } else {
+                auto split_pos = index.header.key_count_per_node / 2 + 1;
+                
+                // move entries.
+                _move_trailing_index_entries(index, node, split_pos, split_node, 0);
+                split_node.header.key_count = node.header.key_count - split_pos;
+                node.header.key_count = split_pos;
+                
+                // link.
+//                _write_index_entry_page_offset(index, node, split_pos, split_page.buffer_offset.page_offset);
+            
+            
+            }
+            
+        }
     }
 }
 
-void IndexManager::delete_index_entry(Index &index, const Data &data, RecordOffset record_offset) {
+void IndexManager::delete_index_entry(Index &index, const std::unique_ptr<Data> &data, RecordOffset record_offset) {
     if (index.header.root_offset == -1) {
         throw IndexManagerError{"Failed to delete index entry in an empty index tree."};
     }
     auto entry_offset = _search_entry_in(index, index.header.root_offset, data);
     auto page_handle = _get_node_page(index, entry_offset.page_offset);
-    auto &node = map_index_node_page(page_handle);
+    auto &node = _map_index_node_page(page_handle);
     auto rid = _get_index_entry_record_offset(index, node, entry_offset.child_offset);
-    if (entry_offset.child_offset < node.header.child_count && record_offset == rid) {
+    if (entry_offset.child_offset < node.header.key_count && record_offset == rid) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
-        node.header.child_count--;
+        node.header.key_count--;
         _page_manager.mark_page_dirty(page_handle);
     } else {
         throw IndexManagerError{"Failed to delete index entry that may not exist."};
     }
 }
 
-IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset node_offset, const Data &data) {
-    
-    auto page_handle = _get_node_page(index, node_offset);
-    auto &node = map_index_node_page(page_handle);
+IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset p, const std::unique_ptr<Data> &data) {
+    auto page_handle = _get_node_page(index, p);
+    auto &node = _map_index_node_page(page_handle);
     auto child_offset = _search_entry_in_node(index, node, data);
     return node.header.is_leaf ?
-           IndexEntryOffset{node_offset, child_offset} :
+           IndexEntryOffset{p, child_offset} :
            _search_entry_in(index, child_offset, data);
 }
 
-IndexEntryOffset IndexManager::search_index_entry(Index &index, const Data &data) {
+IndexEntryOffset IndexManager::search_index_entry(Index &index, const std::unique_ptr<Data> &data) {
     if (index.header.root_offset == -1) {  // searching in empty tree.
         throw IndexManagerError{"Failed to search index entry in an empty index tree."};
     }
     return _search_entry_in(index, index.header.root_offset, data);
 }
 
-ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const Data &k) {
-    for (auto i = 0; i < node.header.child_count; i++) {
+ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const std::unique_ptr<Data> &k) {
+    for (auto i = 0; i < node.header.key_count; i++) {
         auto key = _get_index_entry_key(index, node, i);
-        if (!(*key < k)) {
+        if (!(*key < *k)) {
             return i;
         }
     }
-    return node.header.child_count;
+    return node.header.key_count;
+}
+
+void IndexManager::_write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) {
+    MemoryMapper::map_memory<RecordOffset>(&n.fields[_get_child_pointer_offset(idx, i)]).page_offset = p;
+}
+
+void IndexManager::_write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) {
+    MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_offset(idx, n.header.key_count)]) = l;
+}
+
+IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNode &n) {
+    return MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_offset(idx, n.header.key_count)]);
 }
 
 }

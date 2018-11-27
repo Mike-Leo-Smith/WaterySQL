@@ -11,6 +11,7 @@
 #include "index_node.h"
 #include "../data_storage/data.h"
 #include "index_node_pointer_offset.h"
+#include "indexNodeLink.h"
 
 namespace watery {
 
@@ -28,17 +29,21 @@ private:
     PageHandle _get_node_page(const Index &index, PageOffset node_offset);
     PageHandle _allocate_node_page(Index &index);
     
-    void _insert_entry_into(Index &index, IndexEntryOffset e, const Data &k, RecordOffset r);
-    IndexEntryOffset _search_entry_in(Index &index, PageOffset node_offset, const Data &data);
+    IndexEntryOffset _search_entry_in(Index &index, PageOffset p, const std::unique_ptr<Data> &data);
     
-    static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const Data &k);
+    static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const std::unique_ptr<Data> &k);
     static uint32_t _get_child_pointer_offset(const Index &index, ChildOffset i);
     static uint32_t _get_child_key_offset(const Index &index, ChildOffset i);
     static PageOffset _get_child_page_offset(const Index &index, IndexNode &node, ChildOffset i);
     static std::unique_ptr<Data> _get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i);
     static RecordOffset _get_index_entry_record_offset(const Index &index, const IndexNode &node, ChildOffset i);
     
-    static void _write_index_entry(const Index &idx, IndexNode &n, ChildOffset i, const Data &d, RecordOffset &ro);
+    static void _write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p);
+    static void _write_index_entry(
+        const Index &idx, IndexNode &n, ChildOffset i,
+        const std::unique_ptr<Data> &d, RecordOffset &ro);
+    static void _write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l);
+    static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n);
     static void _move_trailing_index_entries(
         const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i);
 
@@ -49,11 +54,11 @@ public:
     void close_index(const Index &index);
     bool is_index_open(const std::string &name) const noexcept;
     
-    IndexEntryOffset search_index_entry(Index &index, const Data &data);
-    void insert_index_entry(Index &index, const Data &data, RecordOffset record_offset);
-    void delete_index_entry(Index &index, const Data &data, RecordOffset record_offset);
+    IndexEntryOffset search_index_entry(Index &index, const std::unique_ptr<Data> &data);
+    void insert_index_entry(Index &index, const std::unique_ptr<Data> &data, RecordOffset record_offset);
+    void delete_index_entry(Index &index, const std::unique_ptr<Data> &data, RecordOffset record_offset);
     
-    IndexNode &map_index_node_page(const PageHandle &page_handle) const;
+    IndexNode &_map_index_node_page(const PageHandle &page_handle) const;
 };
 
 }

@@ -38,6 +38,10 @@ public:
         }
     }
     
+    std::unique_ptr<Data> replica() const override {
+        return std::make_unique<Float>(_val);
+    }
+    
     bool operator<=(const Data &rhs) const override {
         return false;
     }

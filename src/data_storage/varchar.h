@@ -26,6 +26,10 @@ public:
         std::memmove(buffer, _val.c_str(), _val.size());
     }
     
+    std::unique_ptr<Data> replica() const override {
+        return std::make_unique<Varchar>(_val.data(), _val.size());
+    }
+    
     bool operator<(const Data &rhs) const override {
         return rhs.type() == TypeTag::VARCHAR ?
                (_val < reinterpret_cast<const Varchar &>(rhs)._val) :

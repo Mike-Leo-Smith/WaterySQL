@@ -24,6 +24,10 @@ public:
         MemoryMapper::map_memory<int32_t>(buffer) = _val;
     }
     
+    std::unique_ptr<Data> replica() const override {
+        return std::make_unique<Integer>(_val);
+    }
+    
     bool operator<(const Data &data) const override {
         return false;
     }
@@ -31,7 +35,6 @@ public:
     bool operator<=(const Data &data) const override {
         return false;
     }
-    
     bool operator==(const Data &data) const override {
         return false;
     }

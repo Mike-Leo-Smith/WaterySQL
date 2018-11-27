@@ -22,6 +22,7 @@ struct Data : NonCopyable {
     virtual uint32_t length() const = 0;
     static std::unique_ptr<Data> decode(DataDescriptor descriptor, const Byte *raw);
     virtual void encode(Byte *buffer) const = 0;
+    virtual std::unique_ptr<Data> replica() const = 0;
     
     virtual bool operator<(const Data &rhs) const {
         throw DataError{"Failed to compare data due to unsupported operator [<]."};

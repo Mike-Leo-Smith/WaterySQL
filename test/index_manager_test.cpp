@@ -48,15 +48,20 @@ int main() {
         std::cout << index.header.key_count_per_node << std::endl;
         std::cout << index.header.key_length << std::endl;
         std::cout << index.header.pointer_length << std::endl;
-        index_manager.insert_index_entry(index, Varchar{"hello, my dear!", 10}, RecordOffset{0xcc, 0xcc});
-        index_manager.insert_index_entry(index, Varchar{"hel222, my dear!", 10}, RecordOffset{0xdd, 0xdd});
-        index_manager.insert_index_entry(index, Varchar{"hel333, my dear!", 10}, RecordOffset{});
-        index_manager.insert_index_entry(index, Varchar{"he444, my dear!", 10}, RecordOffset{});
         
-        index_manager.delete_index_entry(index, Varchar{"hel333, my dear!", 10}, RecordOffset{});
+        auto &&decode_data = [data_descriptor](std::string_view s) {
+            return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));
+        };
+    
+        index_manager.insert_index_entry(index, decode_data("hello5566, my dear!"), RecordOffset{0xcc, 0xcc});
+        index_manager.insert_index_entry(index, decode_data("hello, my dear!"), RecordOffset{0xcc, 0xcc});
+        index_manager.insert_index_entry(index, decode_data("hello3344, my dear!"), RecordOffset{0xcc, 0xcc});
+        index_manager.insert_index_entry(index, decode_data("hello2233, my dear!"), RecordOffset{0xcc, 0xcc});
+        
+        index_manager.delete_index_entry(index, decode_data("hello, my dear!"), RecordOffset{0xcc, 0xcc});
         
         std::cout << "------- testing search --------" << std::endl;
-        auto entry = index_manager.search_index_entry(index, Varchar{"hello, my dear!", 10});
+        auto entry = index_manager.search_index_entry(index, decode_data("hello3344, my dear!"));
         std::cout << entry.page_offset << std::endl;
         std::cout << entry.child_offset << std::endl;
     } catch (const std::exception &e) {
