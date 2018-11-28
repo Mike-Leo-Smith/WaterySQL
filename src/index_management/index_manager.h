@@ -60,9 +60,6 @@ public:
     void insert_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
     void delete_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
     
-    static inline float get_page_time{0.0f};
-    static inline float memmove_time{0.0f};
-    
 };
 
 }

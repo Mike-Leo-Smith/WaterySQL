@@ -73,43 +73,31 @@ int main() {
         std::cout << "-------- testing insertion ---------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            IndexManager::get_page_time = 0;
-            IndexManager::memmove_time = 0;
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
                 for (auto &&entry : data_set) {
                     index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
                 }
             }) << "ms" << std::endl;
-            std::cout << "elapsed time for get_page: " << IndexManager::get_page_time << "ms" << std::endl;
-            std::cout << "elapsed time for memmove: " << IndexManager::memmove_time << "ms" << std::endl;
         }
         
         std::cout << "------- testing search --------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            IndexManager::get_page_time = 0;
-            IndexManager::memmove_time = 0;
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
                 for (auto &&entry:data_set) {
                     index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()));
                 }
             }) << "ms" << std::endl;
-            std::cout << "elapsed time for get_page: " << IndexManager::get_page_time << "ms" << std::endl;
-            std::cout << "elapsed time for memmove: " << IndexManager::memmove_time << "ms" << std::endl;
         }
         
         std::cout << "------- testing deletion --------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            IndexManager::get_page_time = 0;
-            IndexManager::memmove_time = 0;
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
                 for (auto &&entry : data_set) {
                     index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
                 }
             }) << "ms" << std::endl;
-            std::cout << "elapsed time for get_page: " << IndexManager::get_page_time << "ms" << std::endl;
-            std::cout << "elapsed time for memmove: " << IndexManager::memmove_time << "ms" << std::endl;
         }
     } catch (const std::exception &e) {
         print_error(std::cerr, e);

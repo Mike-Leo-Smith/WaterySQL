@@ -106,13 +106,9 @@ bool IndexManager::is_index_open(const std::string &name) const noexcept {
 }
 
 PageHandle IndexManager::_get_node_page(const Index &index, PageOffset node_offset) {
-    auto start = std::chrono::high_resolution_clock::now();
     auto page_handle = _page_manager.get_page(index.file_handle, node_offset);
     _page_manager.mark_page_accessed(page_handle);
     _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
-    auto stop = std::chrono::high_resolution_clock::now();
-    using namespace std::chrono_literals;
-    get_page_time += (stop - start) / 1ns * 1e-6f;
     return page_handle;
 }
 
@@ -150,17 +146,10 @@ PageOffset IndexManager::_get_index_entry_page_offset(const Index &index, IndexN
 
 void IndexManager::_move_trailing_index_entries(
     const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) {
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    
     auto *src = &src_node.fields[0] + _get_child_pointer_position(index, src_i);
     auto *src_end = &src_node.fields[0] + _get_child_key_position(index, src_node.header.key_count);
     auto *dest = &dest_node.fields[0] + _get_child_pointer_position(index, dest_i);
     std::memmove(dest, src, src_end - src);
-    
-    auto stop = std::chrono::high_resolution_clock::now();
-    using namespace std::chrono_literals;
-    memmove_time += (stop - start) / 1ns * 1e-6f;
 }
 
 void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffset record_offset) {
@@ -353,21 +342,17 @@ int IndexManager::_compare_key(const Index &idx, const Byte *lhs, const Byte *rh
     auto result = 0;
     switch (idx.header.key_descriptor.type) {
     case TypeTag::INTEGER:
-        result = MemoryMapper::map_memory<int32_t>(lhs) - MemoryMapper::map_memory<int32_t>(rhs);
-        break;
+        return MemoryMapper::map_memory<int32_t>(lhs) - MemoryMapper::map_memory<int32_t>(rhs);
     case TypeTag::FLOAT:
-        result = sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
-        break;
+        return sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
     case TypeTag::VARCHAR:
-        result = std::strncmp(
+        return std::strncmp(
             reinterpret_cast<const char *>(lhs),
             reinterpret_cast<const char *>(rhs),
             idx.header.key_descriptor.length);
-        break;
     default:
-        break;
+        throw IndexManagerError{"Failed to compare data with unsupported types."};
     }
-    return result;
 }
 
 }
