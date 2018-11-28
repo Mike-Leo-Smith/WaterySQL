@@ -20,18 +20,16 @@ using SlotOffset = int32_t;
 using ChildOffset = int32_t;
 
 using Byte = uint8_t;
-
-static constexpr uint32_t PAGE_SIZE = 8192;
-static constexpr uint32_t MAX_FILE_COUNT = 31;
-static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = 65535;
-
 using Buffer = Byte *;
+
+static constexpr uint32_t PAGE_SIZE = 1 << 13;  // 8K
+static constexpr uint32_t MAX_FILE_COUNT = 31;
+static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = (1 << 18) - 1;
 
 static constexpr uint32_t MAX_FIELD_NAME_LENGTH = 32;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;
 
 static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 512;
-static constexpr uint32_t MAX_CHILD_COUNT_PER_INDEX_NODE = 512;
 
 using FieldNullBitset = BitsetHolder<MAX_FIELD_COUNT>;
 

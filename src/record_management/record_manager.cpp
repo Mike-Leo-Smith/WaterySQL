@@ -14,7 +14,7 @@ namespace watery {
 void RecordManager::create_table(const std::string &name, const RecordDescriptor &record_descriptor) {
     
     auto rl = record_descriptor.calculate_length();
-    auto spp = std::min(MAX_SLOT_COUNT_PER_PAGE, static_cast<uint32_t>((PAGE_SIZE - sizeof(DataPageHeader)) / rl));
+    auto spp = std::min(MAX_SLOT_COUNT_PER_PAGE, static_cast<uint32_t>((PAGE_SIZE - sizeof(DataPageHeader) - 8) / rl));
     
     if (spp == 0) {
         throw RecordManagerError{std::string{"Failed to create table because the records are too long ("}

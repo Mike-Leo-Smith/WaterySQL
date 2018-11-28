@@ -17,8 +17,7 @@ namespace watery {
 void IndexManager::create_index(const std::string &name, DataDescriptor key_descriptor) {
     auto kl = key_descriptor.size;
     auto pl = static_cast<uint32_t>(sizeof(IndexEntryOffset));
-    auto cpn = std::min(MAX_CHILD_COUNT_PER_INDEX_NODE,
-                        static_cast<uint32_t>((PAGE_SIZE - sizeof(IndexNodeHeader)) / (kl + pl)));
+    auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8) / (kl + pl) / 2 * 2;  // rounded to even
     
     if (cpn == 0) {
         throw IndexManagerError{
@@ -41,7 +40,7 @@ void IndexManager::create_index(const std::string &name, DataDescriptor key_desc
     
     auto page = _page_manager.allocate_page(file_handle, 0);
     
-    MemoryMapper::map_memory<IndexHeader>(page.data) = {key_descriptor, 1, kl, pl, cpn, -1};
+    MemoryMapper::map_memory<IndexHeader>(page.data) = {key_descriptor, 1, kl, pl, static_cast<uint32_t>(cpn), -1};
     _page_manager.mark_page_dirty(page);
     _page_manager.flush_page(page);
     _page_manager.close_file(file_handle);
@@ -114,8 +113,8 @@ PageHandle IndexManager::_get_node_page(const Index &index, PageOffset node_offs
 
 PageHandle IndexManager::_allocate_node_page(Index &index) {
     auto page_handle = _page_manager.allocate_page(index.file_handle, index.header.page_count);
-    _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
     _page_manager.mark_page_dirty(page_handle);
+    _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
     index.header.page_count++;
     return page_handle;
 }
@@ -148,7 +147,7 @@ void IndexManager::_write_index_entry(
     const Index &index, IndexNode &node, ChildOffset i,
     const std::unique_ptr<Data> &data, RecordOffset &record_offset) {
     _write_index_entry_key(index, node, i, data);
-    MemoryMapper::map_memory<RecordOffset>(node.fields + _get_child_pointer_position(index, i)) = record_offset;
+    MemoryMapper::map_memory<RecordOffset>(&node.fields[_get_child_pointer_position(index, i)]) = record_offset;
 }
 
 void IndexManager::_move_trailing_index_entries(
@@ -170,20 +169,20 @@ void IndexManager::insert_index_entry(Index &index, const std::unique_ptr<Data> 
         _write_index_entry(index, root_node, 0, data, record_offset);
         _write_index_node_link(index, root_node, {-1, -1});
     } else {
-        std::stack<IndexEntryOffset> path;  // stack nodes down the path for further split operations.
-        
+        static thread_local std::vector<IndexEntryOffset> path;  // stack nodes down the path for split operations.
+        path.clear();
         for (auto page_offset = index.header.root_offset;;) {
             auto page_handle = _get_node_page(index, page_offset);
             auto &node = _map_index_node_page(page_handle);
             _page_manager.mark_page_accessed(page_handle);
             auto child_offset = _search_entry_in_node(index, node, data);
-            path.emplace(page_offset, child_offset);
+            path.emplace_back(page_offset, child_offset);
             if (node.header.is_leaf) { break; }  // search terminates at leaf.
             page_offset = _get_index_entry_page_offset(index, node, child_offset);
         }
         
-        auto leaf_offset = path.top();
-        path.pop();
+        auto leaf_offset = path.back();
+        path.pop_back();
         
         auto leaf_page = _get_node_page(index, leaf_offset.page_offset);
         auto &leaf = _map_index_node_page(leaf_page);
@@ -240,8 +239,8 @@ void IndexManager::insert_index_entry(Index &index, const std::unique_ptr<Data> 
         while (!path.empty()) {
             
             // fetch the associated node.
-            auto e = path.top();
-            path.pop();
+            auto e = path.back();
+            path.pop_back();
             auto page_handle = _get_node_page(index, e.page_offset);
             auto &node = _map_index_node_page(page_handle);
             _page_manager.mark_page_dirty(page_handle);
@@ -289,8 +288,10 @@ void IndexManager::insert_index_entry(Index &index, const std::unique_ptr<Data> 
                 split_node.header.key_count = split_entry_count;
             }
             
+            // squeeze
             k = _get_index_entry_key(index, node, node.header.key_count - 1);
             split_page_offset = split_page.buffer_offset.page_offset;
+            node.header.key_count--;
         }
         
         // reach root, new root should be allocate.

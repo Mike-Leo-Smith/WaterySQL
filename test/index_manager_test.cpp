@@ -5,6 +5,9 @@
 
 #include <iostream>
 #include <array>
+#include <random>
+#include <algorithm>
+#include <chrono>
 
 #include "../src/config/config.h"
 #include "../src/record_management/record_descriptor.h"
@@ -32,7 +35,7 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    DataDescriptor data_descriptor{TypeTag::VARCHAR, 10};
+    DataDescriptor data_descriptor{TypeTag::VARCHAR, 20};
     
     try {
         index_manager.create_index(name, data_descriptor);
@@ -52,27 +55,59 @@ int main() {
         auto &&decode_data = [data_descriptor](std::string_view s) {
             return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));
         };
-        index_manager.insert_index_entry(index, decode_data("hello5566, my dear!"), RecordOffset{0xcc, 0xcc});
-        index_manager.insert_index_entry(index, decode_data("hello, my dear!"), RecordOffset{0xcc, 0xcc});
-        index_manager.insert_index_entry(index, decode_data("hello3344, my dear!"), RecordOffset{0xcc, 0xcc});
-        index_manager.insert_index_entry(index, decode_data("hello2233, my dear!"), RecordOffset{0xcc, 0xcc});
         
-        auto start = std::chrono::high_resolution_clock::now();
-        for (auto i = 0; i < 500000; i++) {
-            auto k = decode_data(std::to_string(rand()).append("helloooooo!!!"));
-            auto rid = RecordOffset{};
-            index_manager.insert_index_entry(index, k, rid);
+        constexpr auto count = 1'000'000;
+        std::default_random_engine random{std::random_device{}()};
+        
+        std::vector<std::unique_ptr<Data>> data_set;
+        data_set.reserve(count);
+        for (auto i = 0; i < count; i++) {
+            const auto *padding = "0000000";
+            auto n = std::to_string(i);
+            auto s = std::string{&padding[n.size()]}.append(n);
+            for (auto j = 0; j < 20; j++) {
+                std::uniform_int_distribution<char> dist{0x20, 0x7e};
+                s += dist(random);
+            }
+            data_set.emplace_back(decode_data(s));
         }
-        auto stop = std::chrono::high_resolution_clock::now();
-        using namespace std::chrono_literals;
-        std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+        RecordOffset rid{};
         
-        index_manager.delete_index_entry(index, decode_data("hello3344, my dear!"), RecordOffset{0xcc, 0xcc});
+        std::cout << "-------- testing insertion ---------" << std::endl;
+        {
+            std::shuffle(data_set.begin(), data_set.end(), random);
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < count; i++) {
+                index_manager.insert_index_entry(index, data_set[i], rid);
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            using namespace std::chrono_literals;
+            std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+        }
         
         std::cout << "------- testing search --------" << std::endl;
-        auto entry = index_manager.search_index_entry(index, decode_data("hello3344, my dear!"));
-        std::cout << entry.page_offset << std::endl;
-        std::cout << entry.child_offset << std::endl;
+        {
+            std::shuffle(data_set.begin(), data_set.end(), random);
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < count; i++) {
+                index_manager.search_index_entry(index, data_set[i]);
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            using namespace std::chrono_literals;
+            std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+        }
+        
+        std::cout << "------- testing deletion --------" << std::endl;
+        {
+            std::shuffle(data_set.begin(), data_set.end(), random);
+            auto start = std::chrono::high_resolution_clock::now();
+            for (auto i = 0; i < count; i++) {
+                index_manager.delete_index_entry(index, data_set[i], rid);
+            }
+            auto stop = std::chrono::high_resolution_clock::now();
+            using namespace std::chrono_literals;
+            std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+        }
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }

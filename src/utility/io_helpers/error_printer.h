@@ -25,7 +25,7 @@ void _print_error_impl(
 
 }
 
-#define print_error(os, e) _impl::_print_error_impl(os, __FILE__, __FUNCTION__, __LINE__, e)
+#define print_error(os, e)  _impl::_print_error_impl(os, __FILE__, __FUNCTION__, __LINE__, e)
     
 }
 

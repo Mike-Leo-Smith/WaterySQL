@@ -5,6 +5,7 @@
 #ifndef WATERYSQL_VARCHAR_H
 #define WATERYSQL_VARCHAR_H
 
+#include <cstring>
 #include <vector>
 #include "data.h"
 
