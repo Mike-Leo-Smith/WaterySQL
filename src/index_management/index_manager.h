@@ -26,34 +26,35 @@ protected:
     ~IndexManager() = default;
 
 private:
-    PageHandle _get_node_page(const Index &index, PageOffset node_offset);
-    PageHandle _allocate_node_page(Index &index);
+    PageHandle _get_node_page(const Index &index, PageOffset node_offset) noexcept;
+    PageHandle _allocate_node_page(Index &index) noexcept;
     
-    IndexEntryOffset _search_entry_in(Index &index, PageOffset p, const Byte *data);
+    IndexEntryOffset _search_entry_in(Index &index, PageOffset p, const Byte *data) noexcept;
     
-    static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const Byte *k);
-    static uint32_t _get_child_pointer_position(const Index &index, ChildOffset i);
-    static uint32_t _get_child_key_position(const Index &index, ChildOffset i);
-    static PageOffset _get_index_entry_page_offset(const Index &index, IndexNode &node, ChildOffset i);
-    static const Byte *_get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i);
-    static RecordOffset _get_index_entry_record_offset(const Index &index, const IndexNode &node, ChildOffset i);
-    
-    static void _write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p);
-    static void _write_index_entry_record_offset(const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r);
-    static void _write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const Byte *k);
-    static void _write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l);
-    static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n);
+    static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const Byte *k) noexcept;
+    static uint32_t _get_child_pointer_position(const Index &index, ChildOffset i) noexcept;
+    static uint32_t _get_child_key_position(const Index &index, ChildOffset i) noexcept;
+    static PageOffset _get_index_entry_page_offset(const Index &index, IndexNode &node, ChildOffset i) noexcept;
+    static const Byte *_get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i) noexcept;
+    static RecordOffset _get_index_entry_record_offset(
+        const Index &index, const IndexNode &node, ChildOffset i) noexcept;
+    static void _write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) noexcept;
+    static void _write_index_entry_record_offset(
+        const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r) noexcept;
+    static void _write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const Byte *k) noexcept;
+    static void _write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) noexcept;
+    static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n) noexcept;
     static void _move_trailing_index_entries(
-        const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i);
+        const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) noexcept;
     
-    static IndexNode &_map_index_node_page(const PageHandle &page_handle);
-    static int _compare_key(const Index &idx, const Byte *lhs, const Byte *rhs);
+    static IndexNode &_map_index_node_page(const PageHandle &page_handle) noexcept;
+    static bool _compare_keys_less(const Index &idx, const Byte *lhs, const Byte *rhs) noexcept;
     
 public:
     void create_index(const std::string &name, DataDescriptor key_descriptor);
     void delete_index(const std::string &name);
     Index open_index(const std::string &name);
-    void close_index(const Index &index);
+    void close_index(const Index &index) noexcept;
     
     bool is_index_open(const std::string &name) const noexcept;
     IndexEntryOffset search_index_entry(Index &index, const Byte *data);

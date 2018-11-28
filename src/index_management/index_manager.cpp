@@ -81,7 +81,7 @@ Index IndexManager::open_index(const std::string &name) {
     return {name, file_handle, index_header};
 }
 
-void IndexManager::close_index(const Index &index) {
+void IndexManager::close_index(const Index &index) noexcept {
     if (!is_index_open(index.name)) {
         return;
     }
@@ -105,14 +105,14 @@ bool IndexManager::is_index_open(const std::string &name) const noexcept {
     return _used_buffers.count(name) != 0;
 }
 
-PageHandle IndexManager::_get_node_page(const Index &index, PageOffset node_offset) {
+PageHandle IndexManager::_get_node_page(const Index &index, PageOffset node_offset) noexcept {
     auto page_handle = _page_manager.get_page(index.file_handle, node_offset);
     _page_manager.mark_page_accessed(page_handle);
     _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
     return page_handle;
 }
 
-PageHandle IndexManager::_allocate_node_page(Index &index) {
+PageHandle IndexManager::_allocate_node_page(Index &index) noexcept {
     auto page_handle = _page_manager.allocate_page(index.file_handle, index.header.page_count);
     _page_manager.mark_page_dirty(page_handle);
     _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
@@ -120,32 +120,34 @@ PageHandle IndexManager::_allocate_node_page(Index &index) {
     return page_handle;
 }
 
-IndexNode &IndexManager::_map_index_node_page(const PageHandle &page_handle) {
+IndexNode &IndexManager::_map_index_node_page(const PageHandle &page_handle) noexcept {
     return MemoryMapper::map_memory<IndexNode>(page_handle.data);
 }
 
-const Byte *IndexManager::_get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i) {
+const Byte *IndexManager::_get_index_entry_key(
+    const Index &index, const IndexNode &node, ChildOffset i) noexcept {
     return &node.fields[_get_child_key_position(index, i)];
 }
 
-RecordOffset IndexManager::_get_index_entry_record_offset(const Index &index, const IndexNode &node, ChildOffset i) {
+RecordOffset IndexManager::_get_index_entry_record_offset(
+    const Index &index, const IndexNode &node, ChildOffset i) noexcept {
     return MemoryMapper::map_memory<RecordOffset>(&node.fields[_get_child_pointer_position(index, i)]);
 }
 
-uint32_t IndexManager::_get_child_pointer_position(const Index &index, ChildOffset i) {
+uint32_t IndexManager::_get_child_pointer_position(const Index &index, ChildOffset i) noexcept {
     return i * (sizeof(RecordOffset) + index.header.key_descriptor.length);
 }
 
-uint32_t IndexManager::_get_child_key_position(const Index &index, ChildOffset i) {
+uint32_t IndexManager::_get_child_key_position(const Index &index, ChildOffset i) noexcept {
     return _get_child_pointer_position(index, i) + sizeof(RecordOffset);
 }
 
-PageOffset IndexManager::_get_index_entry_page_offset(const Index &index, IndexNode &node, ChildOffset i) {
+PageOffset IndexManager::_get_index_entry_page_offset(const Index &index, IndexNode &node, ChildOffset i) noexcept {
     return MemoryMapper::map_memory<IndexEntryOffset>(&node.fields[_get_child_pointer_position(index, i)]).page_offset;
 }
 
 void IndexManager::_move_trailing_index_entries(
-    const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) {
+    const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) noexcept {
     auto *src = &src_node.fields[0] + _get_child_pointer_position(index, src_i);
     auto *src_end = &src_node.fields[0] + _get_child_key_position(index, src_node.header.key_count);
     auto *dest = &dest_node.fields[0] + _get_child_pointer_position(index, dest_i);
@@ -279,8 +281,7 @@ void IndexManager::delete_index_entry(Index &index, const Byte *data, RecordOffs
     auto &node = _map_index_node_page(page_handle);
     auto rid = _get_index_entry_record_offset(index, node, entry_offset.child_offset);
     if (record_offset == rid &&
-        entry_offset.child_offset < node.header.key_count &&
-        _compare_key(index, _get_index_entry_key(index, node, entry_offset.child_offset), data) == 0) {
+        entry_offset.child_offset < node.header.key_count) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
         _page_manager.mark_page_dirty(page_handle);
@@ -289,7 +290,7 @@ void IndexManager::delete_index_entry(Index &index, const Byte *data, RecordOffs
     }
 }
 
-IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset p, const Byte *data) {
+IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset p, const Byte *data) noexcept {
     while (true) {
         auto page_handle = _get_node_page(index, p);
         auto &node = _map_index_node_page(page_handle);
@@ -301,29 +302,34 @@ IndexEntryOffset IndexManager::_search_entry_in(Index &index, PageOffset p, cons
     }
 }
 
-ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const Byte *k) {
+ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &node, const Byte *k) noexcept {
     auto left = 0;
     auto right = node.header.key_count;
     while (left < right) {
         auto mid = left + (right - left) / 2;
-        _compare_key(index, _get_index_entry_key(index, node, mid), k) < 0 ? (left = mid + 1) : (right = mid);
+        if (Data::less(index.header.key_descriptor, _get_index_entry_key(index, node, mid), k)) {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
     }
     return right;
 }
 
-void IndexManager::_write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) {
+void IndexManager::_write_index_entry_page_offset(
+    const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) noexcept {
     MemoryMapper::map_memory<PageOffset>(&n.fields[_get_child_pointer_position(idx, i)]) = p;
 }
 
-void IndexManager::_write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) {
+void IndexManager::_write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) noexcept {
     MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_position(idx, n.header.key_count)]) = l;
 }
 
-IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNode &n) {
+IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNode &n) noexcept {
     return MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_position(idx, n.header.key_count)]);
 }
 
-void IndexManager::_write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const Byte *k) {
+void IndexManager::_write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const Byte *k) noexcept {
     std::memmove(&n.fields[_get_child_key_position(idx, i)], k, idx.header.key_descriptor.length);
 }
 
@@ -334,25 +340,9 @@ IndexEntryOffset IndexManager::search_index_entry(Index &index, const Byte *data
     return _search_entry_in(index, index.header.root_offset, data);
 }
 
-void IndexManager::_write_index_entry_record_offset(const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r) {
+void IndexManager::_write_index_entry_record_offset(
+    const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r) noexcept {
     MemoryMapper::map_memory<RecordOffset>(&n.fields[_get_child_pointer_position(idx, i)]) = r;
-}
-
-int IndexManager::_compare_key(const Index &idx, const Byte *lhs, const Byte *rhs) {
-    auto result = 0;
-    switch (idx.header.key_descriptor.type) {
-    case TypeTag::INTEGER:
-        return MemoryMapper::map_memory<int32_t>(lhs) - MemoryMapper::map_memory<int32_t>(rhs);
-    case TypeTag::FLOAT:
-        return sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
-    case TypeTag::VARCHAR:
-        return std::strncmp(
-            reinterpret_cast<const char *>(lhs),
-            reinterpret_cast<const char *>(rhs),
-            idx.header.key_descriptor.length);
-    default:
-        throw IndexManagerError{"Failed to compare data with unsupported types."};
-    }
 }
 
 }

@@ -103,11 +103,7 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    try {
-        index_manager.close_index(index);
-    } catch (const std::exception &e) {
-        print_error(std::cerr, e);
-    }
+    index_manager.close_index(index);
     
     return 0;
     
