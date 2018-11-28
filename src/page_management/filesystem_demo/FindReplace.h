@@ -38,7 +38,7 @@ public:
      */
     int find() {
         int index = _list.getFirst(0);
-        _list.del(index);
+        _list.remove(index);
         _list.insert(0, index);
         return index;
     }

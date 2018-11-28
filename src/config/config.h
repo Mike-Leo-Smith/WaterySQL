@@ -22,7 +22,7 @@ using ChildOffset = int32_t;
 using Byte = uint8_t;
 using Buffer = Byte *;
 
-static constexpr uint32_t PAGE_SIZE = 1 << 13;  // 8K
+static constexpr uint32_t PAGE_SIZE = 1 << 14;  // 16K
 static constexpr uint32_t MAX_FILE_COUNT = 31;
 static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = (1 << 18) - 1;
 

@@ -17,7 +17,7 @@ std::unique_ptr<Data> Data::decode(DataDescriptor descriptor, const Byte *raw) {
     case TypeTag::FLOAT:
         return std::make_unique<Float>(MemoryMapper::map_memory<float>(raw));
     case TypeTag::VARCHAR:
-        return std::make_unique<Varchar>(reinterpret_cast<const char *>(raw), descriptor.size);
+        return std::make_unique<Varchar>(reinterpret_cast<const char *>(raw), descriptor.length);
     default:
         throw DataError{"Failed to decode data with unknown type."};
     }

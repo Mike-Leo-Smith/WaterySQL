@@ -2,8 +2,8 @@
 // Created by Mike Smith on 2018/11/27.
 //
 
-#ifndef WATERYSQL_INDEXNODELINK_H
-#define WATERYSQL_INDEXNODELINK_H
+#ifndef WATERYSQL_INDEX_NODE_LINK_H
+#define WATERYSQL_INDEX_NODE_LINK_H
 
 #include "../config/config.h"
 
@@ -18,4 +18,4 @@ struct IndexNodeLink {
 
 }
 
-#endif  // WATERYSQL_INDEXNODELINK_H
+#endif  // WATERYSQL_INDEX_NODE_LINK_H

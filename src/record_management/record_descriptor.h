@@ -30,7 +30,7 @@ struct RecordDescriptor final {
     uint32_t calculate_length() const {
         auto size = 0u;
         for (auto i = 0; i < field_count; i++) {
-            size += field_descriptors[i].data_descriptor.size;
+            size += field_descriptors[i].data_descriptor.length;
         }
         return size;
 //        return sizeof(uint32_t) +

@@ -11,7 +11,7 @@ namespace watery {
 
 struct DataDescriptor {
     TypeTag type;
-    uint16_t size;
+    uint16_t length;
 };
 
 }

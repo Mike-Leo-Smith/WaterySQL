@@ -71,7 +71,7 @@ public:
      * 功能:在hash表中，将指定的value删掉
      */
     void remove(int index) {
-        list.del(index);
+        list.remove(index);
         a[index].key1 = -1;
         a[index].key2 = -1;
     }

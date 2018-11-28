@@ -21,7 +21,7 @@ private:
     }
 
 public:
-    void del(int index) {
+    void remove(int index) {
         if (_mem[index].prev == index) {
             return;
         }
@@ -31,7 +31,7 @@ public:
     }
     
     void insert(int listID, int ele) {
-        del(ele);
+        remove(ele);
         auto node = listID + _capacity;
         auto prev = _mem[node].prev;
         link(prev, ele);
@@ -39,7 +39,7 @@ public:
     }
     
     void insertFirst(int listID, int ele) {
-        del(ele);
+        remove(ele);
         auto node = listID + _capacity;
         auto next = _mem[node].next;
         link(static_cast<int>(node), ele);

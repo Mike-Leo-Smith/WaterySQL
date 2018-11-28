@@ -17,6 +17,7 @@
 #include "../src/page_management/page_manager.h"
 
 #include "../src/utility/io_helpers/error_printer.h"
+#include "../src/utility/timing/elapsed_time.h"
 #include "../src/record_management/record_manager.h"
 
 #include "../src/index_management/index_manager.h"
@@ -47,10 +48,6 @@ int main() {
     
     try {
         index = index_manager.open_index(name);
-        std::cout << index.header.page_count << std::endl;
-        std::cout << index.header.key_count_per_node << std::endl;
-        std::cout << index.header.key_length << std::endl;
-        std::cout << index.header.pointer_length << std::endl;
         
         auto &&decode_data = [data_descriptor](std::string_view s) {
             return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));
@@ -59,7 +56,7 @@ int main() {
         constexpr auto count = 1'000'000;
         std::default_random_engine random{std::random_device{}()};
         
-        std::vector<std::unique_ptr<Data>> data_set;
+        std::vector<std::string> data_set;
         data_set.reserve(count);
         for (auto i = 0; i < count; i++) {
             const auto *padding = "0000000";
@@ -69,44 +66,50 @@ int main() {
                 std::uniform_int_distribution<char> dist{0x20, 0x7e};
                 s += dist(random);
             }
-            data_set.emplace_back(decode_data(s));
+            data_set.emplace_back(s);
         }
-        RecordOffset rid{};
+        RecordOffset rid{1, 2};
         
         std::cout << "-------- testing insertion ---------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            auto start = std::chrono::high_resolution_clock::now();
-            for (auto i = 0; i < count; i++) {
-                index_manager.insert_index_entry(index, data_set[i], rid);
-            }
-            auto stop = std::chrono::high_resolution_clock::now();
-            using namespace std::chrono_literals;
-            std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+            IndexManager::get_page_time = 0;
+            IndexManager::memmove_time = 0;
+            std::cout << "elapsed time: " << elapsed_time_ms([&] {
+                for (auto &&entry : data_set) {
+                    index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
+                }
+            }) << "ms" << std::endl;
+            std::cout << "elapsed time for get_page: " << IndexManager::get_page_time << "ms" << std::endl;
+            std::cout << "elapsed time for memmove: " << IndexManager::memmove_time << "ms" << std::endl;
         }
         
         std::cout << "------- testing search --------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            auto start = std::chrono::high_resolution_clock::now();
-            for (auto i = 0; i < count; i++) {
-                index_manager.search_index_entry(index, data_set[i]);
-            }
-            auto stop = std::chrono::high_resolution_clock::now();
-            using namespace std::chrono_literals;
-            std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+            IndexManager::get_page_time = 0;
+            IndexManager::memmove_time = 0;
+            std::cout << "elapsed time: " << elapsed_time_ms([&] {
+                for (auto &&entry:data_set) {
+                    index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()));
+                }
+            }) << "ms" << std::endl;
+            std::cout << "elapsed time for get_page: " << IndexManager::get_page_time << "ms" << std::endl;
+            std::cout << "elapsed time for memmove: " << IndexManager::memmove_time << "ms" << std::endl;
         }
         
         std::cout << "------- testing deletion --------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            auto start = std::chrono::high_resolution_clock::now();
-            for (auto i = 0; i < count; i++) {
-                index_manager.delete_index_entry(index, data_set[i], rid);
-            }
-            auto stop = std::chrono::high_resolution_clock::now();
-            using namespace std::chrono_literals;
-            std::cout << "elapsed time: " << (stop - start) / 1ms << "ms" << std::endl;
+            IndexManager::get_page_time = 0;
+            IndexManager::memmove_time = 0;
+            std::cout << "elapsed time: " << elapsed_time_ms([&] {
+                for (auto &&entry : data_set) {
+                    index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
+                }
+            }) << "ms" << std::endl;
+            std::cout << "elapsed time for get_page: " << IndexManager::get_page_time << "ms" << std::endl;
+            std::cout << "elapsed time for memmove: " << IndexManager::memmove_time << "ms" << std::endl;
         }
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
@@ -117,6 +120,7 @@ int main() {
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
+    
     return 0;
     
 }
