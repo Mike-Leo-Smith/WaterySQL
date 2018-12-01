@@ -111,36 +111,35 @@ const Byte *RecordManager::get_record(Table &table, RecordOffset record_offset) 
 }
 
 RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
-    if (table.header.record_count == (table.header.page_count - 1) * table.header.slot_count_per_page) {
+    if (table.header.first_free_page == -1) {  // no available pages
         auto page_handle = _page_manager.allocate_page(table.file_handle, table.header.page_count);
         _page_manager.mark_page_dirty(page_handle);
         _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
         auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
         data_page.header.record_count = 1;
+        data_page.header.slot_usage_bitmap.reset();
         data_page.header.slot_usage_bitmap[0] = true;
-        std::uninitialized_copy_n(data, table.header.record_length, &data_page.data[0]);
+        data_page.header.next_free_page = -1;
+        std::memmove(&data_page.data[0], data, table.header.record_length);
+        table.header.first_free_page = page_handle.buffer_offset.page_offset;
         table.header.page_count++;
         table.header.record_count++;
         return {page_handle.buffer_offset.page_offset, 0};
-    } else {
-        for (auto page = 1; page < table.header.page_count; page++) {
-            auto page_handle = _page_manager.get_page(table.file_handle, page);
-            auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
-            _page_manager.mark_page_accessed(page_handle);
-            _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
-            if (data_page.header.record_count < table.header.slot_count_per_page) {
-                for (auto slot = 0; slot < table.header.slot_count_per_page; slot++) {
-                    if (!data_page.header.slot_usage_bitmap[slot]) {
-                        data_page.header.slot_usage_bitmap[slot] = true;
-                        std::uninitialized_copy_n(
-                            data, table.header.record_length,
-                            &data_page.data[table.header.record_length * slot]);
-                        data_page.header.record_count++;
-                        table.header.record_count++;
-                        _page_manager.mark_page_dirty(page_handle);
-                        return {page, slot};
-                    }
+    } else {  // have available pages, take out the first free page.
+        auto page_handle = _page_manager.get_page(table.file_handle, table.header.first_free_page);
+        _page_manager.mark_page_dirty(page_handle);
+        _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
+        auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
+        for (auto slot = 0; slot < table.header.slot_count_per_page; slot++) {
+            if (!data_page.header.slot_usage_bitmap[slot]) {
+                data_page.header.slot_usage_bitmap[slot] = true;
+                std::memmove(&data_page.data[table.header.record_length * slot], data, table.header.record_length);
+                data_page.header.record_count++;
+                table.header.record_count++;
+                if (data_page.header.record_count == table.header.slot_count_per_page) {
+                    table.header.first_free_page = data_page.header.next_free_page;
                 }
+                return {page_handle.buffer_offset.page_offset, slot};
             }
         }
     }
@@ -163,6 +162,10 @@ void RecordManager::delete_record(Table &table, RecordOffset record_offset) {
     _visit_record(table, record_offset,
                   [&pm = this->_page_manager](Table &t, PageHandle bp, DataPage &dp, RecordOffset ro) {
                       if (dp.header.slot_usage_bitmap[ro.slot_offset]) {
+                          if (dp.header.record_count == t.header.slot_count_per_page) {  // a new free page.
+                              dp.header.next_free_page = t.header.first_free_page;
+                              t.header.first_free_page = bp.buffer_offset.page_offset;
+                          }
                           dp.header.slot_usage_bitmap[ro.slot_offset] = false;
                           dp.header.record_count--;
                           t.header.record_count--;
