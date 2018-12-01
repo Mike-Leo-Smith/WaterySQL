@@ -2,7 +2,7 @@
 // Created by Mike Smith on 2018/11/24.
 //
 
-#include <stack>
+#include <vector>
 
 #include "index_manager.h"
 #include "index_entry_offset.h"

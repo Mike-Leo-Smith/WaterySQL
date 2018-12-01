@@ -36,7 +36,7 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
     
     auto page = _page_manager.allocate_page(file_handle, 0);
     
-    MemoryMapper::map_memory<TableHeader>(page.data) = {record_descriptor, 1, 0, rl, spp};
+    MemoryMapper::map_memory<TableHeader>(page.data) = {record_descriptor, 1, 0, rl, spp, -1};
     _page_manager.mark_page_dirty(page);
     _page_manager.flush_page(page);
     _page_manager.close_file(file_handle);

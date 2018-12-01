@@ -74,7 +74,7 @@ int main() {
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
-                for (auto &&entry : data_set) {
+                for (auto &&entry: data_set) {
                     index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
                 }
             }) << "ms" << std::endl;
@@ -84,7 +84,7 @@ int main() {
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
-                for (auto &&entry:data_set) {
+                for (auto &&entry: data_set) {
                     index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()));
                 }
             }) << "ms" << std::endl;
@@ -94,7 +94,7 @@ int main() {
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
-                for (auto &&entry : data_set) {
+                for (auto &&entry: data_set) {
                     index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
                 }
             }) << "ms" << std::endl;
@@ -104,6 +104,8 @@ int main() {
     }
     
     index_manager.close_index(index);
+    
+    std::cout << std::is_trivially_constructible_v<Index> << std::endl;
     
     return 0;
     

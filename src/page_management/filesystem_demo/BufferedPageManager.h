@@ -32,8 +32,10 @@ private:
     /*
      * 缓存页面数组
      */
+    std::allocator<Byte> _allocator{};
+    
     Buffer _allocate_memory() {
-        return reinterpret_cast<Buffer>(new uint8_t[PAGE_SIZE]);
+        return reinterpret_cast<Buffer>(_allocator.allocate(PAGE_SIZE));
     }
     
     Buffer _fetch_page(int typeID, int pageID, int &index) {
@@ -161,7 +163,7 @@ public:
         for (int i = 0; i < MAX_BUFFERED_PAGE_COUNT; ++i) {
             write_back(i);
             if (_addr[i] != nullptr) {
-                delete[] _addr[i];
+                _allocator.deallocate(_addr[i], PAGE_SIZE);
             }
         }
     }

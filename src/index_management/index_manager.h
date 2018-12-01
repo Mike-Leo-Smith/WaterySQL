@@ -5,6 +5,8 @@
 #ifndef WATERYSQL_INDEX_MANAGER_H
 #define WATERYSQL_INDEX_MANAGER_H
 
+#include <string>
+#include <unordered_map>
 #include "../page_management/page_manager.h"
 #include "../data_storage/data_descriptor.h"
 #include "index.h"
@@ -46,9 +48,7 @@ private:
     static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n) noexcept;
     static void _move_trailing_index_entries(
         const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) noexcept;
-    
     static IndexNode &_map_index_node_page(const PageHandle &page_handle) noexcept;
-    static bool _compare_keys_less(const Index &idx, const Byte *lhs, const Byte *rhs) noexcept;
     
 public:
     void create_index(const std::string &name, DataDescriptor key_descriptor);

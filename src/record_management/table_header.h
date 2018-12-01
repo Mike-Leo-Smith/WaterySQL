@@ -16,6 +16,7 @@ struct TableHeader {
     uint32_t record_count{0};
     uint32_t record_length{0};
     uint32_t slot_count_per_page{0};
+    PageOffset first_free_page{-1};
 };
 
 }

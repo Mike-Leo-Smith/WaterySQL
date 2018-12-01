@@ -87,7 +87,7 @@ int main() {
     
     std::cout << "------- speed test -------" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    for (auto i = 0; i < 100000; i++) {
+    for (auto i = 0; i < 1000000; i++) {
         record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, World!!! I am happy!!!"));
     }
     auto stop = std::chrono::high_resolution_clock::now();
