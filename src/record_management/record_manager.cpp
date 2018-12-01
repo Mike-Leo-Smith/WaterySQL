@@ -130,16 +130,27 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
         _page_manager.mark_page_dirty(page_handle);
         _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
         auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
-        for (auto slot = 0; slot < table.header.slot_count_per_page; slot++) {
-            if (!data_page.header.slot_usage_bitmap[slot]) {
-                data_page.header.slot_usage_bitmap[slot] = true;
-                std::memmove(&data_page.data[table.header.record_length * slot], data, table.header.record_length);
-                data_page.header.record_count++;
-                table.header.record_count++;
-                if (data_page.header.record_count == table.header.slot_count_per_page) {
-                    table.header.first_free_page = data_page.header.next_free_page;
+        using Pack = uint64_t;
+        constexpr auto bit_count_per_pack = sizeof(Pack) * 8;
+        constexpr auto slot_pack_count = (MAX_SLOT_COUNT_PER_PAGE + bit_count_per_pack - 1) / bit_count_per_pack;
+        using SlotPackArray = std::array<uint64_t, slot_pack_count>;
+        auto &slot_packs = MemoryMapper::map_memory<SlotPackArray>(&data_page.header.slot_usage_bitmap);
+        for (auto pack = 0; pack < slot_pack_count; pack++) {
+            if (~slot_packs[pack] != 0) {
+                for (auto bit = 0; bit < bit_count_per_pack; bit++) {
+                    auto slot = pack * bit_count_per_pack + bit;
+                    if (!data_page.header.slot_usage_bitmap[slot]) {
+                        data_page.header.slot_usage_bitmap[slot] = true;
+                        std::memmove(
+                            &data_page.data[table.header.record_length * slot], data, table.header.record_length);
+                        data_page.header.record_count++;
+                        table.header.record_count++;
+                        if (data_page.header.record_count == table.header.slot_count_per_page) {
+                            table.header.first_free_page = data_page.header.next_free_page;
+                        }
+                        return {page_handle.buffer_offset.page_offset, static_cast<SlotOffset>(slot)};
+                    }
                 }
-                return {page_handle.buffer_offset.page_offset, slot};
             }
         }
     }
@@ -170,6 +181,8 @@ void RecordManager::delete_record(Table &table, RecordOffset record_offset) {
                           dp.header.record_count--;
                           t.header.record_count--;
                           pm.mark_page_dirty(bp);
+                      } else {
+                          throw RecordManagerError{"Failed to delete record that does not exist."};
                       }
                   });
 }

@@ -14,13 +14,13 @@ namespace watery {
 
 struct MemoryMapper : NonTrivialConstructible {
     
-    template<typename T>
-    static inline T &map_memory(Byte *buffer) noexcept {
+    template<typename T, typename U>
+    static inline T &map_memory(U *buffer) noexcept {
         return (*reinterpret_cast<T *>(buffer));
     }
     
-    template<typename T>
-    static inline const T &map_memory(const Byte *buffer) noexcept {
+    template<typename T, typename U>
+    static inline const T &map_memory(const U *buffer) noexcept {
         return (*reinterpret_cast<const T *>(buffer));
     }
     
