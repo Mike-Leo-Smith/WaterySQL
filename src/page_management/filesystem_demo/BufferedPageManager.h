@@ -35,7 +35,7 @@ private:
     std::allocator<Byte> _allocator{};
     
     Buffer _allocate_memory() {
-        return reinterpret_cast<Buffer>(_allocator.allocate(PAGE_SIZE));
+        return _allocator.allocate(PAGE_SIZE);
     }
     
     Buffer _fetch_page(int typeID, int pageID, int &index) {

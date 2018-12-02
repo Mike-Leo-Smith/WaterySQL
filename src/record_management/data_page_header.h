@@ -13,7 +13,7 @@ namespace watery {
 struct DataPageHeader {
     uint32_t record_count{0};
     PageOffset next_free_page{-1};
-    std::bitset<MAX_SLOT_COUNT_PER_PAGE> slot_usage_bitmap;
+    alignas(8) std::bitset<MAX_SLOT_COUNT_PER_PAGE> slot_usage_bitmap;
 };
 
 }

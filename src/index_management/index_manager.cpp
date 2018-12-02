@@ -18,7 +18,7 @@ namespace watery {
 void IndexManager::create_index(const std::string &name, DataDescriptor key_descriptor) {
     auto kl = key_descriptor.length;
     auto pl = static_cast<uint32_t>(sizeof(RecordOffset));
-    auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8) / (kl + pl) / 2 * 2;  // rounded to even
+    auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8 /* for alignment */) / (kl + pl) / 2 * 2;  // rounded to even
     
     if (cpn == 0) {
         throw IndexManagerError{
