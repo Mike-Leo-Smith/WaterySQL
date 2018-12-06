@@ -21,15 +21,18 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
         throw RecordManagerError{std::string{"Failed to create table because the records are too long ("}
                                      .append(std::to_string(rl)).append(" bytes).")};
     }
-    if (_page_manager.file_exists(name)) {
+    
+    auto file_name = name + ".tab";
+    
+    if (_page_manager.file_exists(file_name)) {
         throw RecordManagerError{
             std::string{"Failed to create file for table \""}.append(name).append("\" which already exists.")};
     }
     
     FileHandle file_handle;
     try {
-        _page_manager.create_file(name);
-        file_handle = _page_manager.open_file(name);
+        _page_manager.create_file(file_name);
+        file_handle = _page_manager.open_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw RecordManagerError{std::string{"Failed to create file for table \""}.append(name).append("\".")};
@@ -50,7 +53,8 @@ Table RecordManager::open_table(const std::string &name) {
     }
     FileHandle file_handle = 0;
     try {
-        file_handle = _page_manager.open_file(name);
+        auto file_name = name + ".tab";
+        file_handle = _page_manager.open_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw RecordManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
@@ -66,6 +70,7 @@ Table RecordManager::open_table(const std::string &name) {
 }
 
 void RecordManager::close_table(const Table &table) {
+    
     if (!is_table_open(table.name)) {
         return;
     }
@@ -91,7 +96,8 @@ void RecordManager::delete_table(const std::string &name) {
         throw RecordManagerError{std::string{"Failed to delete table \""}.append(name).append("\" which is in use.")};
     }
     try {
-        _page_manager.delete_file(name);
+        auto file_name = name + ".tab";
+        _page_manager.delete_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw RecordManagerError{std::string{"Failed to delete file for table \""}.append(name).append("\".")};

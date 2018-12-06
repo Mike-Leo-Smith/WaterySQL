@@ -21,7 +21,7 @@ int main() {
     
     auto &&record_manager = RecordManager::instance();
     
-    auto name = "test3.tab";
+    auto name = "test3";
     try {
         record_manager.delete_table(name);
     } catch (const std::exception &e) {

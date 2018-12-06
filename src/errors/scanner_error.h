@@ -6,7 +6,7 @@
 #define WATERYSQL_SCANNER_ERROR_H
 
 #include "error.h"
-#include "../command_parsing/token_offset.h"
+#include "../parsing/token_offset.h"
 
 namespace watery {
 

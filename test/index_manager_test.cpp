@@ -28,7 +28,7 @@ int main() {
     
     auto &&index_manager = IndexManager::instance();
     
-    std::string name{"test3.idx"};
+    std::string name{"test3"};
     
     try {
         index_manager.delete_index(name);

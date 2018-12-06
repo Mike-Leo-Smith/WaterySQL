@@ -16,6 +16,7 @@
 namespace watery {
 
 void IndexManager::create_index(const std::string &name, DataDescriptor key_descriptor) {
+    
     auto kl = key_descriptor.length;
     auto pl = static_cast<uint32_t>(sizeof(RecordOffset));
     auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8 /* for alignment */) / (kl + pl) / 2 * 2;  // rounded to even
@@ -25,15 +26,18 @@ void IndexManager::create_index(const std::string &name, DataDescriptor key_desc
             std::string{"Failed to create index because the keys are too long ("}
                 .append(std::to_string(kl)).append(" bytes).")};
     }
-    if (_page_manager.file_exists(name)) {
+    
+    auto file_name = name + ".idx";
+    
+    if (_page_manager.file_exists(file_name)) {
         throw IndexManagerError{
             std::string{"Failed to create file for index \""}.append(name).append("\" which already exists.")};
     }
     
     FileHandle file_handle;
     try {
-        _page_manager.create_file(name);
-        file_handle = _page_manager.open_file(name);
+        _page_manager.create_file(file_name);
+        file_handle = _page_manager.open_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw IndexManagerError{std::string{"Failed to create file for index \""}.append(name).append("\".")};
@@ -52,7 +56,8 @@ void IndexManager::delete_index(const std::string &name) {
         throw IndexManagerError{std::string{"Failed to delete index \""}.append(name).append("\" which is in use.")};
     }
     try {
-        _page_manager.delete_file(name);
+        auto file_name = name + ".idx";
+        _page_manager.delete_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw IndexManagerError{std::string{"Failed to delete the file for index \""}.append(name).append("\".")};
@@ -65,7 +70,8 @@ Index IndexManager::open_index(const std::string &name) {
     }
     FileHandle file_handle;
     try {
-        file_handle = _page_manager.open_file(name);
+        auto file_name = name + ".idx";
+        file_handle = _page_manager.open_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
         throw IndexManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));

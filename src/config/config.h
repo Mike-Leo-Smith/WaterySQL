@@ -6,6 +6,8 @@
 #define WATERYSQL_CONFIG_H
 
 #include <cstdint>
+#include <filesystem>
+
 #include "../utility/type_manipulators/bitset_holder_type_selector.h"
 
 namespace watery {

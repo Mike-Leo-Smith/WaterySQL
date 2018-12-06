@@ -43,6 +43,10 @@ TokenTag Scanner::tag_keyword_or_identifier(std::string_view raw) {
         {"FOREIGN",    TokenTag::FOREIGN},
     };
     
+    for (auto it = keywords.begin(); it != keywords.end(); it++) {
+    
+    }
+    
     thread_local static std::string upper_cased;
     upper_cased.resize(raw.size());
     std::transform(raw.cbegin(), raw.cend(), upper_cased.begin(), [](char c) { return static_cast<char>(toupper(c)); });
