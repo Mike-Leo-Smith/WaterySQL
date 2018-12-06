@@ -36,7 +36,7 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    DataDescriptor data_descriptor{TypeTag::VARCHAR, 20};
+    DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
     
     try {
         index_manager.create_index(name, data_descriptor);
@@ -56,18 +56,24 @@ int main() {
         constexpr auto count = 1'000'000;
         std::default_random_engine random{std::random_device{}()};
         
-        std::vector<std::string> data_set;
+        std::vector<int32_t> data_set;
         data_set.reserve(count);
         for (auto i = 0; i < count; i++) {
-            const auto *padding = "0000000";
-            auto n = std::to_string(i);
-            auto s = std::string{&padding[n.size()]}.append(n);
-            for (auto j = 0; j < 20; j++) {
-                std::uniform_int_distribution<char> dist{0x20, 0x7e};
-                s += dist(random);
-            }
-            data_set.emplace_back(s);
+            data_set.emplace_back(i);
         }
+        
+//        std::vector<std::string> data_set;
+//        data_set.reserve(count);
+//        for (auto i = 0; i < count; i++) {
+//            const auto *padding = "0000000";
+//            auto n = std::to_string(i);
+//            auto s = std::string{&padding[n.size()]}.append(n);
+//            for (auto j = 0; j < 20; j++) {
+//                std::uniform_int_distribution<char> dist{0x20, 0x7e};
+//                s += dist(random);
+//            }
+//            data_set.emplace_back(s);
+//        }
         RecordOffset rid{1, 2};
         
         std::cout << "-------- testing insertion ---------" << std::endl;
@@ -75,7 +81,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
+                    index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(&entry), rid);
                 }
             }) << "ms" << std::endl;
         }
@@ -85,7 +91,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()));
+                    index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(&entry));
                 }
             }) << "ms" << std::endl;
         }
@@ -95,7 +101,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << elapsed_time_ms([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(entry.c_str()), rid);
+                    index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(&entry), rid);
                 }
             }) << "ms" << std::endl;
         }
@@ -104,8 +110,6 @@ int main() {
     }
     
     index_manager.close_index(index);
-    
-    std::cout << std::is_trivially_constructible_v<Index> << std::endl;
     
     return 0;
     

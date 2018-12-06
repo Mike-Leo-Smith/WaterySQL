@@ -66,8 +66,8 @@ set(SOURCE_FILES
     src/data_storage/varchar.h
     src/index_management/index_node_link.h
     src/utility/mathematics/sgn.h
-    src/utility/timing/elapsed_time.h)
+    src/utility/timing/elapsed_time.h src/system_management/system_manager.cpp src/system_management/system_manager.h src/command_parsing/token.h src/command_parsing/token_tag.h src/errors/scanner_error.h)
 
-add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
+add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp src/command_parsing/scanner.cpp src/command_parsing/scanner.h src/command_parsing/parser.cpp src/command_parsing/parser.h src/command_parsing/token_offset.h)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)

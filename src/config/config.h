@@ -24,7 +24,7 @@ using Buffer = Byte *;
 
 static constexpr uint32_t PAGE_SIZE = 1 << 14;  // 16K
 static constexpr uint32_t MAX_FILE_COUNT = 31;
-static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = (1 << 18) - 1;
+static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = 65535;
 
 static constexpr uint32_t MAX_FIELD_NAME_LENGTH = 32;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;

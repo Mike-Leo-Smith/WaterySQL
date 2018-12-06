@@ -1,0 +1,90 @@
+Stmt                ->  SHOW ShowStmtBody ';'
+                    |   CREATE CreateStmtBody ';'
+                    |   DROP DropStmtBody ';'
+                    |   USE IDENTIFIER ';'
+                    |   DESC IDENTIFIER ';'
+                    |   INSERT INTO IDENTIFIER VALUES ValueListList ';'
+                    |   DELETE FROM IDENTIFIER WHERE WhereClause ';'
+                    |   UPDATE IDENTIFIER SET SetClause WHERE WhereClause ';'
+                    |   SELECT Selector FROM TableList WHERE WhereClause ';'
+
+ShowStmtBody        ->  DATABASES
+                    |   TABLES
+
+CreateStmtBody      ->  DATABASE IDENTIFIER
+                    |   TABLE IDENTIFIER '(' FieldList ')'
+                    |   INDEX IDENTIFIER '(' IDENTIFIER ')'
+
+DropStmtBody        ->  DATABASE IDENTIFIER
+                    |   TABLE IDENTIFIER
+                    |   INDEX IDENTIFIER '(' IDENTIFIER ')'
+
+FieldList           ->  Field FieldListTail
+
+FieldListTail       ->  ',' FieldList
+                    |   // empty, lookahead == ')'
+
+Field               ->  IDENTIFIER Type
+                    |   PRIMARY KEY '(' ColumnList ')'
+                    |   FOREIGN KEY '(' IDENTIFIER ')' REFERENCES IDENTIFIER '(' IDENTIFIER ')'
+
+Type                ->  INT '(' NUMBER ')' NullableNotation
+                    |   VARCHAR '(' NUMBER ')' NullableNotation
+                    |   DATE NullableNotation
+                    |   FLOAT NullableNotation
+
+NullableNotation    ->  NULL
+                    |   // empty, lookahead == ')'
+
+ValueListList       ->  '(' ValueList ')' ValueListListTail
+
+ValueListListTail   ->  ',' ValueListList
+                    |   // empty, lookahead == ';'
+
+ValueList           ->  Value ValueListTail
+
+ValueListTail       ->  ',' ValueList
+
+Value               ->  NUMBER
+                    |   STRING
+                    |   NUL
+
+WhereClause         ->  Column ColumnPredicate Conjunction
+
+ColumnPredicate     ->  OPERATOR Expr
+                    |   IS NullOrNot
+
+NullOrNot           ->  NULL
+                    |   NOT NULL
+
+Conjunction         ->  AND WhereClause
+                    |   // empty, lookahead == ';'
+
+Column              ->  IDENTIFIER ColumnDomain
+
+ColumnDomain        ->  '.' IDENTIFIER
+                    |   // empty, lookahead == OPERATOR || lookahead == IS
+
+Expr                ->  Value
+                    |   Column
+
+SetClause           ->  IDENTIFIER '=' Value SetClauseTail
+                    
+SetClauseTail       ->  ',' SetClause
+                    |   // empty, lookahead = WHERE
+
+Selector            ->  '*'
+                    |   IDENTIFIER ColumnDomain SelectorTail
+
+SelectorTail        ->  ',' Column SelectorTail
+                    |   // empty, lookahead = FROM
+
+TableList           ->  IDENTIFIER TableListTail
+
+TableListTail       ->  ',' TableList
+                    |   // empty, lookahead == WHERE
+
+ColumnList          ->  IDENTIFIER ColumnListTail
+
+ColumnListTail      ->  ',' ColumnList
+                    |   // empty, lookahead == ')'
