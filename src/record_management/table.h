@@ -14,9 +14,9 @@
 namespace watery {
 
 struct Table {
-    std::string name;
+    std::string name{};
     FileHandle file_handle{-1};
-    TableHeader header;
+    TableHeader header{};
 };
 
 }

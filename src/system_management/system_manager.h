@@ -16,7 +16,7 @@ namespace watery {
 class SystemManager : public Singleton<SystemManager> {
 
 private:
-    std::filesystem::path _base_path{std::filesystem::current_path() / ".waterydb"};
+    std::filesystem::path _base_path{std::filesystem::current_path() / "watery-databases"};
     std::unordered_set<std::string> _existing_databases;
     std::string _current_database;
 

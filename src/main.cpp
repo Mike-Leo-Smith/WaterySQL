@@ -31,20 +31,20 @@ int main() {
     
     std::string name{"test4"};
     
-    try {
-        index_manager.delete_index(name);
-    } catch (const std::exception &e) {
-        print_error(std::cerr, e);
-    }
+//    try {
+//        index_manager.delete_index(name);
+//    } catch (const std::exception &e) {
+//        print_error(std::cerr, e);
+//    }
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
-    
+
     try {
         index_manager.create_index(name, data_descriptor);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
-    
+
     for (auto &&table : system_manager.all_databases()) {
         std::cout << table << std::endl;
     }

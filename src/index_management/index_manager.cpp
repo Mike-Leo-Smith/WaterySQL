@@ -53,7 +53,7 @@ void IndexManager::create_index(const std::string &name, DataDescriptor key_desc
 
 void IndexManager::delete_index(const std::string &name) {
     if (is_index_open(name)) {
-        throw IndexManagerError{std::string{"Failed to delete index \""}.append(name).append("\" which is in use.")};
+        close_index(name);
     }
     try {
         auto file_name = name + ".idx";
@@ -64,9 +64,9 @@ void IndexManager::delete_index(const std::string &name) {
     }
 }
 
-Index IndexManager::open_index(const std::string &name) {
+Index &IndexManager::open_index(const std::string &name) {
     if (is_index_open(name)) {
-        throw IndexManagerError{std::string{"Failed to open index \""}.append(name).append("\" that is already open.")};
+        return _open_indices[name];
     }
     FileHandle file_handle;
     try {
@@ -76,52 +76,56 @@ Index IndexManager::open_index(const std::string &name) {
         print_error(std::cerr, e);
         throw IndexManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
     }
-    _used_buffers.emplace(name, std::unordered_map<BufferHandle, BufferOffset>{});
     
     // load table header
     auto header_page = _page_manager.get_page(file_handle, 0);
     _page_manager.mark_page_accessed(header_page);
-    _used_buffers[name].emplace(header_page.buffer_handle, header_page.buffer_offset);
+    _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
     auto index_header = MemoryMapper::map_memory<IndexHeader>(header_page.data);
     
-    return {name, file_handle, index_header};
+    return _open_indices.emplace(name, Index{name, file_handle, index_header}).first->second;
 }
 
-void IndexManager::close_index(const Index &index) noexcept {
-    if (!is_index_open(index.name)) {
+void IndexManager::close_index(const std::string &name) noexcept {
+    if (!is_index_open(name)) {
         return;
     }
+    _close_index(_open_indices[name]);
+    _open_indices.erase(name);
+}
+
+void IndexManager::_close_index(const Index &index) noexcept {
     // update table header
     auto header_page = _page_manager.get_page(index.file_handle, 0);
     MemoryMapper::map_memory<IndexHeader>(header_page.data) = index.header;
     _page_manager.mark_page_dirty(header_page);
     _page_manager.flush_page(header_page);
     
-    for (auto &&buffer : _used_buffers[index.name]) {
+    for (auto &&buffer : _used_buffers[index.file_handle]) {
         PageHandle page{buffer.second, buffer.first, nullptr};
         if (_page_manager.not_flushed(page)) {
             _page_manager.flush_page(page);
         }
     }
-    _used_buffers.erase(index.name);
+    _used_buffers[index.file_handle].clear();
     _page_manager.close_file(index.file_handle);
 }
 
 bool IndexManager::is_index_open(const std::string &name) const noexcept {
-    return _used_buffers.count(name) != 0;
+    return _open_indices.count(name) != 0;
 }
 
 PageHandle IndexManager::_get_node_page(const Index &index, PageOffset node_offset) noexcept {
     auto page_handle = _page_manager.get_page(index.file_handle, node_offset);
     _page_manager.mark_page_accessed(page_handle);
-    _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
+    _used_buffers[index.file_handle].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
     return page_handle;
 }
 
 PageHandle IndexManager::_allocate_node_page(Index &index) noexcept {
     auto page_handle = _page_manager.allocate_page(index.file_handle, index.header.page_count);
     _page_manager.mark_page_dirty(page_handle);
-    _used_buffers[index.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
+    _used_buffers[index.file_handle].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
     index.header.page_count++;
     return page_handle;
 }
@@ -349,6 +353,17 @@ IndexEntryOffset IndexManager::search_index_entry(Index &index, const Byte *data
 void IndexManager::_write_index_entry_record_offset(
     const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r) noexcept {
     MemoryMapper::map_memory<RecordOffset>(&n.fields[_get_child_pointer_position(idx, i)]) = r;
+}
+
+IndexManager::~IndexManager() {
+    close_all();
+}
+
+void IndexManager::close_all() noexcept {
+    for (auto &&entry : _open_indices) {
+        _close_index(entry.second);
+    }
+    _open_indices.clear();
 }
 
 }

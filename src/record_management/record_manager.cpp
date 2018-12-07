@@ -46,11 +46,12 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
     _page_manager.close_file(file_handle);
 }
 
-Table RecordManager::open_table(const std::string &name) {
+Table &RecordManager::open_table(const std::string &name) {
+    
     if (is_table_open(name)) {
-        throw RecordManagerError{std::string{"Failed to open table \""}
-                                     .append(name).append("\" which is already open.")};
+        return _open_tables[name];
     }
+    
     FileHandle file_handle = 0;
     try {
         auto file_name = name + ".tab";
@@ -59,41 +60,44 @@ Table RecordManager::open_table(const std::string &name) {
         print_error(std::cerr, e);
         throw RecordManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
     }
-    _used_buffers.emplace(name, std::unordered_map<BufferHandle, BufferOffset>{});
     
     // load table header
     auto header_page = _page_manager.get_page(file_handle, 0);
     _page_manager.mark_page_accessed(header_page);
     auto table_header = MemoryMapper::map_memory<TableHeader>(header_page.data);
+    _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
     
-    return {name, file_handle, table_header};
+    return _open_tables.emplace(name, Table{name, file_handle, table_header}).first->second;
 }
 
-void RecordManager::close_table(const Table &table) {
-    
-    if (!is_table_open(table.name)) {
+void RecordManager::close_table(const std::string &name) {
+    if (!is_table_open(name)) {
         return;
     }
-    
+    _close_table(_open_tables[name]);
+    _open_tables.erase(name);
+}
+
+void RecordManager::_close_table(const Table &table) noexcept {
     // update table header
     auto header_page = _page_manager.get_page(table.file_handle, 0);
     MemoryMapper::map_memory<TableHeader>(header_page.data) = table.header;
     _page_manager.mark_page_dirty(header_page);
     _page_manager.flush_page(header_page);
     
-    for (auto &&buffer : _used_buffers[table.name]) {
+    for (auto &&buffer : _used_buffers[table.file_handle]) {
         PageHandle page{buffer.second, buffer.first, nullptr};
         if (_page_manager.not_flushed(page)) {
             _page_manager.flush_page(page);
         }
     }
-    _used_buffers.erase(table.name);
+    _used_buffers[table.file_handle].clear();
     _page_manager.close_file(table.file_handle);
 }
 
 void RecordManager::delete_table(const std::string &name) {
     if (is_table_open(name)) {
-        throw RecordManagerError{std::string{"Failed to delete table \""}.append(name).append("\" which is in use.")};
+        close_table(name);
     }
     try {
         auto file_name = name + ".tab";
@@ -105,7 +109,7 @@ void RecordManager::delete_table(const std::string &name) {
 }
 
 bool RecordManager::is_table_open(const std::string &name) const {
-    return _used_buffers.count(name) != 0;
+    return _open_tables.count(name) != 0;
 }
 
 const Byte *RecordManager::get_record(Table &table, RecordOffset record_offset) {
@@ -121,7 +125,7 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
     if (table.header.first_free_page == -1) {  // no available pages
         auto page_handle = _page_manager.allocate_page(table.file_handle, table.header.page_count);
         _page_manager.mark_page_dirty(page_handle);
-        _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
+        _used_buffers[table.file_handle].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
         auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
         data_page.header.record_count = 1;
         data_page.header.slot_usage_bitmap.reset();
@@ -135,7 +139,7 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
     } else {  // have available pages, take out the first free page.
         auto page_handle = _page_manager.get_page(table.file_handle, table.header.first_free_page);
         _page_manager.mark_page_dirty(page_handle);
-        _used_buffers[table.name].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
+        _used_buffers[table.file_handle].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
         auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
         using Pack = uint64_t;
         constexpr auto bit_count_per_pack = sizeof(Pack) * 8;
@@ -192,6 +196,17 @@ void RecordManager::delete_record(Table &table, RecordOffset record_offset) {
                           throw RecordManagerError{"Failed to delete record that does not exist."};
                       }
                   });
+}
+
+void RecordManager::close_all() {
+    for (auto &&entry : _open_tables) {
+        _close_table(entry.second);
+    }
+    _open_tables.clear();
+}
+
+RecordManager::~RecordManager() {
+    close_all();
 }
 
 }

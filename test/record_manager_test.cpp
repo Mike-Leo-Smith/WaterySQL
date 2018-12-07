@@ -72,7 +72,7 @@ int main() {
     }
     
     try {
-        record_manager.close_table(table);
+        record_manager.close_table(name);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
@@ -93,7 +93,7 @@ int main() {
     
     std::cout << "------- speed test -------" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
-    for (auto i = 0; i < 10000000; i++) {
+    for (auto i = 0; i < 10'000'000; i++) {
         record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, World!!! I am happy!!!"));
     }
     auto stop = std::chrono::high_resolution_clock::now();
@@ -101,7 +101,7 @@ int main() {
     std::cout << "time: " << (stop - start) / 1ms << "ms" << std::endl;
     
     try {
-        record_manager.close_table(table);
+        record_manager.close_table(name);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }

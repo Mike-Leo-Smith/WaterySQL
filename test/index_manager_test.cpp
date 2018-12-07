@@ -109,7 +109,7 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    index_manager.close_index(index);
+    index_manager.close_index(name);
     
     return 0;
     

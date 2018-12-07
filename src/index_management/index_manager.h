@@ -7,6 +7,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <array>
 #include "../page_management/page_manager.h"
 #include "../data_storage/data_descriptor.h"
 #include "index.h"
@@ -21,13 +22,14 @@ class IndexManager : public Singleton<IndexManager> {
 
 private:
     PageManager &_page_manager{PageManager::instance()};
-    std::unordered_map<std::string, std::unordered_map<BufferHandle, BufferOffset>> _used_buffers;
+    std::array<std::unordered_map<BufferHandle, BufferOffset>, MAX_FILE_COUNT> _used_buffers;
+    std::unordered_map<std::string, Index> _open_indices;
 
 protected:
     IndexManager() = default;
-    ~IndexManager() = default;
-
-private:
+    
+    void _close_index(const Index &index) noexcept;
+    
     PageHandle _get_node_page(const Index &index, PageOffset node_offset) noexcept;
     PageHandle _allocate_node_page(Index &index) noexcept;
     
@@ -51,16 +53,18 @@ private:
     static IndexNode &_map_index_node_page(const PageHandle &page_handle) noexcept;
     
 public:
+    ~IndexManager();
+    
     void create_index(const std::string &name, DataDescriptor key_descriptor);
     void delete_index(const std::string &name);
-    Index open_index(const std::string &name);
-    void close_index(const Index &index) noexcept;
-    
+    Index &open_index(const std::string &name);
+    void close_index(const std::string &index) noexcept;
+    void close_all() noexcept;
     bool is_index_open(const std::string &name) const noexcept;
     IndexEntryOffset search_index_entry(Index &index, const Byte *data);
     void insert_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
-    void delete_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
     
+    void delete_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
 };
 
 }
