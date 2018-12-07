@@ -6,7 +6,7 @@
 #define WATERYSQL_CONFIG_H
 
 #include <cstdint>
-#include <filesystem>
+#include <string_view>
 
 #include "../utility/type_manipulators/bitset_holder_type_selector.h"
 
@@ -34,6 +34,11 @@ static constexpr uint32_t MAX_FIELD_COUNT = 32;
 static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 512;
 
 using FieldNullBitset = BitsetHolder<MAX_FIELD_COUNT>;
+
+static constexpr auto TABLE_FILE_EXTENSION = ".tab";
+static constexpr auto INDEX_FILE_EXTENSION = ".idx";
+static constexpr auto DATABASE_DIRECTORY_EXTENSION = ".db";
+static constexpr auto DATABASE_BASE_PATH = "watery-db";
 
 }
 

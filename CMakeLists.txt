@@ -76,7 +76,7 @@ set(SOURCE_FILES
     src/parsing/scanner.h
     src/parsing/parser.cpp
     src/parsing/parser.h
-    src/parsing/token_offset.h src/execution/context.h src/errors/system_manager_error.h)
+    src/parsing/token_offset.h src/errors/system_manager_error.h src/execution/show_databases_actor.h src/errors/parser_error.h src/execution/show_tables_actor.h src/execution/actor.h src/execution/create_database_actor.h src/execution/use_database_actor.h src/execution/drop_database_actor.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

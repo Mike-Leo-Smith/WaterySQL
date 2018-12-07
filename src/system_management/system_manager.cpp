@@ -12,7 +12,7 @@
 namespace watery {
 
 void SystemManager::create_database(const std::string &name) {
-    auto dir_name = name + ".db";
+    auto dir_name = name + DATABASE_DIRECTORY_EXTENSION;
     if (std::filesystem::exists(_base_path / dir_name)) {
         throw SystemManagerError{
             std::string{"Failed to create database \""}.append(dir_name).append("\" ").append("which already exists.")};
@@ -25,7 +25,13 @@ void SystemManager::create_database(const std::string &name) {
 }
 
 void SystemManager::delete_database(const std::string &name) {
-    auto dir_name = name + ".db";
+    
+    if (name == _current_database) {
+        _record_manager.close_all_tables();
+        _index_manager.close_all_indices();
+    }
+    
+    auto dir_name = name + DATABASE_DIRECTORY_EXTENSION;
     if (!std::filesystem::exists(_base_path / dir_name)) {
         return;
     }
@@ -44,7 +50,15 @@ void SystemManager::delete_database(const std::string &name) {
 }
 
 void SystemManager::use_database(const std::string &name) {
-    auto dir_name = name + ".db";
+    
+    if (name == _current_database) {
+        return;
+    }
+    
+    _record_manager.close_all_tables();
+    _index_manager.close_all_indices();
+    
+    auto dir_name = name + DATABASE_DIRECTORY_EXTENSION;
     if (!std::filesystem::exists(_base_path / dir_name)) {
         throw SystemManagerError{
             std::string{"Failed to use database \""}.append(name).append("\" which does not exist.")};
@@ -59,15 +73,27 @@ void SystemManager::use_database(const std::string &name) {
 
 const std::vector<std::string> &SystemManager::all_databases() const {
     thread_local static std::vector<std::string> databases;
-    
     databases.clear();
-    for (auto &&dir: std::filesystem::directory_iterator{_base_path}) {
-        if (dir.path().extension() == ".db") {
-            databases.emplace_back(dir.path().filename().stem());
+    for (auto &&database: std::filesystem::directory_iterator{_base_path}) {
+        if (database.path().extension() == DATABASE_DIRECTORY_EXTENSION) {
+            databases.emplace_back(database.path().stem());
         }
     }
-    
     return databases;
+}
+
+const std::vector<std::string> &SystemManager::all_tables() const {
+    thread_local static std::vector<std::string> tables;
+    tables.clear();
+    if (_current_database.empty()) {
+        throw SystemManagerError{"Failed to list tables because no database is currently in use."};
+    }
+    for (auto &&table: std::filesystem::directory_iterator{_base_path / _current_database}) {
+        if (table.path().extension() == TABLE_FILE_EXTENSION) {
+            tables.emplace_back(table.path().stem());
+        }
+    }
+    return tables;
 }
 
 }

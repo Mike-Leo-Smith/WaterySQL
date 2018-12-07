@@ -27,7 +27,7 @@ void IndexManager::create_index(const std::string &name, DataDescriptor key_desc
                 .append(std::to_string(kl)).append(" bytes).")};
     }
     
-    auto file_name = name + ".idx";
+    auto file_name = name + INDEX_FILE_EXTENSION;
     
     if (_page_manager.file_exists(file_name)) {
         throw IndexManagerError{
@@ -56,7 +56,7 @@ void IndexManager::delete_index(const std::string &name) {
         close_index(name);
     }
     try {
-        auto file_name = name + ".idx";
+        auto file_name = name + INDEX_FILE_EXTENSION;
         _page_manager.delete_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
@@ -70,7 +70,7 @@ Index &IndexManager::open_index(const std::string &name) {
     }
     FileHandle file_handle;
     try {
-        auto file_name = name + ".idx";
+        auto file_name = name + INDEX_FILE_EXTENSION;
         file_handle = _page_manager.open_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
@@ -356,10 +356,10 @@ void IndexManager::_write_index_entry_record_offset(
 }
 
 IndexManager::~IndexManager() {
-    close_all();
+    close_all_indices();
 }
 
-void IndexManager::close_all() noexcept {
+void IndexManager::close_all_indices() noexcept {
     for (auto &&entry : _open_indices) {
         _close_index(entry.second);
     }

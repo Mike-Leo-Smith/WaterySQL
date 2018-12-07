@@ -59,7 +59,7 @@ public:
     void delete_index(const std::string &name);
     Index &open_index(const std::string &name);
     void close_index(const std::string &index) noexcept;
-    void close_all() noexcept;
+    void close_all_indices() noexcept;
     bool is_index_open(const std::string &name) const noexcept;
     IndexEntryOffset search_index_entry(Index &index, const Byte *data);
     void insert_index_entry(Index &index, const Byte *data, RecordOffset record_offset);

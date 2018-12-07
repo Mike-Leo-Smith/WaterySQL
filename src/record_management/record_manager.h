@@ -56,7 +56,7 @@ public:
     Table &open_table(const std::string &name);
     bool is_table_open(const std::string &name) const;
     void close_table(const std::string &table);
-    void close_all();
+    void close_all_tables();
     void delete_table(const std::string &name);
     
     const Byte *get_record(Table &table, RecordOffset record_offset);

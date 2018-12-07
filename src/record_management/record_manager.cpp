@@ -22,7 +22,7 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
                                      .append(std::to_string(rl)).append(" bytes).")};
     }
     
-    auto file_name = name + ".tab";
+    auto file_name = name + TABLE_FILE_EXTENSION;
     
     if (_page_manager.file_exists(file_name)) {
         throw RecordManagerError{
@@ -54,7 +54,7 @@ Table &RecordManager::open_table(const std::string &name) {
     
     FileHandle file_handle = 0;
     try {
-        auto file_name = name + ".tab";
+        auto file_name = name + TABLE_FILE_EXTENSION;
         file_handle = _page_manager.open_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
@@ -100,7 +100,7 @@ void RecordManager::delete_table(const std::string &name) {
         close_table(name);
     }
     try {
-        auto file_name = name + ".tab";
+        auto file_name = name + TABLE_FILE_EXTENSION;
         _page_manager.delete_file(file_name);
     } catch (const PageManagerError &e) {
         print_error(std::cerr, e);
@@ -198,7 +198,7 @@ void RecordManager::delete_record(Table &table, RecordOffset record_offset) {
                   });
 }
 
-void RecordManager::close_all() {
+void RecordManager::close_all_tables() {
     for (auto &&entry : _open_tables) {
         _close_table(entry.second);
     }
@@ -206,7 +206,7 @@ void RecordManager::close_all() {
 }
 
 RecordManager::~RecordManager() {
-    close_all();
+    close_all_tables();
 }
 
 }
