@@ -10,7 +10,7 @@
 #include <numeric>
 
 #include "../config/config.h"
-#include "field_descriptor.h"
+#include "../data_storage/field_descriptor.h"
 
 namespace watery {
 
@@ -33,9 +33,6 @@ struct RecordDescriptor final {
             size += field_descriptors[i].data_descriptor.length;
         }
         return size;
-//        return sizeof(uint32_t) +
-//               std::reduce(field_descriptors.begin(), field_descriptors.begin() + field_count, 0u,
-//                           [](auto lhs, auto rhs) { return lhs + rhs.data_descriptor.size; });
     }
     
 };

@@ -103,7 +103,7 @@ void Scanner::_read_next_token() {
     auto c = _read_char();
     
     // read numbers
-    if (std::isdigit(c)) {
+    if (std::isdigit(c) || c == '-') {
         if (_state != State::READING_BLANK && _state != State::READING_OPERATOR) {
             throw ScannerError{"Unexpected digit.", _curr_offset};
         }
@@ -132,7 +132,7 @@ void Scanner::_read_next_token() {
         if (_state != State::READING_BLANK && _state != State::READING_OPERATOR) {
             throw ScannerError{"Unexpected alpha/underscore.", _curr_offset};
         }
-        while (std::isalpha(_peek_char()) || _peek_char() == '_') { _read_char(); }
+        while (std::isalnum(_peek_char()) || _peek_char() == '_') { _read_char(); }
         _lookahead_token.raw = _view_content(last_pos, _curr_pos);
         _lookahead_token.tag = tag_keyword_or_identifier(_lookahead_token.raw);
         _state = (_lookahead_token.tag == TokenTag::IDENTIFIER) ?

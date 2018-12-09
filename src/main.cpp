@@ -12,7 +12,7 @@ int main() {
     
     using namespace watery;
     
-    constexpr auto query = "select (*.apple) from PERSON\n where age<>123.456.7;\n";
+    constexpr auto query = "select (*.app_le) from PERSON\n where age<>-.;\n";
     Scanner scanner{query};
     
     auto t = scanner.lookahead();
@@ -33,12 +33,6 @@ int main() {
     auto &&index_manager = IndexManager::instance();
     
     std::string name{"test4"};
-    
-    try {
-        index_manager.delete_index(name);
-    } catch (const std::exception &e) {
-        print_error(std::cerr, e);
-    }
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
 

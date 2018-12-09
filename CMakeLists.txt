@@ -24,7 +24,7 @@ set(SOURCE_FILES
     src/page_management/filesystem_demo/MyLinkList.h
     src/config/config.h
     src/record_management/record_descriptor.h
-    src/record_management/field_descriptor.h
+    src/data_storage/field_descriptor.h
     src/data_storage/type_tag.h
     src/data_storage/data_descriptor.h
     src/data_storage/data.h
@@ -76,7 +76,7 @@ set(SOURCE_FILES
     src/parsing/scanner.h
     src/parsing/parser.cpp
     src/parsing/parser.h
-    src/parsing/token_offset.h src/errors/system_manager_error.h src/execution/show_databases_actor.h src/errors/parser_error.h src/execution/show_tables_actor.h src/execution/actor.h src/execution/create_database_actor.h src/execution/use_database_actor.h src/execution/drop_database_actor.h)
+    src/parsing/token_offset.h src/errors/system_manager_error.h src/execution/show_databases_actor.h src/errors/parser_error.h src/execution/show_tables_actor.h src/execution/actor.h src/execution/create_database_actor.h src/execution/use_database_actor.h src/execution/drop_database_actor.h src/data_storage/field_constraint.h src/data_storage/field_view.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

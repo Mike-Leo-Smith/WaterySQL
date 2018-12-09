@@ -8,16 +8,19 @@
 #include <cstdint>
 
 #include "../config/config.h"
-#include "../data_storage/data_descriptor.h"
+#include "data_descriptor.h"
 #include "../utility/type_constraints/non_copyable.h"
+#include "field_constraint.h"
 
 namespace watery {
 
 struct FieldDescriptor final {
-    uint8_t name[MAX_FIELD_NAME_LENGTH];
-    DataDescriptor data_descriptor;
+    uint8_t name[MAX_FIELD_NAME_LENGTH]{};
+    DataDescriptor data_descriptor{};
+    FieldConstraint constraint{};
 };
 
 }
 
 #endif  // WATERYSQL_FIELD_DESCRIPTOR_H
+

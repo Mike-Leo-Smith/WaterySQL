@@ -24,3 +24,4 @@ std::unique_ptr<Data> Data::decode(DataDescriptor descriptor, const Byte *raw) {
 }
 
 }
+

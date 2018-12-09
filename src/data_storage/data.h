@@ -18,6 +18,7 @@
 namespace watery {
 
 struct Data : NonCopyable {
+    
     virtual ~Data() = default;
     virtual TypeTag type() const = 0;
     virtual uint32_t length() const = 0;

@@ -35,10 +35,11 @@ static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 512;
 
 using FieldNullBitset = BitsetHolder<MAX_FIELD_COUNT>;
 
+static constexpr auto DATABASE_BASE_PATH = "watery-db";
+static constexpr auto DATABASE_DIRECTORY_EXTENSION = ".db";
+
 static constexpr auto TABLE_FILE_EXTENSION = ".tab";
 static constexpr auto INDEX_FILE_EXTENSION = ".idx";
-static constexpr auto DATABASE_DIRECTORY_EXTENSION = ".db";
-static constexpr auto DATABASE_BASE_PATH = "watery-db";
 
 }
 
