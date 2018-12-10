@@ -9,9 +9,13 @@
 
 namespace watery {
 
+inline namespace math {
+
 template<typename T>
 int32_t sgn(T &&x) noexcept {
     return x < 0 ? -1 : (x > 0 ? 1 : 0);
+}
+
 }
 
 }

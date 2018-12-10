@@ -51,7 +51,7 @@ int main() {
         std::cout << table.header.page_count << std::endl;
         auto &&rd = table.header.record_descriptor;
         std::for_each_n(rd.field_descriptors.begin(), rd.field_count, [](auto &&fd) {
-            std::cout << fd.name << ", " << fd.data_descriptor.length << std::endl;
+            std::cout << fd.name << ", " << fd.data_descriptor.length() << std::endl;
         });
     } catch (const std::exception &e) {
         print_error(std::cerr, e);

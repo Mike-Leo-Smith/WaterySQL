@@ -15,6 +15,7 @@
 #include "../data_storage/data.h"
 #include "index_entry_offset.h"
 #include "index_node_link.h"
+#include "../data_storage/field_descriptor.h"
 
 namespace watery {
 
@@ -45,26 +46,28 @@ protected:
     static void _write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) noexcept;
     static void _write_index_entry_record_offset(
         const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r) noexcept;
-    static void _write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const Byte *k) noexcept;
+    static void _write_index_entry_key(
+        const Index &idx, IndexNode &n, ChildOffset i, const Byte *k, RecordOffset rid) noexcept;
     static void _write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) noexcept;
     static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n) noexcept;
     static void _move_trailing_index_entries(
         const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) noexcept;
     static IndexNode &_map_index_node_page(const PageHandle &page_handle) noexcept;
-    
+
 public:
     ~IndexManager();
     
-    void create_index(const std::string &name, DataDescriptor key_descriptor);
+    void create_index(const std::string &name, FieldDescriptor field_desc);
     void delete_index(const std::string &name);
     Index &open_index(const std::string &name);
     void close_index(const std::string &index) noexcept;
     void close_all_indices() noexcept;
     bool is_index_open(const std::string &name) const noexcept;
     IndexEntryOffset search_index_entry(Index &index, const Byte *data);
-    void insert_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
+    void insert_index_entry(Index &index, const Byte *data, RecordOffset rid);
     
-    void delete_index_entry(Index &index, const Byte *data, RecordOffset record_offset);
+    void delete_index_entry(Index &index, const Byte *data, RecordOffset rid);
+    void _make_key_compact(const Index &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const;
 };
 
 }

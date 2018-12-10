@@ -11,9 +11,9 @@
 namespace watery {
 
 enum struct TypeTag : uint16_t {
-    INTEGER,
-    FLOAT,
-    VARCHAR
+    INTEGER = 0,
+    FLOAT = 1,
+    VARCHAR = 2
 };
 
 }

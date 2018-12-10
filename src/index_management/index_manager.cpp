@@ -2,8 +2,6 @@
 // Created by Mike Smith on 2018/11/24.
 //
 
-#include <vector>
-
 #include "index_manager.h"
 #include "index_entry_offset.h"
 #include "../errors/index_manager_error.h"
@@ -15,9 +13,10 @@
 
 namespace watery {
 
-void IndexManager::create_index(const std::string &name, DataDescriptor key_descriptor) {
+void IndexManager::create_index(const std::string &name, FieldDescriptor field_desc) {
     
-    auto kl = key_descriptor.length;
+    auto dl = field_desc.data_descriptor.length();
+    auto kl = field_desc.index_key_length();
     auto pl = static_cast<uint32_t>(sizeof(RecordOffset));
     auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8 /* for alignment */) / (kl + pl) / 2 * 2;  // rounded to even
     
@@ -45,7 +44,7 @@ void IndexManager::create_index(const std::string &name, DataDescriptor key_desc
     
     auto page = _page_manager.allocate_page(file_handle, 0);
     
-    MemoryMapper::map_memory<IndexHeader>(page.data) = {key_descriptor, 1, static_cast<uint32_t>(cpn), -1};
+    MemoryMapper::map_memory<IndexHeader>(page.data) = {field_desc, kl, dl, 1, static_cast<uint32_t>(cpn), -1};
     _page_manager.mark_page_dirty(page);
     _page_manager.flush_page(page);
     _page_manager.close_file(file_handle);
@@ -82,7 +81,6 @@ Index &IndexManager::open_index(const std::string &name) {
     _page_manager.mark_page_accessed(header_page);
     _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
     auto index_header = MemoryMapper::map_memory<IndexHeader>(header_page.data);
-    
     return _open_indices.emplace(name, Index{name, file_handle, index_header}).first->second;
 }
 
@@ -145,7 +143,7 @@ RecordOffset IndexManager::_get_index_entry_record_offset(
 }
 
 uint32_t IndexManager::_get_child_pointer_position(const Index &index, ChildOffset i) noexcept {
-    return i * (sizeof(RecordOffset) + index.header.key_descriptor.length);
+    return i * (sizeof(RecordOffset) + index.header.key_length);
 }
 
 uint32_t IndexManager::_get_child_key_position(const Index &index, ChildOffset i) noexcept {
@@ -164,7 +162,9 @@ void IndexManager::_move_trailing_index_entries(
     std::memmove(dest, src, src_end - src);
 }
 
-void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffset record_offset) {
+void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffset rid) {
+    thread_local static std::vector<Byte> key_compact;
+    _make_key_compact(index, key_compact, data, rid);
     if (index.header.root_offset == -1) {  // empty, create new root
         auto root_page_handle = _allocate_node_page(index);
         _page_manager.mark_page_accessed(root_page_handle);
@@ -173,8 +173,8 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
         root_node.header.key_count = 1;
         root_node.header.is_leaf = true;
         IndexNode &node = root_node;
-        _write_index_entry_key(index, node, 0, data);
-        _write_index_entry_record_offset(index, node, 0, record_offset);
+        _write_index_entry_key(index, node, 0, key_compact.data(), rid);
+        _write_index_entry_record_offset(index, node, 0, rid);
         _write_index_node_link(index, root_node, {-1, -1});
     } else {
         static thread_local std::vector<IndexEntryOffset> path;  // stack nodes down the path for split operations.
@@ -184,7 +184,7 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
             auto page_handle = _get_node_page(index, page_offset);
             auto &node = _map_index_node_page(page_handle);
             _page_manager.mark_page_accessed(page_handle);
-            auto child_offset = _search_entry_in_node(index, node, data);
+            auto child_offset = _search_entry_in_node(index, node, key_compact.data());
             path.emplace_back(page_offset, child_offset);
             if (node.header.is_leaf) { break; }  // search terminates at leaf.
             page_offset = _get_index_entry_page_offset(index, node, child_offset);
@@ -195,7 +195,7 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
         // consider the possibility that the page k is bound to will be
         // swapped during the insertion for efficiency, but still this
         // can be thought as a potential vulnerability.
-        auto k = data;
+        const auto *k = key_compact.data();
         auto split_page_offset = 0;
         
         // insert popped up entry into upper nodes.
@@ -209,9 +209,9 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
             _page_manager.mark_page_dirty(page_handle);
             
             // since the child node was split, the pointer changes.
-            auto page_offset = node.header.is_leaf ? record_offset.page_offset :
+            auto page_offset = node.header.is_leaf ? rid.page_offset :
                                _get_index_entry_page_offset(index, node, e.child_offset);  // back-up
-            auto slot_offset = node.header.is_leaf ? record_offset.slot_offset : -1;
+            auto slot_offset = node.header.is_leaf ? rid.slot_offset : -1;
             
             if (!node.header.is_leaf) {
                 _write_index_entry_page_offset(index, node, e.child_offset, split_page_offset);
@@ -219,7 +219,7 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
             
             if (node.header.key_count < index.header.key_count_per_node) {  // insert directly.
                 _move_trailing_index_entries(index, node, e.child_offset, node, e.child_offset + 1);
-                _write_index_entry_key(index, node, e.child_offset, k);
+                _write_index_entry_key(index, node, e.child_offset, k, rid);
                 _write_index_entry_record_offset(index, node, e.child_offset, {page_offset, slot_offset});
                 node.header.key_count++;
                 return;
@@ -240,7 +240,7 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
                 node.header.key_count = split_pos;
                 // make space for the new entry.
                 _move_trailing_index_entries(index, node, e.child_offset, node, e.child_offset + 1);
-                _write_index_entry_key(index, node, e.child_offset, k);
+                _write_index_entry_key(index, node, e.child_offset, k, rid);
                 _write_index_entry_record_offset(index, node, e.child_offset, {page_offset, slot_offset});
                 // update entry count.
                 node.header.key_count++;
@@ -251,7 +251,7 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
                 _move_trailing_index_entries(index, node, e.child_offset, split_node, split_child_offset + 1);
                 node.header.key_count = static_cast<uint32_t>(e.child_offset);
                 _move_trailing_index_entries(index, node, split_pos, split_node, 0);
-                _write_index_entry_key(index, split_node, split_child_offset, k);
+                _write_index_entry_key(index, split_node, split_child_offset, k, rid);
                 _write_index_entry_record_offset(index, split_node, split_child_offset, {page_offset, slot_offset});
                 node.header.key_count = split_pos;
                 split_node.header.key_count = split_entry_count;
@@ -275,23 +275,24 @@ void IndexManager::insert_index_entry(Index &index, const Byte *data, RecordOffs
         auto root_page = _allocate_node_page(index);
         auto &root = _map_index_node_page(root_page);
         root.header.key_count = 1;
-        _write_index_entry_key(index, root, 0, k);
+        _write_index_entry_key(index, root, 0, k, rid);
         _write_index_entry_page_offset(index, root, 0, index.header.root_offset);
         _write_index_entry_page_offset(index, root, 1, split_page_offset);
         index.header.root_offset = root_page.buffer_offset.page_offset;
     }
 }
 
-void IndexManager::delete_index_entry(Index &index, const Byte *data, RecordOffset record_offset) {
+void IndexManager::delete_index_entry(Index &index, const Byte *data, RecordOffset rid) {
+    thread_local static std::vector<Byte> key_compact;
     if (index.header.root_offset == -1) {
         throw IndexManagerError{"Failed to delete index entry in an empty index tree."};
     }
-    auto entry_offset = _search_entry_in(index, index.header.root_offset, data);
+    _make_key_compact(index, key_compact, data, rid);
+    auto entry_offset = _search_entry_in(index, index.header.root_offset, key_compact.data());
     auto page_handle = _get_node_page(index, entry_offset.page_offset);
     auto &node = _map_index_node_page(page_handle);
-    auto rid = _get_index_entry_record_offset(index, node, entry_offset.child_offset);
-    if (record_offset == rid &&
-        entry_offset.child_offset < node.header.key_count) {
+    if (entry_offset.child_offset < node.header.key_count &&
+        rid == _get_index_entry_record_offset(index, node, entry_offset.child_offset)) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
         _page_manager.mark_page_dirty(page_handle);
@@ -317,7 +318,7 @@ ChildOffset IndexManager::_search_entry_in_node(Index &index, const IndexNode &n
     auto right = node.header.key_count;
     while (left < right) {
         auto mid = left + (right - left) / 2;
-        if (Data::less(index.header.key_descriptor, _get_index_entry_key(index, node, mid), k)) {
+        if (index.comparator.less(_get_index_entry_key(index, node, mid), k)) {
             left = mid + 1;
         } else {
             right = mid;
@@ -339,15 +340,35 @@ IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNo
     return MemoryMapper::map_memory<IndexNodeLink>(&n.fields[_get_child_pointer_position(idx, n.header.key_count)]);
 }
 
-void IndexManager::_write_index_entry_key(const Index &idx, IndexNode &n, ChildOffset i, const Byte *k) noexcept {
-    std::memmove(&n.fields[_get_child_key_position(idx, i)], k, idx.header.key_descriptor.length);
+void IndexManager::_write_index_entry_key(
+    const Index &idx, IndexNode &n, ChildOffset i, const Byte *k, RecordOffset rid) noexcept {
+    auto p = &n.fields[_get_child_key_position(idx, i)];
+//    if (idx.header.key_descriptor.constraint.unique()) {
+        std::memmove(p, k, idx.header.key_length);
+//    } else {
+//        memmove(p, &rid, sizeof(RecordOffset));
+//        memmove(p + sizeof(RecordOffset), k, idx.header.data_length);
+//    }
 }
 
 IndexEntryOffset IndexManager::search_index_entry(Index &index, const Byte *data) {
+    thread_local static std::vector<Byte> key_compact;
     if (index.header.root_offset == -1) {  // searching in empty tree.
         throw IndexManagerError{"Failed to search index entry in an empty index tree."};
     }
-    return _search_entry_in(index, index.header.root_offset, data);
+    _make_key_compact(index, key_compact, data, {-1, -1});
+    return _search_entry_in(index, index.header.root_offset, key_compact.data());
+}
+
+void IndexManager::_make_key_compact(
+    const Index &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const {
+    key_compact.resize(index.header.key_length);
+    if (index.header.key_descriptor.constraint.unique()) {
+        memmove(key_compact.data(), data, index.header.key_length);
+    } else {  // composed key
+        memmove(key_compact.data(), &rid, sizeof(RecordOffset));
+        memmove(key_compact.data() + sizeof(RecordOffset), data, index.header.data_length);
+    }
 }
 
 void IndexManager::_write_index_entry_record_offset(

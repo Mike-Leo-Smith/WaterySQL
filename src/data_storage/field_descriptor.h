@@ -11,13 +11,26 @@
 #include "data_descriptor.h"
 #include "../utility/type_constraints/non_copyable.h"
 #include "field_constraint.h"
+#include "../record_management/record_offset.h"
 
 namespace watery {
 
 struct FieldDescriptor final {
-    uint8_t name[MAX_FIELD_NAME_LENGTH]{};
+    
+    char name[MAX_FIELD_NAME_LENGTH]{};
     DataDescriptor data_descriptor{};
     FieldConstraint constraint{};
+    
+    constexpr uint32_t record_field_length() const noexcept {
+        return data_descriptor.length();
+    }
+    
+    constexpr uint32_t index_key_length() const noexcept {
+        return constraint.unique() ?
+               data_descriptor.length() :
+               // rid will be composed into index key to make it unique when it's actually not
+               data_descriptor.length() + sizeof(RecordOffset);
+    }
 };
 
 }

@@ -2,6 +2,8 @@
 // Created by Mike Smith on 2018/11/24.
 //
 
+#include <cstring>
+
 #include "record_manager.h"
 #include "data_page.h"
 #include "../errors/page_manager_error.h"

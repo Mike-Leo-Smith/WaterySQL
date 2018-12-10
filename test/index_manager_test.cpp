@@ -28,7 +28,7 @@ int main() {
     
     auto &&index_manager = IndexManager::instance();
     
-    std::string name{"test3"};
+    std::string name{"test4"};
     
     try {
         index_manager.delete_index(name);
@@ -37,9 +37,10 @@ int main() {
     }
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
+    FieldDescriptor field_desc{"test", data_descriptor};
     
     try {
-        index_manager.create_index(name, data_descriptor);
+        index_manager.create_index(name, field_desc);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
@@ -48,6 +49,9 @@ int main() {
     
     try {
         index = index_manager.open_index(name);
+        
+        index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>("hello, world"), {1, 2});
+        index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>("hello, world"), {1, 2});
         
         auto &&decode_data = [data_descriptor](std::string_view s) {
             return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));

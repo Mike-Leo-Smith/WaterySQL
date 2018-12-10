@@ -7,16 +7,18 @@
 
 #include <cstdint>
 #include "../config/config.h"
-#include "../data_storage/data_descriptor.h"
+#include "../data_storage/field_descriptor.h"
 
 namespace watery {
 
 struct IndexHeader {
     
-    DataDescriptor key_descriptor;
-    uint32_t page_count;
-    uint32_t key_count_per_node;
-    PageOffset root_offset;
+    FieldDescriptor key_descriptor{};
+    uint32_t key_length{0};
+    uint32_t data_length{0};
+    uint32_t page_count{1};
+    uint32_t key_count_per_node{0};
+    PageOffset root_offset{-1};
     
 };
 

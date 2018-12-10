@@ -8,6 +8,8 @@
 #include "utility/io_helpers/error_printer.h"
 #include "parsing/parser.h"
 
+#include "data_storage/data_comparator.h"
+
 int main() {
     
     using namespace watery;
@@ -35,9 +37,10 @@ int main() {
     std::string name{"test4"};
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
+    FieldDescriptor field_desc{"test", data_descriptor};
 
     try {
-        index_manager.create_index(name, data_descriptor);
+        index_manager.create_index(name, field_desc);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
