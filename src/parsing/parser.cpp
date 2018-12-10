@@ -213,8 +213,8 @@ bool Parser::_parse_nullable_notation() {
         _scanner.match_token(TokenTag::NUL);
         return false;
     }
-    _scanner.match_token(TokenTag::NUL);
-    return true;
+    return _scanner.lookahead() == TokenTag::COMMA ||
+           _scanner.lookahead() == TokenTag::RIGHT_PARENTHESIS;
 }
 
 int32_t Parser::_parse_integer() {

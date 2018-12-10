@@ -24,7 +24,7 @@ FieldList           ->  Field FieldListTail
 FieldListTail       ->  ',' FieldList
                     |   // empty, lookahead == ')'
 
-Field               ->  IDENTIFIER Type
+Field               ->  IDENTIFIER Type                     // done
                     |   PRIMARY KEY '(' ColumnList ')'
                     |   FOREIGN KEY '(' IDENTIFIER ')' REFERENCES IDENTIFIER '(' IDENTIFIER ')'
 
@@ -33,8 +33,8 @@ Type                ->  INT '(' NUMBER ')' NullableNotation         // done
                     |   DATE NullableNotation                       // done
                     |   FLOAT NullableNotation                      // done
 
-NullableNotation    ->  NULL        // done
-                    |   NOT NULL    // done
+NullableNotation    ->  NOT NULL                                        // done
+                    |   // empty, lookahead == ',' || lookahead == ')'  // done
 
 ValueListList       ->  '(' ValueList ')' ValueListListTail
 
@@ -53,6 +53,9 @@ WhereClause         ->  Column ColumnPredicate Conjunction
 
 ColumnPredicate     ->  OPERATOR Expr
                     |   IS NullOrNot
+
+IsNullOrNot         ->  NULL
+                    |   NOT NULL
 
 Conjunction         ->  AND WhereClause
                     |   // empty, lookahead == ';'
