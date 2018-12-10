@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include "scanner.h"
+#include "../config/config.h"
 
 namespace watery {
 
@@ -133,6 +134,10 @@ void Scanner::_read_next_token() {
             throw ScannerError{"Unexpected alpha/underscore.", _curr_offset};
         }
         while (std::isalnum(_peek_char()) || _peek_char() == '_') { _read_char(); }
+        auto raw = _view_content(last_pos, _curr_pos);
+        if (raw.size() >= MAX_IDENTIFIER_LENGTH) {
+            throw ScannerError{"Identifier name exceeded length limit.", _curr_offset};
+        }
         _lookahead_token.raw = _view_content(last_pos, _curr_pos);
         _lookahead_token.tag = tag_keyword_or_identifier(_lookahead_token.raw);
         _state = (_lookahead_token.tag == TokenTag::IDENTIFIER) ?
@@ -157,6 +162,7 @@ void Scanner::_read_next_token() {
                 throw ScannerError{"Unexpected end.", _curr_offset};
             }
         }
+        _read_char();  // read closing quotation.
         _lookahead_token.raw = _view_content(last_pos + 1, _curr_pos - 1);
         _lookahead_token.tag = TokenTag::STRING;
         _state = State::READING_STRING;

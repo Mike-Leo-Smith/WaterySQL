@@ -15,7 +15,7 @@ namespace watery {
 
 void RecordManager::create_table(const std::string &name, const RecordDescriptor &record_descriptor) {
     
-    auto rl = record_descriptor.calculate_length();
+    auto rl = record_descriptor.length();
     auto spp = std::min(MAX_SLOT_COUNT_PER_PAGE,
                         static_cast<uint32_t>((PAGE_SIZE - sizeof(DataPageHeader) - 8 /* for alignment */) / rl));
     

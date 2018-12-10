@@ -12,6 +12,7 @@ namespace watery {
 struct DataDescriptor {
     
     TypeTag type;
+    bool nullable;
     uint16_t size_hint;
     
     constexpr uint32_t length() const noexcept {

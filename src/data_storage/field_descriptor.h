@@ -17,7 +17,7 @@ namespace watery {
 
 struct FieldDescriptor final {
     
-    char name[MAX_FIELD_NAME_LENGTH]{};
+    char name[MAX_IDENTIFIER_LENGTH]{};
     DataDescriptor data_descriptor{};
     FieldConstraint constraint{};
     

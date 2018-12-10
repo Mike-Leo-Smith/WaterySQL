@@ -12,19 +12,20 @@ namespace watery {
 class FieldConstraint final {
 
 public:
-    static constexpr auto UNIQUE_BIT_INDEX = 0u;
-    static constexpr auto NULLABLE_BIT_INDEX = 1u;
+    static constexpr auto UNIQUE_BIT_MASK = 0x01u;
+    static constexpr auto INDEXED_BIT_MASK = 0x02u;
 
 private:
     uint8_t _constraints{0};
 
 public:
-    void set(int constraint, bool val) noexcept { _constraints |= (1u << constraint); }
-    constexpr bool get(int constraint) const noexcept { return (_constraints & (1u << constraint)) != 0; }
-    constexpr bool unique() const noexcept { return get(UNIQUE_BIT_INDEX); }
-    void set_unique(bool val) noexcept { set(UNIQUE_BIT_INDEX, val); }
-    constexpr bool nullable() const noexcept { return get(NULLABLE_BIT_INDEX); }
-    void set_nullable(bool val) noexcept { set(NULLABLE_BIT_INDEX, val); }
+    explicit FieldConstraint(uint32_t constraints = 0u) : _constraints{static_cast<uint8_t>(constraints)} {}
+    void set(uint32_t mask, bool val) noexcept { val ? (_constraints |= mask) : (_constraints &= ~mask); }
+    constexpr bool get(int mask) const noexcept { return (_constraints & mask) != 0; }
+    constexpr bool unique() const noexcept { return get(UNIQUE_BIT_MASK); }
+    void set_unique(bool val) noexcept { set(UNIQUE_BIT_MASK, val); }
+    constexpr bool indexed() const noexcept { return get(INDEXED_BIT_MASK); }
+    void set_indexed(bool val) noexcept { set(INDEXED_BIT_MASK, val); }
     
 };
 

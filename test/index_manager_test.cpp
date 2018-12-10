@@ -10,7 +10,7 @@
 #include <chrono>
 
 #include "../src/config/config.h"
-#include "../src/record_management/record_descriptor.h"
+#include "../src/data_storage/record_descriptor.h"
 #include "../src/data_storage/data.h"
 #include "../src/data_storage/varchar.h"
 #include "../src/errors/page_manager_error.h"
@@ -36,7 +36,7 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
+    DataDescriptor data_descriptor{TypeTag::INTEGER, true, 10};
     FieldDescriptor field_desc{"test", data_descriptor};
     
     try {
@@ -57,7 +57,7 @@ int main() {
             return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));
         };
         
-        constexpr auto count = 1'000'000;
+        constexpr auto count = 5'000'000;
         std::default_random_engine random{std::random_device{}()};
         
         std::vector<int32_t> data_set;
@@ -78,36 +78,37 @@ int main() {
 //            }
 //            data_set.emplace_back(s);
 //        }
+
         RecordOffset rid{1, 2};
         
         std::cout << "-------- testing insertion ---------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            std::cout << "elapsed time: " << elapsed_time_ms([&] {
+            std::cout << "elapsed time: " << timed_run([&] {
                 for (auto &&entry: data_set) {
                     index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(&entry), rid);
                 }
-            }) << "ms" << std::endl;
+            }).first << "ms" << std::endl;
         }
         
         std::cout << "------- testing search --------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            std::cout << "elapsed time: " << elapsed_time_ms([&] {
+            std::cout << "elapsed time: " << timed_run([&] {
                 for (auto &&entry: data_set) {
                     index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(&entry));
                 }
-            }) << "ms" << std::endl;
+            }).first << "ms" << std::endl;
         }
         
         std::cout << "------- testing deletion --------" << std::endl;
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            std::cout << "elapsed time: " << elapsed_time_ms([&] {
+            std::cout << "elapsed time: " << timed_run([&] {
                 for (auto &&entry: data_set) {
                     index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(&entry), rid);
                 }
-            }) << "ms" << std::endl;
+            }).first << "ms" << std::endl;
         }
     } catch (const std::exception &e) {
         print_error(std::cerr, e);

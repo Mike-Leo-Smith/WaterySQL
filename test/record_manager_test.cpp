@@ -3,11 +3,14 @@
 //
 
 
+#include <chrono>
 #include <iostream>
 #include <array>
+#include <algorithm>
+#include <functional>
 
 #include "../src/config/config.h"
-#include "../src/record_management/record_descriptor.h"
+#include "../src/data_storage/record_descriptor.h"
 #include "../src/data_storage/data.h"
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
@@ -29,11 +32,11 @@ int main() {
     }
     
     auto record_descriptor = RecordDescriptor{
-        {"SomeThing", TypeTag::INTEGER, 4},
-        {"Another",   TypeTag::INTEGER, 8},
-        {"Another",   TypeTag::INTEGER, 8},
-        {"Another",   TypeTag::INTEGER, 8},
-        {"Another",   TypeTag::INTEGER, 8},
+        FieldDescriptor{"SomeThing", TypeTag::INTEGER, true, 4},
+        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
+        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
+        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
+        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
     };
     
     try {
@@ -50,7 +53,7 @@ int main() {
         std::cout << table.header.record_count << std::endl;
         std::cout << table.header.page_count << std::endl;
         auto &&rd = table.header.record_descriptor;
-        std::for_each_n(rd.field_descriptors.begin(), rd.field_count, [](auto &&fd) {
+        std::for_each(rd.field_descriptors.begin(), rd.field_descriptors.begin() + rd.field_count, [](auto &&fd) {
             std::cout << fd.name << ", " << fd.data_descriptor.length() << std::endl;
         });
     } catch (const std::exception &e) {

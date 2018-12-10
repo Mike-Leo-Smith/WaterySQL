@@ -1,23 +1,23 @@
-Stmt                ->  SHOW ShowStmtBody ';'
+Stmt                ->  SHOW ShowStmtBody ';'       // done
                     |   CREATE CreateStmtBody ';'
-                    |   DROP DropStmtBody ';'
-                    |   USE IDENTIFIER ';'
-                    |   DESC IDENTIFIER ';'
+                    |   DROP DropStmtBody ';'       // done
+                    |   USE IDENTIFIER ';'          // done
+                    |   DESC IDENTIFIER ';'         // done
                     |   INSERT INTO IDENTIFIER VALUES ValueListList ';'
                     |   DELETE FROM IDENTIFIER WHERE WhereClause ';'
                     |   UPDATE IDENTIFIER SET SetClause WHERE WhereClause ';'
                     |   SELECT Selector FROM TableList WHERE WhereClause ';'
 
-ShowStmtBody        ->  DATABASES
-                    |   TABLES
+ShowStmtBody        ->  DATABASES   // done
+                    |   TABLES      // done
 
-CreateStmtBody      ->  DATABASE IDENTIFIER
-                    |   TABLE IDENTIFIER '(' FieldList ')'
-                    |   INDEX IDENTIFIER '(' IDENTIFIER ')'
+CreateStmtBody      ->  DATABASE IDENTIFIER                     // done
+                    |   TABLE IDENTIFIER '(' FieldList ')'      // done
+                    |   INDEX IDENTIFIER '(' IDENTIFIER ')'     // done
 
-DropStmtBody        ->  DATABASE IDENTIFIER
-                    |   TABLE IDENTIFIER
-                    |   INDEX IDENTIFIER '(' IDENTIFIER ')'
+DropStmtBody        ->  DATABASE IDENTIFIER                     // done
+                    |   TABLE IDENTIFIER                        // done
+                    |   INDEX IDENTIFIER '(' IDENTIFIER ')'     // done
 
 FieldList           ->  Field FieldListTail
 
@@ -28,13 +28,13 @@ Field               ->  IDENTIFIER Type
                     |   PRIMARY KEY '(' ColumnList ')'
                     |   FOREIGN KEY '(' IDENTIFIER ')' REFERENCES IDENTIFIER '(' IDENTIFIER ')'
 
-Type                ->  INT '(' NUMBER ')' NullableNotation
-                    |   VARCHAR '(' NUMBER ')' NullableNotation
-                    |   DATE NullableNotation
-                    |   FLOAT NullableNotation
+Type                ->  INT '(' NUMBER ')' NullableNotation         // done
+                    |   VARCHAR '(' NUMBER ')' NullableNotation     // done
+                    |   DATE NullableNotation                       // done
+                    |   FLOAT NullableNotation                      // done
 
-NullableNotation    ->  NULL
-                    |   // empty, lookahead == ')'
+NullableNotation    ->  NULL        // done
+                    |   NOT NULL    // done
 
 ValueListList       ->  '(' ValueList ')' ValueListListTail
 
@@ -53,9 +53,6 @@ WhereClause         ->  Column ColumnPredicate Conjunction
 
 ColumnPredicate     ->  OPERATOR Expr
                     |   IS NullOrNot
-
-NullOrNot           ->  NULL
-                    |   NOT NULL
 
 Conjunction         ->  AND WhereClause
                     |   // empty, lookahead == ';'

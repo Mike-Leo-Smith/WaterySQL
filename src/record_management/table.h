@@ -7,7 +7,7 @@
 
 #include <string>
 #include "../config/config.h"
-#include "record_descriptor.h"
+#include "../data_storage/record_descriptor.h"
 #include "../page_management/buffered_page.h"
 #include "table_header.h"
 

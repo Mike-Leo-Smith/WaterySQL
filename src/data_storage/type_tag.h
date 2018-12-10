@@ -10,10 +10,11 @@
 
 namespace watery {
 
-enum struct TypeTag : uint16_t {
+enum struct TypeTag : uint8_t {
     INTEGER = 0,
     FLOAT = 1,
-    VARCHAR = 2
+    VARCHAR = 2,
+    DATE = 3
 };
 
 }

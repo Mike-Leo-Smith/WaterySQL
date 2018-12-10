@@ -6,7 +6,7 @@
 #define WATERYSQL_TABLE_HEADER_H
 
 #include <cstdint>
-#include "record_descriptor.h"
+#include "../data_storage/record_descriptor.h"
 
 namespace watery {
 

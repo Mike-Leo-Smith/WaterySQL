@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <array>
 #include "../page_management/page_manager.h"
-#include "record_descriptor.h"
+#include "../data_storage/record_descriptor.h"
 #include "table.h"
 #include "record_offset.h"
 #include "data_page.h"

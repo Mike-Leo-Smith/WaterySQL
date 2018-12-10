@@ -14,7 +14,7 @@ int main() {
     
     using namespace watery;
     
-    constexpr auto query = "select (*.app_le) from PERSON\n where age<>-.;\n";
+    constexpr auto query = "select (*.app_le) from PERSON\n where age<>'apple';\n";
     Scanner scanner{query};
     
     auto t = scanner.lookahead();
@@ -36,7 +36,7 @@ int main() {
     
     std::string name{"test4"};
     
-    DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
+    DataDescriptor data_descriptor{TypeTag::INTEGER, true, 10};
     FieldDescriptor field_desc{"test", data_descriptor};
 
     try {

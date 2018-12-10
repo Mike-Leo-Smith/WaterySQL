@@ -24,11 +24,11 @@ using ChildOffset = int32_t;
 using Byte = uint8_t;
 using Buffer = Byte *;
 
-static constexpr uint32_t PAGE_SIZE = 1 << 14;  // 16K
+static constexpr uint32_t PAGE_SIZE = 16384;  // 16K
 static constexpr uint32_t MAX_FILE_COUNT = 31;
 static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = 65535;
 
-static constexpr uint32_t MAX_FIELD_NAME_LENGTH = 32;
+static constexpr uint32_t MAX_IDENTIFIER_LENGTH = 32;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;
 
 static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 512;
