@@ -30,13 +30,13 @@ int main() {
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
-    
+    FieldConstraint c{FieldConstraint::UNIQUE_BIT_MASK};
     auto record_descriptor = RecordDescriptor{
-        FieldDescriptor{"SomeThing", TypeTag::INTEGER, true, 4},
-        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
-        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
-        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
-        FieldDescriptor{"Another",   TypeTag::INTEGER, true, 8},
+        FieldDescriptor{"SomeThing", DataDescriptor{TypeTag::INTEGER, 4}, c},
+        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
     };
     
     try {

@@ -17,6 +17,28 @@ enum struct TypeTag : uint8_t {
     DATE = 3
 };
 
+template<typename OS>
+OS &operator<<(OS &os, TypeTag tag) {
+    switch (tag) {
+        case TypeTag::INTEGER:
+            os << "INT";
+            break;
+        case TypeTag::FLOAT:
+            os << "FLOAT";
+            break;
+        case TypeTag::VARCHAR:
+            os << "VARCHAR";
+            break;
+        case TypeTag::DATE:
+            os << "DATE";
+            break;
+        default:
+            os << "UNKNOWN";
+            break;
+    }
+    return os;
+}
+
 }
 
 #endif  // WATERYSQL_TYPE_TAG_H

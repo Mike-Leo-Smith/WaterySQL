@@ -11,12 +11,14 @@
 namespace watery {
 
 struct TableHeader {
-    RecordDescriptor record_descriptor;
+    RecordDescriptor record_descriptor{};
     uint32_t page_count{1};
     uint32_t record_count{0};
     uint32_t record_length{0};
     uint32_t slot_count_per_page{0};
     PageOffset first_free_page{-1};
+    
+    TableHeader() = default;
 };
 
 }

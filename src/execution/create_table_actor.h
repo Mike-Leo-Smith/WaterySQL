@@ -14,11 +14,31 @@ struct CreateTableActor {
     const std::string name;
     const RecordDescriptor descriptor;
     
-    CreateTableActor(std::string_view name, uint32_t field_count, std::array<FieldDescriptor, MAX_FIELD_COUNT> fields)
-        : name{name}, descriptor{field_count, fields} {}
+    CreateTableActor(std::string_view name, const std::vector<FieldDescriptor> &fields)
+        : name{name}, descriptor{fields} {}
     
     void operator()() const {
-    
+        std::for_each(
+            descriptor.field_descriptors.begin(),
+            descriptor.field_descriptors.begin() + descriptor.field_count,
+            [](FieldDescriptor fd) {
+                std::cout << fd.name << ": "
+                          << fd.data_descriptor.type
+                          << "(" << fd.data_descriptor.size_hint << ") | "
+                          << (fd.constraints.nullable() ? "NULL " : "NOT NULL ");
+                if (fd.constraints.foreign()) {
+                    std::cout << "| FOREIGN KEY REFERENCES "
+                              << fd.foreign_table_name
+                              << "(" << fd.foreign_column_name << ") ";
+                }
+                if (fd.constraints.primary()) {
+                    std::cout << "| PRIMARY KEY ";
+                }
+                if (fd.constraints.unique()) {
+                    std::cout << "| UNIQUE ";
+                }
+                std::cout << std::endl;
+            });
     }
     
 };

@@ -12,19 +12,18 @@ namespace watery {
 struct DataDescriptor {
     
     TypeTag type;
-    bool nullable;
     uint16_t size_hint;
     
     constexpr uint32_t length() const noexcept {
         switch (type) {
-        case TypeTag::INTEGER:
-            return sizeof(int32_t);
-        case TypeTag::FLOAT:
-            return sizeof(float);
-        case TypeTag::VARCHAR:
-            return size_hint;
-        default:
-            return 0;
+            case TypeTag::INTEGER:
+                return sizeof(int32_t);
+            case TypeTag::FLOAT:
+                return sizeof(float);
+            case TypeTag::VARCHAR:
+                return size_hint;
+            default:
+                return 0;
         }
     }
     

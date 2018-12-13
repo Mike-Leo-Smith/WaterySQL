@@ -20,7 +20,7 @@ public:
     IndexKeyComparator() = default;
     
     explicit IndexKeyComparator(const FieldDescriptor &fd)
-        : _unique{fd.constraint.unique()}, _data_cmp{fd.data_descriptor} {}
+        : _unique{fd.constraints.unique()}, _data_cmp{fd.data_descriptor} {}
     
     bool less(const Byte *lhs, const Byte *rhs) const noexcept {
         if (_unique) {

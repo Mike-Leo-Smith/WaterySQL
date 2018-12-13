@@ -47,6 +47,7 @@ public:
     static TokenTag tag_keyword_or_identifier(std::string_view raw);
     TokenTag lookahead() const;
     Token match_token(TokenTag tag);
+    TokenOffset current_offset() const { return _curr_offset; }
     
 };
 

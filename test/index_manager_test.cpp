@@ -36,8 +36,8 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    DataDescriptor data_descriptor{TypeTag::INTEGER, true, 10};
-    FieldDescriptor field_desc{"test", data_descriptor};
+    DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
+    FieldDescriptor field_desc{"test", data_descriptor, FieldConstraint{FieldConstraint::UNIQUE_BIT_MASK}};
     
     try {
         index_manager.create_index(name, field_desc);

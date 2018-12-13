@@ -363,7 +363,7 @@ IndexEntryOffset IndexManager::search_index_entry(Index &index, const Byte *data
 void IndexManager::_make_key_compact(
     const Index &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const {
     key_compact.resize(index.header.key_length);
-    if (index.header.key_descriptor.constraint.unique()) {
+    if (index.header.key_descriptor.constraints.unique()) {
         memmove(key_compact.data(), data, index.header.key_length);
     } else {  // composed key
         memmove(key_compact.data(), &rid, sizeof(RecordOffset));

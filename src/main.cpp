@@ -28,16 +28,27 @@ int main() {
     
     Parser parser;
     
+    auto actor = parser.parse(
+        "create table test("
+        "  col1 int(5), "
+        "  col2 int null, "
+        "  col3 float, "
+        "  col4 date(20) not null, "
+        "  foreign key(col3) references another(some), "
+        "  unique(col2),"
+        "  primary key(col3));");
+    actor();
+    
     parser.parse("drop database test;")();
     parser.parse("create database test;")();
-    parser.parse("use database test;")();
+    parser.parse("use test;")();
     
     auto &&index_manager = IndexManager::instance();
     
     std::string name{"test4"};
     
-    DataDescriptor data_descriptor{TypeTag::INTEGER, true, 10};
-    FieldDescriptor field_desc{"test", data_descriptor};
+    DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
+    FieldDescriptor field_desc{"test", data_descriptor, FieldConstraint{}};
 
     try {
         index_manager.create_index(name, field_desc);

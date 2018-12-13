@@ -24,15 +24,15 @@ public:
     
     int32_t compare(const Byte *lhs, const Byte *rhs) const noexcept {
         switch (_descriptor.type) {
-        case TypeTag::INTEGER:
-            return MemoryMapper::map_memory<int32_t>(lhs) - MemoryMapper::map_memory<int32_t>(rhs);
-        case TypeTag::FLOAT:
-            return sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
-        case TypeTag::VARCHAR:
-            return std::string_view{reinterpret_cast<const char *>(lhs), _descriptor.size_hint}
-                .compare(std::string_view{reinterpret_cast<const char *>(lhs), _descriptor.size_hint});
-        default:
-            return 0;
+            case TypeTag::INTEGER:
+                return MemoryMapper::map_memory<int32_t>(lhs) - MemoryMapper::map_memory<int32_t>(rhs);
+            case TypeTag::FLOAT:
+                return sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
+            case TypeTag::VARCHAR:
+                return std::string_view{reinterpret_cast<const char *>(lhs), _descriptor.size_hint}
+                    .compare(std::string_view{reinterpret_cast<const char *>(lhs), _descriptor.size_hint});
+            default:
+                return 0;
         }
     }
     

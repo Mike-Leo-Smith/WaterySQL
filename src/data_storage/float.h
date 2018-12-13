@@ -29,12 +29,12 @@ public:
     
     bool operator<(const Data &rhs) const override {
         switch (rhs.type()) {
-        case TypeTag::INTEGER:
-            return _val < reinterpret_cast<const Integer &>(rhs).value();
-        case TypeTag::FLOAT:
-            return _val < reinterpret_cast<const Float &>(rhs).value();
-        default:
-            return Data::operator<(rhs);
+            case TypeTag::INTEGER:
+                return _val < reinterpret_cast<const Integer &>(rhs).value();
+            case TypeTag::FLOAT:
+                return _val < reinterpret_cast<const Float &>(rhs).value();
+            default:
+                return Data::operator<(rhs);
         }
     }
     

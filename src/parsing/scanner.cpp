@@ -36,17 +36,15 @@ TokenTag Scanner::tag_keyword_or_identifier(std::string_view raw) {
         {"INT",        TokenTag::INT},
         {"VARCHAR",    TokenTag::VARCHAR},
         {"DESC",       TokenTag::DESC},
+        {"DESCRIBE",   TokenTag::DESC},
         {"REFERENCES", TokenTag::REFERENCES},
         {"INDEX",      TokenTag::INDEX},
         {"AND",        TokenTag::AND},
         {"DATE",       TokenTag::DATE},
         {"FLOAT",      TokenTag::FLOAT},
         {"FOREIGN",    TokenTag::FOREIGN},
+        {"UNIQUE",     TokenTag::UNIQUE}
     };
-    
-    for (auto it = keywords.begin(); it != keywords.end(); it++) {
-    
-    }
     
     thread_local static std::string upper_cased;
     upper_cased.resize(raw.size());
@@ -171,47 +169,47 @@ void Scanner::_read_next_token() {
     
     // read operators or delimiters
     switch (c) {
-    case '.':
-        _lookahead_token.tag = TokenTag::DOT;
-        break;
-    case '<': {
-        if (_peek_char() == '>') {
-            _read_char();
-            _lookahead_token.tag = TokenTag::UNEQUAL;
-        } else if (_peek_char() == '=') {
-            _read_char();
-            _lookahead_token.tag = TokenTag::LESS_EQUAL;
-        } else {
-            _lookahead_token.tag = TokenTag::LESS;
+        case '.':
+            _lookahead_token.tag = TokenTag::DOT;
+            break;
+        case '<': {
+            if (_peek_char() == '>') {
+                _read_char();
+                _lookahead_token.tag = TokenTag::UNEQUAL;
+            } else if (_peek_char() == '=') {
+                _read_char();
+                _lookahead_token.tag = TokenTag::LESS_EQUAL;
+            } else {
+                _lookahead_token.tag = TokenTag::LESS;
+            }
+            break;
         }
-        break;
-    }
-    case '>': {
-        if (_peek_char() == '=') {
-            _read_char();
-            _lookahead_token.tag = TokenTag::GREATER_EQUAL;
-        } else {
-            _lookahead_token.tag = TokenTag::GREATER;
+        case '>': {
+            if (_peek_char() == '=') {
+                _read_char();
+                _lookahead_token.tag = TokenTag::GREATER_EQUAL;
+            } else {
+                _lookahead_token.tag = TokenTag::GREATER;
+            }
+            break;
         }
-        break;
-    }
-    case '=':
-        _lookahead_token.tag = TokenTag::EQUAL;
-        break;
-    case ',':
-        _lookahead_token.tag = TokenTag::COMMA;
-        break;
-    case ';':
-        _lookahead_token.tag = TokenTag::SEMICOLON;
-        break;
-    case '(':
-        _lookahead_token.tag = TokenTag::LEFT_PARENTHESIS;
-        break;
-    case ')':
-        _lookahead_token.tag = TokenTag::RIGHT_PARENTHESIS;
-        break;
-    default:
-        throw ScannerError("Unexpected character.", _curr_offset);
+        case '=':
+            _lookahead_token.tag = TokenTag::EQUAL;
+            break;
+        case ',':
+            _lookahead_token.tag = TokenTag::COMMA;
+            break;
+        case ';':
+            _lookahead_token.tag = TokenTag::SEMICOLON;
+            break;
+        case '(':
+            _lookahead_token.tag = TokenTag::LEFT_PARENTHESIS;
+            break;
+        case ')':
+            _lookahead_token.tag = TokenTag::RIGHT_PARENTHESIS;
+            break;
+        default:
+            throw ScannerError("Unexpected character.", _curr_offset);
     }
     
     _lookahead_token.raw = _view_content(last_pos, _curr_pos);
@@ -232,7 +230,10 @@ TokenTag Scanner::lookahead() const {
 
 Token Scanner::match_token(TokenTag tag) {
     if (_lookahead_token.tag != tag) {
-        throw ScannerError{"Current token does not match the expected token.", _lookahead_token.offset};
+        throw ScannerError{
+            std::string{"Current token \""}
+                .append(_lookahead_token.raw).append("\" does not match the expected token."),
+            _lookahead_token.offset};
     }
     auto token = _lookahead_token;
     _read_next_token();

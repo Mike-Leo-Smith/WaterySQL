@@ -23,9 +23,15 @@ protected:
     Actor _parse_drop_statement();
     Actor _parse_describe_statement();
     
-    FieldDescriptor _parse_field();
+    void _parse_field_list(std::vector<FieldDescriptor> &fields);
+    void _parse_field(std::vector<FieldDescriptor> &fields);
+    void _parse_foreign_key(std::vector<FieldDescriptor> &fields);
+    void _parse_primary_key(std::vector<FieldDescriptor> &fields);
+    void _parse_unique(std::vector<FieldDescriptor> &fields);
     DataDescriptor _parse_type();
-    bool _parse_nullable_notation();
+    bool _parse_nullable_hint();
+    uint16_t _parse_size_hint();
+    
     int32_t _parse_integer();
     float _parse_float();
     
