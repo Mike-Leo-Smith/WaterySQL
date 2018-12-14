@@ -20,7 +20,7 @@ struct DataDescriptor {
                 return sizeof(int32_t);
             case TypeTag::FLOAT:
                 return sizeof(float);
-            case TypeTag::VARCHAR:
+            case TypeTag::CHAR:
                 return size_hint;
             default:
                 return 0;

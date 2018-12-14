@@ -9,7 +9,7 @@
 #include "../utility/io_helpers/error_printer.h"
 #include "../utility/memory_mapping/memory_mapper.h"
 #include "../utility/mathematics/sgn.h"
-#include "../data_storage/varchar.h"
+#include "../data_storage/char.h"
 
 namespace watery {
 

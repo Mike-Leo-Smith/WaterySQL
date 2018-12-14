@@ -5,7 +5,7 @@
 #include "data.h"
 #include "integer.h"
 #include "float.h"
-#include "varchar.h"
+#include "char.h"
 #include "../errors/data_error.h"
 
 namespace watery {
@@ -16,8 +16,8 @@ std::unique_ptr<Data> Data::decode(DataDescriptor descriptor, const Byte *raw) {
             return std::make_unique<Integer>(MemoryMapper::map_memory<int32_t>(raw));
         case TypeTag::FLOAT:
             return std::make_unique<Float>(MemoryMapper::map_memory<float>(raw));
-        case TypeTag::VARCHAR:
-            return std::make_unique<Varchar>(reinterpret_cast<const char *>(raw), descriptor.size_hint);
+        case TypeTag::CHAR:
+            return std::make_unique<Char>(reinterpret_cast<const char *>(raw), descriptor.size_hint);
         default:
             throw DataError{"Failed to decode data with unknown type."};
     }

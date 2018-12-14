@@ -13,7 +13,7 @@ namespace watery {
 enum struct TypeTag : uint8_t {
     INTEGER = 0,
     FLOAT = 1,
-    VARCHAR = 2,
+    CHAR = 2,
     DATE = 3
 };
 
@@ -26,8 +26,8 @@ OS &operator<<(OS &os, TypeTag tag) {
         case TypeTag::FLOAT:
             os << "FLOAT";
             break;
-        case TypeTag::VARCHAR:
-            os << "VARCHAR";
+        case TypeTag::CHAR:
+            os << "CHAR";
             break;
         case TypeTag::DATE:
             os << "DATE";

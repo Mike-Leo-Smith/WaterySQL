@@ -28,7 +28,7 @@ public:
                 return MemoryMapper::map_memory<int32_t>(lhs) - MemoryMapper::map_memory<int32_t>(rhs);
             case TypeTag::FLOAT:
                 return sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
-            case TypeTag::VARCHAR:
+            case TypeTag::CHAR:
                 return std::string_view{reinterpret_cast<const char *>(lhs), _descriptor.size_hint}
                     .compare(std::string_view{reinterpret_cast<const char *>(lhs), _descriptor.size_hint});
             default:

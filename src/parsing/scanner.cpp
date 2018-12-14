@@ -5,52 +5,21 @@
 #include <iostream>
 #include "scanner.h"
 #include "../config/config.h"
+#include "token_tag_helper.h"
 
 namespace watery {
 
-TokenTag Scanner::tag_keyword_or_identifier(std::string_view raw) {
-    
-    thread_local static std::unordered_map<std::string_view, TokenTag, std::hash<std::string_view>> keywords{
-        {"DATABASE",   TokenTag::DATABASE},
-        {"DATABASES",  TokenTag::DATABASES},
-        {"TABLE",      TokenTag::TABLE},
-        {"TABLES",     TokenTag::TABLES},
-        {"SHOW",       TokenTag::SHOW},
-        {"CREATE",     TokenTag::CREATE},
-        {"DROP",       TokenTag::DROP},
-        {"USE",        TokenTag::USE},
-        {"PRIMARY",    TokenTag::PRIMARY},
-        {"KEY",        TokenTag::KEY},
-        {"NOT",        TokenTag::NOT},
-        {"NULL",       TokenTag::NUL},
-        {"INSERT",     TokenTag::INSERT},
-        {"INTO",       TokenTag::INTO},
-        {"VALUES",     TokenTag::VALUES},
-        {"DELETE",     TokenTag::DELETE},
-        {"FROM",       TokenTag::FROM},
-        {"WHERE",      TokenTag::WHERE},
-        {"UPDATE",     TokenTag::UPDATE},
-        {"SET",        TokenTag::SET},
-        {"SELECT",     TokenTag::SELECT},
-        {"IS",         TokenTag::IS},
-        {"INT",        TokenTag::INT},
-        {"VARCHAR",    TokenTag::VARCHAR},
-        {"DESC",       TokenTag::DESC},
-        {"DESCRIBE",   TokenTag::DESC},
-        {"REFERENCES", TokenTag::REFERENCES},
-        {"INDEX",      TokenTag::INDEX},
-        {"AND",        TokenTag::AND},
-        {"DATE",       TokenTag::DATE},
-        {"FLOAT",      TokenTag::FLOAT},
-        {"FOREIGN",    TokenTag::FOREIGN},
-        {"UNIQUE",     TokenTag::UNIQUE}
-    };
-    
+std::string_view Scanner::_to_upper(std::string_view s) noexcept {
     thread_local static std::string upper_cased;
-    upper_cased.resize(raw.size());
-    std::transform(raw.cbegin(), raw.cend(), upper_cased.begin(), [](char c) { return static_cast<char>(toupper(c)); });
-    if (keywords.count(upper_cased) != 0) {
-        return keywords[upper_cased];
+    upper_cased.resize(s.size());
+    std::transform(s.cbegin(), s.cend(), upper_cased.begin(), [](char c) { return static_cast<char>(toupper(c)); });
+    return upper_cased;
+}
+
+TokenTag Scanner::_tag_keyword_or_identifier(std::string_view raw) noexcept {
+    auto upper_cased = _to_upper(raw);
+    if (TokenTagHelper::keyword_dict().count(upper_cased) != 0) {
+        return TokenTagHelper::keyword_dict().at(upper_cased);
     }
     return TokenTag::IDENTIFIER;
 }
@@ -75,7 +44,7 @@ char Scanner::_read_char() {
     return c;
 }
 
-std::string_view Scanner::_view_content(size_t begin, size_t end) const {
+std::string_view Scanner::_view_content(size_t begin, size_t end) const noexcept {
     return _content.substr(begin, end - begin);
 }
 
@@ -127,7 +96,7 @@ void Scanner::_read_next_token() {
     }
     
     // read keywords or identifiers
-    if (std::isalpha(c)) {
+        if (std::isalpha(c)) {
         if (_state != State::READING_BLANK && _state != State::READING_OPERATOR) {
             throw ScannerError{"Unexpected alpha/underscore.", _curr_offset};
         }
@@ -137,7 +106,7 @@ void Scanner::_read_next_token() {
             throw ScannerError{"Identifier name exceeded length limit.", _curr_offset};
         }
         _lookahead_token.raw = _view_content(last_pos, _curr_pos);
-        _lookahead_token.tag = tag_keyword_or_identifier(_lookahead_token.raw);
+        _lookahead_token.tag = _tag_keyword_or_identifier(_lookahead_token.raw);
         _state = (_lookahead_token.tag == TokenTag::IDENTIFIER) ?
                  State::READING_IDENTIFIER :
                  State::READING_KEYWORD;
@@ -151,6 +120,9 @@ void Scanner::_read_next_token() {
         }
         while (_peek_char() != '\'') {
             auto x = _read_char();
+            if (x == '\\') {  // skip escapes
+                _read_char();
+            }
             if (x == '\n') {
                 _state = State::READING_BLANK;
                 throw ScannerError{"Strings cannot be contain raw line breaks, use '\\n' instead.", _curr_offset};
@@ -230,10 +202,16 @@ TokenTag Scanner::lookahead() const {
 
 Token Scanner::match_token(TokenTag tag) {
     if (_lookahead_token.tag != tag) {
-        throw ScannerError{
-            std::string{"Current token \""}
-                .append(_lookahead_token.raw).append("\" does not match the expected token."),
-            _lookahead_token.offset};
+        if (tag == TokenTag::IDENTIFIER &&
+            TokenTagHelper::keyword_dict().count(_to_upper(_lookahead_token.raw)) != 0) {
+            _lookahead_token.tag = TokenTag::IDENTIFIER;
+        } else {
+            throw ScannerError{
+                std::string{"Current token \""}
+                    .append(_lookahead_token.raw).append("\" does not match the expected token \"")
+                    .append(TokenTagHelper::name(tag)).append("\"."),
+                _lookahead_token.offset};
+        }
     }
     auto token = _lookahead_token;
     _read_next_token();
@@ -242,6 +220,27 @@ Token Scanner::match_token(TokenTag tag) {
 
 Scanner::Scanner(std::string_view content)
     : _content{content} {
+    _read_next_token();
+}
+
+Scanner &Scanner::scan(std::string_view content) {
+    _content = content;
+    _state = State::READING_BLANK;
+    _curr_offset = {};
+    _curr_pos = 0;
+    _read_next_token();
+    return *this;
+}
+
+TokenOffset Scanner::current_offset() const {
+    return _curr_offset;
+}
+
+bool Scanner::end() const {
+    return _lookahead_token.tag == TokenTag::END;
+}
+
+void Scanner::skip() {
     _read_next_token();
 }
 

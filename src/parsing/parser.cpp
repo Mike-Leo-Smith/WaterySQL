@@ -22,8 +22,15 @@
 
 namespace watery {
 
-Actor Parser::parse(std::string_view statement) {
-    _scanner = Scanner{statement};
+Parser::Parser(std::string_view program)
+    : _scanner{program} {}
+
+Parser &Parser::parse(std::string_view program) {
+    _scanner.scan(program);
+    return *this;
+}
+
+Actor Parser::next() {
     switch (_scanner.lookahead()) {
         case TokenTag::SHOW:
             return _parse_show_statement();
@@ -33,7 +40,7 @@ Actor Parser::parse(std::string_view statement) {
             return _parse_use_statement();
         case TokenTag::DROP:
             return _parse_drop_statement();
-        case TokenTag::DESC:
+        case TokenTag::DESCRIBE:
             return _parse_describe_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
@@ -56,8 +63,8 @@ Actor Parser::_parse_show_statement() {
             break;
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
-            throw ParserError{std::string{"Unexpected token \""}.append(token.raw).append("\" after SHOW."),
-                              token.offset};
+            throw ParserError{
+                std::string{"Unexpected token \""}.append(token.raw).append(R"(" after "SHOW".)"), token.offset};
         }
     }
     _scanner.match_token(TokenTag::SEMICOLON);
@@ -72,7 +79,7 @@ Actor Parser::_parse_create_statement() {
             _scanner.match_token(TokenTag::DATABASE);
             actor = CreateDatabaseActor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
             break;
-        case TokenTag::TABLE: {  // TODO: PRIMARY/FOREIGN keys not supported yet
+        case TokenTag::TABLE: {
             _scanner.match_token(TokenTag::TABLE);
             auto identifier = _scanner.match_token(TokenTag::IDENTIFIER);
             _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
@@ -95,7 +102,7 @@ Actor Parser::_parse_create_statement() {
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{
-                std::string{"Unexpected token \""}.append(token.raw).append("\" after CREATE."), token.offset};
+                std::string{"Unexpected token \""}.append(token.raw).append(R"(" after "CREATE".)"), token.offset};
         }
     }
     _scanner.match_token(TokenTag::SEMICOLON);
@@ -133,7 +140,7 @@ Actor Parser::_parse_drop_statement() {
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{
-                std::string{"Unexpected token \""}.append(token.raw).append("\" after DROP."), token.offset};
+                std::string{"Unexpected token \""}.append(token.raw).append(R"(" after "DROP".)"), token.offset};
         }
     }
     _scanner.match_token(TokenTag::SEMICOLON);
@@ -141,7 +148,7 @@ Actor Parser::_parse_drop_statement() {
 }
 
 Actor Parser::_parse_describe_statement() {
-    _scanner.match_token(TokenTag::DESC);
+    _scanner.match_token(TokenTag::DESCRIBE);
     auto name = _scanner.match_token(TokenTag::IDENTIFIER).raw;
     _scanner.match_token(TokenTag::SEMICOLON);
     return DescribeTableActor{name};
@@ -154,9 +161,9 @@ DataDescriptor Parser::_parse_type() {
             _scanner.match_token(TokenTag::INT);
             tag = TypeTag::INTEGER;
             break;
-        case TokenTag::VARCHAR:
-            _scanner.match_token(TokenTag::VARCHAR);
-            tag = TypeTag::VARCHAR;
+        case TokenTag::CHAR:
+            _scanner.match_token(TokenTag::CHAR);
+            tag = TypeTag::CHAR;
             break;
         case TokenTag::FLOAT:
             _scanner.match_token(TokenTag::FLOAT);
@@ -221,8 +228,20 @@ float Parser::_parse_float() {
     return result;
 }
 
+std::string_view Parser::_parse_string() {
+    thread_local static std::string s;
+    s.clear();
+    auto token = _scanner.match_token(TokenTag::STRING).raw;
+    for (auto iter = token.cbegin(); iter != token.cend(); iter++) {
+        s.push_back(*iter == '\\' ? *(++iter) : *iter);
+    }
+    return s;
+}
+
 void Parser::_parse_field_list(std::vector<FieldDescriptor> &fields) {
-    while (true) {  // this is a hack to the LL(1) grammar
+    _parse_field(fields);
+    while (_scanner.lookahead() == TokenTag::COMMA) {  // this is a hack to the LL(1) grammar for efficiency
+        _scanner.match_token(TokenTag::COMMA);
         if (fields.size() == MAX_FIELD_COUNT) {
             throw ParserError{
                 std::string{"Failed to create table with more than "}
@@ -230,21 +249,11 @@ void Parser::_parse_field_list(std::vector<FieldDescriptor> &fields) {
                 _scanner.current_offset()};
         }
         _parse_field(fields);
-        if (_scanner.lookahead() == TokenTag::RIGHT_PARENTHESIS) { break; }
-        _scanner.match_token(TokenTag::COMMA);
     }
 }
 
 void Parser::_parse_field(std::vector<FieldDescriptor> &fields) {
     switch (_scanner.lookahead()) {
-        case TokenTag::IDENTIFIER: {
-            auto identifier = _scanner.match_token(TokenTag::IDENTIFIER).raw;
-            auto type = _parse_type();
-            auto nullable = _parse_nullable_hint();
-            FieldConstraint constraints{nullable ? FieldConstraint::NULLABLE_BIT_MASK : uint8_t{0}};
-            fields.emplace_back(identifier, type, constraints);
-            break;
-        }
         case TokenTag::FOREIGN:
             _parse_foreign_key(fields);
             break;
@@ -255,9 +264,12 @@ void Parser::_parse_field(std::vector<FieldDescriptor> &fields) {
             _parse_unique(fields);
             break;
         default: {
-            auto token = _scanner.match_token(_scanner.lookahead());
-            throw ParserError{
-                std::string{"Unexpected token \""}.append(token.raw).append("\" in field description."), token.offset};
+            auto identifier = _scanner.match_token(TokenTag::IDENTIFIER).raw;
+            auto type = _parse_type();
+            auto nullable = _parse_nullable_hint();
+            FieldConstraint constraints{nullable ? FieldConstraint::NULLABLE_BIT_MASK : uint8_t{0}};
+            fields.emplace_back(identifier, type, constraints);
+            break;
         }
     }
 }
@@ -314,7 +326,6 @@ void Parser::_parse_primary_key(std::vector<FieldDescriptor> &fields) {
     }
     throw ParserError{
         std::string{"Primary key constraint on undeclared column \""}.append(column.raw).append("\"."), column.offset};
-    
 }
 
 void Parser::_parse_unique(std::vector<FieldDescriptor> &fields) {
@@ -330,6 +341,19 @@ void Parser::_parse_unique(std::vector<FieldDescriptor> &fields) {
     }
     throw ParserError{
         std::string{"Unique constraint on undeclared column \""}.append(column.raw).append("\"."), column.offset};
+}
+
+bool Parser::end() const {
+    return _scanner.end();
+}
+
+void Parser::skip() {
+    while (!_scanner.end()) {
+        auto token = _scanner.match_token(_scanner.lookahead());
+        if (token.tag == TokenTag::SEMICOLON) {
+            break;
+        }
+    }
 }
 
 }

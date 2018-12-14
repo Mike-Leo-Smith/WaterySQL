@@ -2,8 +2,8 @@
 // Created by Mike Smith on 2018/11/25.
 //
 
-#ifndef WATERYSQL_VARCHAR_H
-#define WATERYSQL_VARCHAR_H
+#ifndef WATERYSQL_CHAR_H
+#define WATERYSQL_CHAR_H
 
 #include <cstring>
 #include <vector>
@@ -11,15 +11,15 @@
 
 namespace watery {
 
-class Varchar : public Data {
+class Char : public Data {
 private:
     std::string _val;
 
 public:
-    Varchar(const char *buffer, uint32_t size)
+    Char(const char *buffer, uint32_t size)
         : _val{buffer, size} {}
     
-    TypeTag type() const override { return TypeTag::VARCHAR; }
+    TypeTag type() const override { return TypeTag::CHAR; }
     uint32_t length() const override { return static_cast<uint32_t>(_val.size()); }
     const std::string &value() const { return _val; }
     
@@ -28,36 +28,36 @@ public:
     }
     
     std::unique_ptr<Data> replica() const override {
-        return std::make_unique<Varchar>(_val.data(), _val.size());
+        return std::make_unique<Char>(_val.data(), _val.size());
     }
     
     bool operator<(const Data &rhs) const override {
-        return rhs.type() == TypeTag::VARCHAR ?
-               (_val < reinterpret_cast<const Varchar &>(rhs)._val) :
+        return rhs.type() == TypeTag::CHAR ?
+               (_val < reinterpret_cast<const Char &>(rhs)._val) :
                Data::operator<(rhs);
     }
     
     bool operator<=(const Data &rhs) const override {
-        return rhs.type() == TypeTag::VARCHAR ?
-               (_val <= reinterpret_cast<const Varchar &>(rhs)._val) :
+        return rhs.type() == TypeTag::CHAR ?
+               (_val <= reinterpret_cast<const Char &>(rhs)._val) :
                Data::operator<=(rhs);
     }
     
     bool operator==(const Data &rhs) const override {
-        return rhs.type() == TypeTag::VARCHAR ?
-               (_val == reinterpret_cast<const Varchar &>(rhs)._val) :
+        return rhs.type() == TypeTag::CHAR ?
+               (_val == reinterpret_cast<const Char &>(rhs)._val) :
                Data::operator==(rhs);
     }
     
     bool operator>=(const Data &rhs) const override {
-        return rhs.type() == TypeTag::VARCHAR ?
-               (_val >= reinterpret_cast<const Varchar &>(rhs)._val) :
+        return rhs.type() == TypeTag::CHAR ?
+               (_val >= reinterpret_cast<const Char &>(rhs)._val) :
                Data::operator>=(rhs);
     }
     
     bool operator>(const Data &rhs) const override {
-        return rhs.type() == TypeTag::VARCHAR ?
-               (_val > reinterpret_cast<const Varchar &>(rhs)._val) :
+        return rhs.type() == TypeTag::CHAR ?
+               (_val > reinterpret_cast<const Char &>(rhs)._val) :
                Data::operator>(rhs);
     }
     
@@ -65,4 +65,4 @@ public:
 
 }
 
-#endif  // WATERYSQL_VARCHAR_H
+#endif  // WATERYSQL_CHAR_H

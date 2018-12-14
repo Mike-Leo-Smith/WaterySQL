@@ -12,7 +12,7 @@
 #include "../src/config/config.h"
 #include "../src/data_storage/record_descriptor.h"
 #include "../src/data_storage/data.h"
-#include "../src/data_storage/varchar.h"
+#include "../src/data_storage/char.h"
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
 
@@ -37,7 +37,7 @@ int main() {
     }
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
-    FieldDescriptor field_desc{"test", data_descriptor, FieldConstraint{FieldConstraint::UNIQUE_BIT_MASK}};
+    FieldDescriptor field_desc{"test", data_descriptor, FieldConstraint{}};
     
     try {
         index_manager.create_index(name, field_desc);

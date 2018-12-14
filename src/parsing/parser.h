@@ -34,9 +34,14 @@ protected:
     
     int32_t _parse_integer();
     float _parse_float();
+    std::string_view _parse_string();
     
 public:
-    Actor parse(std::string_view statement);
+    explicit Parser(std::string_view program = "");
+    Parser &parse(std::string_view program);
+    bool end() const;
+    Actor next();
+    void skip();
 };
 
 }

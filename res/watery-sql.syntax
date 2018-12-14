@@ -1,12 +1,12 @@
-Stmt                ->  SHOW ShowStmtBody ';'       // done
-                    |   CREATE CreateStmtBody ';'
-                    |   DROP DropStmtBody ';'       // done
-                    |   USE IDENTIFIER ';'          // done
-                    |   DESC IDENTIFIER ';'         // done
+Stmt                ->  SHOW ShowStmtBody ';'           // done
+                    |   CREATE CreateStmtBody ';'       // done
+                    |   DROP DropStmtBody ';'           // done
+                    |   USE IDENTIFIER ';'              // done
+                    |   DESCRIBE IDENTIFIER ';'         // done
                     |   INSERT INTO IDENTIFIER VALUES ValueListList ';'
-                    |   DELETE FROM IDENTIFIER WHERE WhereClause ';'
-                    |   UPDATE IDENTIFIER SET SetClause WHERE WhereClause ';'
-                    |   SELECT Selector FROM TableList WHERE WhereClause ';'
+                    |   DELETE FROM IDENTIFIER WhereClause ';'
+                    |   UPDATE IDENTIFIER SetClause WhereClause ';'
+                    |   SELECT Selector FROM TableList WhereClause ';'
 
 ShowStmtBody        ->  DATABASES   // done
                     |   TABLES      // done
@@ -25,7 +25,6 @@ FieldListTail       ->  ',' FieldList                           // done with hac
                     |   // empty, lookahead == ')'              // done with hack
 
 Field               ->  IDENTIFIER Type NullableHint            // done
-//                  |   PRIMARY KEY '(' ColumnList ')'          // unnecessary and too difficult to impl, simplified below
                     |   PRIMARY KEY '(' IDENTIFIER ')'          // done
                     |   FOREIGN KEY '(' IDENTIFIER ')' REFERENCES IDENTIFIER '(' IDENTIFIER ')'     // done
                     |   UNIQUE '(' IDENTIFIER ')'               // done
@@ -53,9 +52,13 @@ ValueListTail       ->  ',' ValueList
 
 Value               ->  NUMBER
                     |   STRING
-                    |   NUL
+                    |   DATE
+                    |   NULL
 
-WhereClause         ->  Column ColumnPredicate Conjunction
+WhereClause         ->  WHERE WhereClauseBody
+                    |   // empty, lookahead == ';'
+
+WhereClauseBody     ->  Column ColumnPredicate Conjunction
 
 ColumnPredicate     ->  OPERATOR Expr
                     |   IS NullOrNot
@@ -63,7 +66,7 @@ ColumnPredicate     ->  OPERATOR Expr
 IsNullOrNot         ->  NULL
                     |   NOT NULL
 
-Conjunction         ->  AND WhereClause
+Conjunction         ->  AND WhereClauseBody
                     |   // empty, lookahead == ';'
 
 Column              ->  IDENTIFIER ColumnDomain
@@ -74,10 +77,12 @@ ColumnDomain        ->  '.' IDENTIFIER
 Expr                ->  Value
                     |   Column
 
-SetClause           ->  IDENTIFIER '=' Value SetClauseTail
+SetClause           ->  SET SetClauseBody
+
+SetClauseBody       ->  IDENTIFIER '=' Value SetClauseTail
                     
-SetClauseTail       ->  ',' SetClause
-                    |   // empty, lookahead == WHERE
+SetClauseTail       ->  ',' SetClauseBody
+                    |   // empty, lookahead == WHERE || lookahead == ';'
 
 Selector            ->  '*'
                     |   IDENTIFIER ColumnDomain SelectorTail
@@ -88,9 +93,4 @@ SelectorTail        ->  ',' Column SelectorTail
 TableList           ->  IDENTIFIER TableListTail
 
 TableListTail       ->  ',' TableList
-                    |   // empty, lookahead == WHERE
-
-// ColumnList       ->  IDENTIFIER ColumnListTail
-//
-// ColumnListTail   ->  ',' ColumnList
-//                  |   // empty, lookahead == ')'
+                    |   // empty, lookahead == WHERE || lookahead == ';'

@@ -18,11 +18,12 @@ struct CreateTableActor {
         : name{name}, descriptor{fields} {}
     
     void operator()() const {
+        std::cout << "<" << name << ">" << std::endl;
         std::for_each(
             descriptor.field_descriptors.begin(),
             descriptor.field_descriptors.begin() + descriptor.field_count,
             [](FieldDescriptor fd) {
-                std::cout << fd.name << ": "
+                std::cout << "  " << fd.name << ": "
                           << fd.data_descriptor.type
                           << "(" << fd.data_descriptor.size_hint << ") | "
                           << (fd.constraints.nullable() ? "NULL " : "NOT NULL ");
