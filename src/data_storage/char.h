@@ -19,6 +19,9 @@ public:
     Char(const char *buffer, uint32_t size)
         : _val{buffer, size} {}
     
+    explicit Char(std::string val)
+        : _val{std::move(val)} {}
+    
     TypeTag type() const override { return TypeTag::CHAR; }
     uint32_t length() const override { return static_cast<uint32_t>(_val.size()); }
     const std::string &value() const { return _val; }

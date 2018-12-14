@@ -5,17 +5,20 @@
 #ifndef WATERYSQL_CREATE_TABLE_ACTOR_H
 #define WATERYSQL_CREATE_TABLE_ACTOR_H
 
+#include <iostream>
+
 #include "../data_storage/record_descriptor.h"
 
 namespace watery {
 
 struct CreateTableActor {
     
-    const std::string name;
-    const RecordDescriptor descriptor;
+    char name[MAX_IDENTIFIER_LENGTH + 1]{};
+    RecordDescriptor descriptor;
     
-    CreateTableActor(std::string_view name, const std::vector<FieldDescriptor> &fields)
-        : name{name}, descriptor{fields} {}
+    explicit CreateTableActor(std::string_view n) noexcept {
+        n.copy(name, n.size());
+    }
     
     void operator()() const {
         std::cout << "<" << name << ">" << std::endl;

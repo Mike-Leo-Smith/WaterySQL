@@ -87,7 +87,7 @@ set(SOURCE_FILES
     src/execution/drop_database_actor.h
     src/data_storage/field_constraint.h
     src/data_storage/data_comparator.h
-    src/data_storage/index_key_comparator.h src/execution/create_table_actor.h src/utility/type_manipulators/string_view_converter.h src/execution/create_index_actor.h src/execution/drop_index_actor.h src/execution/drop_table_actor.h src/execution/describe_table_actor.h src/parsing/token_tag_helper.h src/parsing/token_tag_helper.cpp)
+    src/data_storage/index_key_comparator.h src/execution/create_table_actor.h src/utility/type_manipulators/string_view_converter.h src/execution/create_index_actor.h src/execution/drop_index_actor.h src/execution/drop_table_actor.h src/execution/describe_table_actor.h src/parsing/token_tag_helper.h src/parsing/token_tag_helper.cpp src/execution/insert_record_actor.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

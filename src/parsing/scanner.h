@@ -46,6 +46,7 @@ private:
 public:
     explicit Scanner(std::string_view content = "");
     Scanner &scan(std::string_view content);
+    Scanner &append(std::string_view more);
     TokenTag lookahead() const;
     Token match_token(TokenTag tag);
     void skip();

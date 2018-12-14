@@ -244,4 +244,11 @@ void Scanner::skip() {
     _read_next_token();
 }
 
+Scanner &Scanner::append(std::string_view more) {
+    _content = more;
+    _state = State::READING_BLANK;
+    _read_next_token();
+    return *this;
+}
+
 }

@@ -12,9 +12,11 @@ namespace watery {
 
 struct DropTableActor {
     
-    const std::string name;
+    char name[MAX_IDENTIFIER_LENGTH + 1]{};
     
-    explicit DropTableActor(std::string_view name) : name{name} {}
+    explicit DropTableActor(std::string_view n) noexcept {
+        n.copy(name, n.size());
+    }
     
     void operator()() const {
     

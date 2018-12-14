@@ -12,11 +12,13 @@ namespace watery {
 
 struct DropIndexActor {
     
-    const std::string table_name;
-    const std::string column_name;
+    char table_name [MAX_IDENTIFIER_LENGTH + 1]{};
+    char column_name[MAX_IDENTIFIER_LENGTH + 1]{};
     
-    DropIndexActor(std::string_view tab, std::string_view col)
-        : table_name{tab}, column_name{col} {}
+    DropIndexActor(std::string_view tab, std::string_view col) noexcept {
+        tab.copy(table_name, tab.size());
+        col.copy(column_name, col.size());
+    }
     
     void operator()() const {
     
