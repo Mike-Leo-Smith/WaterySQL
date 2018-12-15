@@ -5,7 +5,7 @@
 #ifndef WATERYSQL_PAGE_MANAGER_H
 #define WATERYSQL_PAGE_MANAGER_H
 
-#include "../utility/type_constraints/singleton.h"
+#include "../utility/type/singleton.h"
 #include "filesystem_demo/FileManager.h"
 #include "filesystem_demo/BufferedPageManager.h"
 #include "buffered_page.h"

@@ -8,9 +8,9 @@
 #include <array>
 
 #include "data_page_header.h"
-#include "../utility/type_constraints/non_copyable.h"
-#include "../utility/type_constraints/non_movable.h"
-#include "../utility/type_constraints/non_trivial_constructible.h"
+#include "../utility/type/non_copyable.h"
+#include "../utility/type/non_movable.h"
+#include "../utility/type/non_trivial_constructible.h"
 
 namespace watery {
 

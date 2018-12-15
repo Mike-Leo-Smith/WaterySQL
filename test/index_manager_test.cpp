@@ -16,7 +16,7 @@
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
 
-#include "../src/utility/io_helpers/error_printer.h"
+#include "../src/utility/io/error_printer.h"
 #include "../src/utility/timing/elapsed_time.h"
 #include "../src/record_management/record_manager.h"
 
@@ -52,10 +52,6 @@ int main() {
         
         index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>("hello, world"), {1, 2});
         index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>("hello, world"), {1, 2});
-        
-        auto &&decode_data = [data_descriptor](std::string_view s) {
-            return Data::decode(data_descriptor, reinterpret_cast<const Byte *>(s.data()));
-        };
         
         constexpr auto count = 5'000'000;
         std::default_random_engine random{std::random_device{}()};

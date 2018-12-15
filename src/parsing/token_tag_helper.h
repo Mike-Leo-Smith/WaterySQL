@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 
-#include "../utility/type_constraints/non_trivial_constructible.h"
+#include "../utility/type/non_trivial_constructible.h"
 #include "token_tag.h"
 
 namespace watery {

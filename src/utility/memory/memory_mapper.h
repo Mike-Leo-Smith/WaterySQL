@@ -7,7 +7,7 @@
 
 #include <type_traits>
 
-#include "../type_constraints/non_trivial_constructible.h"
+#include "../type/non_trivial_constructible.h"
 #include "../../config/config.h"
 
 namespace watery {

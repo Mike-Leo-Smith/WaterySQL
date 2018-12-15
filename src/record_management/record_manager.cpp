@@ -7,8 +7,8 @@
 #include "record_manager.h"
 #include "data_page.h"
 #include "../errors/page_manager_error.h"
-#include "../utility/io_helpers/error_printer.h"
-#include "../utility/memory_mapping/memory_mapper.h"
+#include "../utility/io/error_printer.h"
+#include "../utility/memory/memory_mapper.h"
 #include "../errors/record_manager_error.h"
 
 namespace watery {

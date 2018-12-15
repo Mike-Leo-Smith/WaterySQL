@@ -7,7 +7,7 @@
 
 #include "data_descriptor.h"
 #include "../config/config.h"
-#include "../utility/memory_mapping/memory_mapper.h"
+#include "../utility/memory/memory_mapper.h"
 #include "../utility/mathematics/sgn.h"
 
 namespace watery {

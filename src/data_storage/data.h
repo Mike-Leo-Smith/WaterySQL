@@ -11,8 +11,8 @@
 #include "../config/config.h"
 #include "type_tag.h"
 #include "data_descriptor.h"
-#include "../utility/type_constraints/non_copyable.h"
-#include "../utility/memory_mapping/memory_mapper.h"
+#include "../utility/type/non_copyable.h"
+#include "../utility/memory/memory_mapper.h"
 #include "../errors/data_error.h"
 
 namespace watery {

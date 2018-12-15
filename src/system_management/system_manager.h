@@ -9,7 +9,7 @@
 #include <iostream>
 #include <unordered_set>
 
-#include "../utility/type_constraints/singleton.h"
+#include "../utility/type/singleton.h"
 #include "../record_management/record_manager.h"
 #include "../index_management/index_manager.h"
 

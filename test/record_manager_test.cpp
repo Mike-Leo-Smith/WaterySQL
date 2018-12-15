@@ -15,7 +15,7 @@
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
 
-#include "../src/utility/io_helpers/error_printer.h"
+#include "../src/utility/io/error_printer.h"
 #include "../src/record_management/record_manager.h"
 
 int main() {

@@ -9,10 +9,10 @@
 
 #include "../config/config.h"
 #include "data_descriptor.h"
-#include "../utility/type_constraints/non_copyable.h"
+#include "../utility/type/non_copyable.h"
 #include "field_constraint.h"
 #include "../record_management/record_offset.h"
-#include "../utility/io_helpers/string_view_copier.h"
+#include "../utility/memory/string_view_copier.h"
 
 namespace watery {
 

@@ -32,26 +32,26 @@ set(SOURCE_FILES
     src/data_storage/type_tag.h
     src/data_storage/data_descriptor.h
     src/data_storage/data.h
-    src/utility/type_constraints/non_copyable.h
-    src/utility/memory_mapping/binary_stream.h
+    src/utility/type/non_copyable.h
+    src/utility/memory/binary_stream.h
     src/index_management/index_manager.cpp
     src/index_management/index_manager.h
     src/page_management/page_manager.cpp
     src/page_management/page_manager.h
-    src/utility/type_constraints/singleton.h
-    src/utility/type_constraints/non_movable.h
+    src/utility/type/singleton.h
+    src/utility/type/non_movable.h
     src/errors/page_manager_error.h
     src/page_management/buffered_page.h
-    src/utility/io_helpers/error_printer.h
-    src/utility/io_helpers/printer.h
+    src/utility/io/error_printer.h
+    src/utility/io/printer.h
     src/errors/error.h
-    src/utility/type_constraints/non_trivial_constructible.h
+    src/utility/type/non_trivial_constructible.h
     src/record_management/record_offset.h
     src/record_management/record_manager.cpp
     src/record_management/record_manager.h
     src/record_management/table.h
     src/record_management/data_page_header.h
-    src/utility/memory_mapping/memory_mapper.h
+    src/utility/memory/memory_mapper.h
     src/page_management/buffer_offset.h
     src/record_management/table_header.h
     src/record_management/data_page.h
@@ -90,7 +90,7 @@ set(SOURCE_FILES
     src/execution/drop_database_actor.h
     src/data_storage/field_constraint.h
     src/data_storage/data_comparator.h
-    src/data_storage/index_key_comparator.h src/execution/create_table_actor.h src/execution/create_index_actor.h src/execution/drop_index_actor.h src/execution/drop_table_actor.h src/execution/describe_table_actor.h src/parsing/token_tag_helper.h src/parsing/token_tag_helper.cpp src/execution/insert_record_actor.h src/utility/io_helpers/reader.h src/utility/io_helpers/string_view_copier.h)
+    src/data_storage/index_key_comparator.h src/execution/create_table_actor.h src/execution/create_index_actor.h src/execution/drop_index_actor.h src/execution/drop_table_actor.h src/execution/describe_table_actor.h src/parsing/token_tag_helper.h src/parsing/token_tag_helper.cpp src/execution/insert_record_actor.h src/utility/io/reader.h src/utility/memory/string_view_copier.h src/data_storage/data_view.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

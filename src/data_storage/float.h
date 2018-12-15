@@ -6,7 +6,7 @@
 #define WATERYSQL_FLOAT_H
 
 #include "data.h"
-#include "../utility/memory_mapping/memory_mapper.h"
+#include "../utility/memory/memory_mapper.h"
 #include "../errors/data_error.h"
 #include "integer.h"
 

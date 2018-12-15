@@ -6,7 +6,7 @@
 #define WATERYSQL_INTEGER_H
 
 #include "data.h"
-#include "../utility/memory_mapping/memory_mapper.h"
+#include "../utility/memory/memory_mapper.h"
 
 namespace watery {
 

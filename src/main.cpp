@@ -2,16 +2,17 @@
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <variant>
 
 #include "parsing/scanner.h"
 #include "system_management/system_manager.h"
 #include "index_management/index_manager.h"
 
-#include "utility/io_helpers/error_printer.h"
+#include "utility/io/error_printer.h"
 #include "parsing/parser.h"
 
 #include "data_storage/data_comparator.h"
-#include "utility/io_helpers/reader.h"
+#include "utility/io/reader.h"
 #include "utility/timing/elapsed_time.h"
 
 int main() {
@@ -90,6 +91,11 @@ int main() {
         parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/customer.sql")).match()();
         parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/restaurant.sql")).match()();
     }).first << "ms" << std::endl;
+    
+    std::cout << sizeof(std::variant<char, int, short, std::array<int, 5>>) << std::endl;
+    
+    std::variant<int, float> x{11};
+    std::cout << std::holds_alternative<float>(x) << std::endl;
     
     return 0;
     

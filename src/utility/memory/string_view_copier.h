@@ -6,7 +6,7 @@
 #define WATERYSQL_STRING_VIEW_COPIER_H
 
 #include <string_view>
-#include "../type_constraints/non_trivial_constructible.h"
+#include "../type/non_trivial_constructible.h"
 
 namespace watery {
 

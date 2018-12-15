@@ -6,7 +6,7 @@
 #define WATERYSQL_PRINTER_H
 
 #include <iostream>
-#include "../type_constraints/non_trivial_constructible.h"
+#include "../type/non_trivial_constructible.h"
 
 namespace watery {
 

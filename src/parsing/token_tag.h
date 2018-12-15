@@ -6,7 +6,7 @@
 #define WATERYSQL_TOKEN_TAG_H
 
 #include <cstdint>
-#include "../utility/type_constraints/non_trivial_constructible.h"
+#include "../utility/type/non_trivial_constructible.h"
 
 namespace watery {
 
