@@ -21,7 +21,7 @@ struct CreateTableActor {
     }
     
     void operator()() const {
-        std::cout << "<" << name << ">" << std::endl;
+        std::cout << "CREATE TABLE " << name << "\n";
         std::for_each(
             descriptor.field_descriptors.begin(),
             descriptor.field_descriptors.begin() + descriptor.field_count,
@@ -41,8 +41,9 @@ struct CreateTableActor {
                 if (fd.constraints.unique()) {
                     std::cout << "| UNIQUE ";
                 }
-                std::cout << std::endl;
+                std::cout << "\n";
             });
+        std::cout << std::endl;
     }
     
 };

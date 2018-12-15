@@ -11,10 +11,14 @@
 #include "parsing/parser.h"
 
 #include "data_storage/data_comparator.h"
+#include "utility/io_helpers/reader.h"
+#include "utility/timing/elapsed_time.h"
 
 int main() {
     
     using namespace watery;
+    
+    std::ostream::sync_with_stdio(false);
     
     constexpr auto query = "select (*.app_le) from PERSON\n where age<>'apple';\n";
     Scanner scanner{query};
@@ -28,17 +32,11 @@ int main() {
     
     Parser parser;
     
-    parser.parse("drop database orderDB;").next()();
+    parser.parse("drop database orderDB;").match()();
     
-    std::ifstream fin{"/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/create.sql"};
-    std::string s;
-    while (!fin.eof()) {
-        s.push_back(static_cast<char>(fin.get()));
-    }
-    
-    parser.parse(s);
+    parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/create.sql"));
     while (!parser.end()) {
-        parser.next()();
+        parser.match()();
     }
     
     parser.parse(
@@ -54,16 +52,18 @@ int main() {
         "  col1 int not null);");
     while (!parser.end()) {
         try {
-            parser.next()();
+            parser.match()();
         } catch (const std::exception &e) {
             print_error(std::cerr, e);
             parser.skip();
         }
     }
     
-    parser.parse("drop database test;").next()();
-    parser.parse("create database test;").next()();
-    parser.parse("use test;").next()();
+    parser.parse("drop database test;").match()();
+    parser.parse("create database test;").match()();
+    parser.parse("use test;").match()();
+    
+    parser.parse("insert into test values (123, 456, 'apple'), (null);").match()();
     
     auto &&index_manager = IndexManager::instance();
     
@@ -78,7 +78,12 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    parser.parse("Show Databases;").next()();
+    parser.parse("Show Databases;").match()();
+    
+    std::cout << sizeof(std::bitset<1024>) << std::endl;
+    std::cout << "elapsed time: " << timed_run([&parser]() {
+        parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/customer.sql")).match()();
+    }).first << "ms" << std::endl;
     
     return 0;
     

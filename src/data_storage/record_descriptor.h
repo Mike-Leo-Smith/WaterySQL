@@ -47,7 +47,7 @@ struct RecordDescriptor final {
         for (auto i = 0; i < field_count; i++) {
             size += field_descriptors[i].record_field_length();
         }
-        return null_mapped ? size + sizeof(FieldNullBitset) : size;
+        return null_mapped ? size + sizeof(std::bitset<MAX_FIELD_COUNT>) : size;
     }
     
 };

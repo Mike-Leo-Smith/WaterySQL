@@ -20,6 +20,7 @@
 #include "../execution/drop_index_actor.h"
 #include "../execution/drop_table_actor.h"
 #include "../execution/describe_table_actor.h"
+#include "token_tag_helper.h"
 
 namespace watery {
 
@@ -31,7 +32,7 @@ Parser &Parser::parse(std::string_view program) {
     return *this;
 }
 
-Actor Parser::next() {
+Actor Parser::match() {
     switch (_scanner.lookahead()) {
         case TokenTag::SHOW:
             return _parse_show_statement();
@@ -43,6 +44,8 @@ Actor Parser::next() {
             return _parse_drop_statement();
         case TokenTag::DESCRIBE:
             return _parse_describe_statement();
+        case TokenTag::INSERT:
+            return _parse_insert_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{std::string{"Unexpected command token \""}.append(token.raw).append("\"."), token.offset};
@@ -352,6 +355,77 @@ void Parser::skip() {
 Parser &Parser::append(std::string_view more) {
     _scanner.append(more);
     return *this;
+}
+
+Actor Parser::_parse_insert_statement() {
+    _scanner.match_token(TokenTag::INSERT);
+    _scanner.match_token(TokenTag::INTO);
+    auto target = _scanner.match_token(TokenTag::IDENTIFIER).raw;
+    _scanner.match_token(TokenTag::VALUES);
+    InsertRecordActor actor{target};
+    _parse_value_tuple_list(actor);
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return actor;
+}
+
+void Parser::_parse_value_tuple_list(InsertRecordActor &actor) {
+    _parse_value_tuple(actor);
+    while (_scanner.lookahead() == TokenTag::COMMA) {
+        _scanner.match_token(TokenTag::COMMA);
+        _parse_value_tuple(actor);
+    }
+}
+
+void Parser::_parse_value_tuple(InsertRecordActor &actor) {
+    _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
+    _parse_value(actor);
+    uint16_t field_count = 1;
+    while (_scanner.lookahead() == TokenTag::COMMA) {
+        _scanner.match_token(TokenTag::COMMA);
+        _parse_value(actor);
+        field_count++;
+    }
+    _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
+    actor.field_counts.emplace_back(field_count);
+}
+
+void Parser::_parse_value(InsertRecordActor &actor) {
+    
+    auto &&encode_value = [&actor](std::string_view raw) {
+        auto curr_pos = actor.buffer.size();
+        if (curr_pos + raw.size() >= actor.buffer.capacity()) {
+            actor.buffer.reserve(actor.buffer.capacity() * 2);
+        }
+        actor.buffer.resize(curr_pos + raw.size());
+        raw.copy(actor.buffer.data() + curr_pos, raw.size());
+        actor.field_lengths.emplace_back(raw.size());
+    };
+    
+    switch (_scanner.lookahead()) {
+        case TokenTag::NUMBER: {    // for INTs and FLOATs
+            encode_value(_scanner.match_token(TokenTag::NUMBER).raw);
+            break;
+        }
+        case TokenTag::STRING: {    // for CHARs and DATEs
+            encode_value(_parse_string());
+            break;
+        }
+        case TokenTag::NUL: {
+            _scanner.match_token(TokenTag::NUL);
+            actor.field_lengths.emplace_back(0u);
+            break;
+        }
+        default: {
+            auto token = _scanner.match_token(_scanner.lookahead());
+            throw ParserError{
+                std::string{"Token \""}
+                    .append(token.raw).append("\" of type \"")
+                    .append(TokenTagHelper::name(token.tag))
+                    .append("\" cannot be parsed as a VALUE."),
+                token.offset
+            };
+        }
+    }
 }
 
 }

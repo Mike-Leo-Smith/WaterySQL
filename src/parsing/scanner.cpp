@@ -96,16 +96,24 @@ void Scanner::_read_next_token() {
     }
     
     // read keywords or identifiers
-        if (std::isalpha(c)) {
+    if (std::isalpha(c) || c == '`') {
         if (_state != State::READING_BLANK && _state != State::READING_OPERATOR) {
             throw ScannerError{"Unexpected alpha/underscore.", _curr_offset};
         }
         while (std::isalnum(_peek_char()) || _peek_char() == '_') { _read_char(); }
-        auto raw = _view_content(last_pos, _curr_pos);
-        if (raw.size() >= MAX_IDENTIFIER_LENGTH) {
-            throw ScannerError{"Identifier name exceeded length limit.", _curr_offset};
+        if (c == '`') {
+            if (_peek_char() != '`') {
+                throw ScannerError{"Missing closing backtick for identifier.", _curr_offset};
+            }
+            _lookahead_token.raw = _view_content(last_pos + 1, _curr_pos);
+            _read_char();  // eat "`"
+        } else {
+            _lookahead_token.raw = _view_content(last_pos, _curr_pos);
         }
-        _lookahead_token.raw = _view_content(last_pos, _curr_pos);
+        if (auto l = _lookahead_token.raw.size(); l == 0 || l > MAX_IDENTIFIER_LENGTH) {
+            throw ScannerError{
+                std::string{"Bad identifier name length "}.append(std::to_string(l)).append("."), _curr_offset};
+        }
         _lookahead_token.tag = _tag_keyword_or_identifier(_lookahead_token.raw);
         _state = (_lookahead_token.tag == TokenTag::IDENTIFIER) ?
                  State::READING_IDENTIFIER :
@@ -181,7 +189,8 @@ void Scanner::_read_next_token() {
             _lookahead_token.tag = TokenTag::RIGHT_PARENTHESIS;
             break;
         default:
-            throw ScannerError("Unexpected character.", _curr_offset);
+            throw ScannerError(
+                std::string{"Unexpected character \""}.append(std::string_view{&c, 1}).append("\"."), _curr_offset);
     }
     
     _lookahead_token.raw = _view_content(last_pos, _curr_pos);

@@ -10,6 +10,7 @@
 #include "../execution/actor.h"
 #include "../data_storage/field_descriptor.h"
 #include "../execution/create_table_actor.h"
+#include "../execution/insert_record_actor.h"
 
 namespace watery {
 
@@ -23,6 +24,7 @@ protected:
     Actor _parse_use_statement();
     Actor _parse_drop_statement();
     Actor _parse_describe_statement();
+    Actor _parse_insert_statement();
     
     void _parse_field_list(CreateTableActor &actor);
     void _parse_field(CreateTableActor &actor);
@@ -33,6 +35,10 @@ protected:
     bool _parse_nullable_hint();
     uint16_t _parse_size_hint();
     
+    void _parse_value_tuple_list(InsertRecordActor &actor);
+    void _parse_value_tuple(InsertRecordActor &actor);
+    void _parse_value(InsertRecordActor &actor);
+    
     int32_t _parse_integer();
     float _parse_float();
     std::string_view _parse_string();
@@ -42,7 +48,7 @@ public:
     Parser &parse(std::string_view program);
     Parser &append(std::string_view more);
     bool end() const;
-    Actor next();
+    Actor match();
     void skip();
 };
 
