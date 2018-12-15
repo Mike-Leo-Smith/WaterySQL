@@ -11,6 +11,7 @@
 #include "../data_storage/field_descriptor.h"
 #include "../execution/create_table_actor.h"
 #include "../execution/insert_record_actor.h"
+#include "../execution/column_predicate.h"
 
 namespace watery {
 
@@ -25,6 +26,7 @@ protected:
     Actor _parse_drop_statement();
     Actor _parse_describe_statement();
     Actor _parse_insert_statement();
+    Actor _parse_delete_statement();
     
     void _parse_field_list(CreateTableActor &actor);
     void _parse_field(CreateTableActor &actor);
@@ -37,9 +39,14 @@ protected:
     
     void _parse_value_tuple_list(InsertRecordActor &actor);
     void _parse_value_tuple(InsertRecordActor &actor);
-    void _parse_insert_value(InsertRecordActor &actor);
     
+    uint16_t _parse_value(std::vector<Byte> &buffer);
     std::string_view _parse_string();
+    void _parse_column_predicate_operator(ColumnPredicate &predicate);
+    ColumnPredicateOperator _parse_column_predicate_null_operator();
+    ColumnPredicate _parse_column_predicate();
+    void _parse_column(char *table_name, char *column_name);
+    std::vector<ColumnPredicate> _parse_where_clause();
     
 public:
     explicit Parser(std::string_view program = "");

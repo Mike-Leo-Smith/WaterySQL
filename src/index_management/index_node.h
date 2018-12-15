@@ -14,7 +14,7 @@ namespace watery {
 
 struct IndexNode {
     IndexNodeHeader header;
-    alignas(8) Byte fields[];  // serves as position indicator.
+    alignas(8) Byte fields[1];  // serves as position indicator.
 };
 
 }

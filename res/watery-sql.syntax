@@ -4,7 +4,7 @@ Stmt                ->  SHOW ShowStmtBody ';'                               // d
                     |   USE IDENTIFIER ';'                                  // done
                     |   DESCRIBE IDENTIFIER ';'                             // done
                     |   INSERT INTO IDENTIFIER VALUES ValueTupleList ';'    // done
-                    |   DELETE FROM IDENTIFIER WhereClause ';'
+                    |   DELETE FROM IDENTIFIER WhereClause ';'              // done
                     |   UPDATE IDENTIFIER SetClause WhereClause ';'
                     |   SELECT Selector FROM TableList WhereClause ';'
 
@@ -56,27 +56,24 @@ Value               ->  NUMBER                                              // d
                     |   STRING                                              // done
                     |   NULL                                                // done
 
-WhereClause         ->  WHERE WhereClauseBody
-                    |   // empty, lookahead == ';'
+WhereClause         ->  WHERE WhereClauseBody                               // done
+                    |   // empty, lookahead == ';'                          // done
 
-WhereClauseBody     ->  Column ColumnPredicate Conjunction
+WhereClauseBody     ->  Column ColumnPredicate Conjunction                  // done
 
-ColumnPredicate     ->  OPERATOR Expr
-                    |   IS NullOrNot
+ColumnPredicate     ->  OPERATOR Value                                      // done
+                    |   IS NullOrNot                                        // done
 
-IsNullOrNot         ->  NULL
-                    |   NOT NULL
+IsNullOrNot         ->  NULL                                                // done
+                    |   NOT NULL                                            // done
 
-Conjunction         ->  AND WhereClauseBody
-                    |   // empty, lookahead == ';'
+Conjunction         ->  AND WhereClauseBody                                 // done
+                    |   // empty, lookahead == ';'                          // done
 
-Column              ->  IDENTIFIER ColumnDomain
+Column              ->  IDENTIFIER ColumnDomain                             // done with hack
 
-ColumnDomain        ->  '.' IDENTIFIER
-                    |   // empty, lookahead == OPERATOR || lookahead == IS
-
-Expr                ->  Value
-                    |   Column
+ColumnDomain        ->  '.' IDENTIFIER                                      // done
+                    |   // empty, lookahead == OPERATOR || lookahead == IS  // done
 
 SetClause           ->  SET SetClauseBody
 

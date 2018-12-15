@@ -13,25 +13,27 @@
 
 #include "../utility/memory/memory_mapper.h"
 #include "../errors/data_error.h"
+#include "../utility/memory/string_view_copier.h"
+#include "../utility/memory/value_decoder.h"
 
 namespace watery {
 
 struct DataView {
     
     DataDescriptor descriptor;
-    std::variant<int32_t, float, std::string_view> buffer;
+    std::variant<int32_t, float, std::string_view> holder;
     
     DataView(DataDescriptor desc, Byte *buf) : descriptor{desc} {
         switch (descriptor.type) {
             case TypeTag::INTEGER:
             case TypeTag::DATE:
-                buffer = MemoryMapper::map_memory<int32_t>(buf);
+                holder = MemoryMapper::map_memory<int32_t>(buf);
                 break;
             case TypeTag::FLOAT:
-                buffer = MemoryMapper::map_memory<float>(buf);
+                holder = MemoryMapper::map_memory<float>(buf);
                 break;
             case TypeTag::CHAR:
-                buffer = std::string_view{reinterpret_cast<char *>(buf)};
+                holder = std::string_view{buf};
                 break;
             default:
                 throw DataError{"Unknown type tag."};
@@ -39,11 +41,37 @@ struct DataView {
     }
     
     DataView(DataDescriptor desc, std::string_view raw) : descriptor{desc} {
-        
+        switch (descriptor.type) {
+            case TypeTag::INTEGER:
+            case TypeTag::DATE:
+                holder = ValueDecoder::decode_integer(raw);
+                break;
+            case TypeTag::FLOAT:
+                holder = ValueDecoder::decode_float(raw);
+                break;
+            case TypeTag::CHAR:
+                holder = raw;
+                break;
+            default:
+                throw DataError{"Unknown type tag."};
+        }
     }
     
     void encode(Byte *buffer) const noexcept {
-    
+        switch (descriptor.type) {
+            case TypeTag::DATE:
+            case TypeTag::INTEGER:
+                MemoryMapper::map_memory<int32_t>(buffer) = std::get<int32_t>(holder);
+                break;
+            case TypeTag::FLOAT:
+                MemoryMapper::map_memory<float>(buffer) = std::get<int32_t>(holder);
+                break;
+            case TypeTag::CHAR:
+                StringViewCopier::copy(std::get<std::string_view>(holder), buffer);
+                break;
+            default:
+                throw DataError{"Unknown type tag."};
+        }
     }
     
 };

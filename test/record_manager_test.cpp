@@ -62,10 +62,10 @@ int main() {
     try {
         
         std::cout << "------- inserting --------" << std::endl;
-        record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, World!!! I am happy!!!"));
-        record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, Luisa!!! I am happy!!!"));
-        auto r = record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, Mike!!! I am happy!!!"));
-        record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, John!!! I am happy!!!"));
+        record_manager.insert_record(table, "Hello, World!!! I am happy!!!");
+        record_manager.insert_record(table, "Hello, Luisa!!! I am happy!!!");
+        auto r = record_manager.insert_record(table, "Hello, Mike!!! I am happy!!!");
+        record_manager.insert_record(table, "Hello, John!!! I am happy!!!");
         
         record_manager.delete_record(table, r);
         
@@ -83,7 +83,7 @@ int main() {
     record_manager.open_table(name);
     for (auto slot = 0; slot < 4; slot++) {
         try {
-            auto buffer = reinterpret_cast<const char *>(record_manager.get_record(table, {1, slot}));
+            auto buffer = record_manager.get_record(table, {1, slot});
             for (auto i = 0; i < 15; i++) {
                 std::cout << buffer[i];
             }
@@ -96,7 +96,7 @@ int main() {
     std::cout << "------- speed test -------" << std::endl;
     auto start = std::chrono::high_resolution_clock::now();
     for (auto i = 0; i < 10'000'000; i++) {
-        record_manager.insert_record(table, reinterpret_cast<const Byte *>("Hello, World!!! I am happy!!!"));
+        record_manager.insert_record(table, "Hello, World!!! I am happy!!!");
     }
     auto stop = std::chrono::high_resolution_clock::now();
     using namespace std::chrono_literals;

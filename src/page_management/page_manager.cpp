@@ -32,13 +32,13 @@ void PageManager::close_file(FileHandle file_handle) noexcept {
 
 PageHandle PageManager::get_page(FileHandle file_handle, PageOffset page_offset) noexcept {
     BufferHandle buffer_handle;
-    auto buffer = reinterpret_cast<Byte *>(_buffer_manager.get_page(file_handle, page_offset, buffer_handle));
+    auto buffer = _buffer_manager.get_page(file_handle, page_offset, buffer_handle);
     return {file_handle, page_offset, buffer_handle, buffer};
 }
 
 PageHandle PageManager::allocate_page(FileHandle file_handle, PageOffset page_offset) noexcept {
     BufferHandle buffer_handle;
-    auto buffer = reinterpret_cast<Byte *>(_buffer_manager.allocate_page(file_handle, page_offset, buffer_handle));
+    auto buffer = _buffer_manager.allocate_page(file_handle, page_offset, buffer_handle);
     return {file_handle, page_offset, buffer_handle, buffer};
 }
 

@@ -8,9 +8,10 @@
 #include <cstring>
 
 #include "parser.h"
+#include "token_tag_helper.h"
+#include "../errors/parser_error.h"
 
 #include "../execution/show_databases_actor.h"
-#include "../errors/parser_error.h"
 #include "../execution/show_tables_actor.h"
 #include "../execution/create_database_actor.h"
 #include "../execution/use_database_actor.h"
@@ -20,7 +21,8 @@
 #include "../execution/drop_index_actor.h"
 #include "../execution/drop_table_actor.h"
 #include "../execution/describe_table_actor.h"
-#include "token_tag_helper.h"
+#include "../execution/delete_record_actor.h"
+
 #include "../utility/memory/value_decoder.h"
 
 namespace watery {
@@ -47,6 +49,8 @@ Actor Parser::match() {
             return _parse_describe_statement();
         case TokenTag::INSERT:
             return _parse_insert_statement();
+        case TokenTag::DELETE:
+            return _parse_delete_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{std::string{"Unexpected command token \""}.append(token.raw).append("\"."), token.offset};
@@ -349,43 +353,36 @@ void Parser::_parse_value_tuple_list(InsertRecordActor &actor) {
 
 void Parser::_parse_value_tuple(InsertRecordActor &actor) {
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
-    _parse_insert_value(actor);
+    actor.field_lengths.emplace_back(_parse_value(actor.buffer));
     uint16_t field_count = 1;
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        _parse_insert_value(actor);
+        actor.field_lengths.emplace_back(_parse_value(actor.buffer));
         field_count++;
     }
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
     actor.field_counts.emplace_back(field_count);
 }
 
-void Parser::_parse_insert_value(InsertRecordActor &actor) {
-    
-    auto &&encode_value = [&actor](std::string_view raw) {
-        auto curr_pos = actor.buffer.size();
-        if (curr_pos + raw.size() >= actor.buffer.capacity()) {
-            actor.buffer.reserve(actor.buffer.capacity() * 2);
+uint16_t Parser::_parse_value(std::vector<Byte> &buffer) {
+    auto &&encode_value = [&buffer](std::string_view raw) -> uint16_t {
+        auto curr_pos = buffer.size();
+        if (curr_pos + raw.size() >= buffer.capacity()) {
+            buffer.reserve(buffer.capacity() * 2);
         }
-        actor.buffer.resize(curr_pos + raw.size());
-        StringViewCopier::copy(raw, actor.buffer.data() + curr_pos);
-        actor.field_lengths.emplace_back(raw.size());
+        buffer.resize(curr_pos + raw.size());
+        StringViewCopier::copy(raw, buffer.data() + curr_pos);
+        return static_cast<uint16_t>(raw.size());
     };
     
     switch (_scanner.lookahead()) {
-        case TokenTag::NUMBER: {    // for INTs and FLOATs
-            encode_value(_scanner.match_token(TokenTag::NUMBER).raw);
-            break;
-        }
-        case TokenTag::STRING: {    // for CHARs and DATEs
-            encode_value(_parse_string());
-            break;
-        }
-        case TokenTag::NUL: {
+        case TokenTag::NUMBER:      // for INTs and FLOATs
+            return encode_value(_scanner.match_token(TokenTag::NUMBER).raw);
+        case TokenTag::STRING:      // for CHARs and DATEs
+            return encode_value(_parse_string());
+        case TokenTag::NUL:
             _scanner.match_token(TokenTag::NUL);
-            actor.field_lengths.emplace_back(0u);
-            break;
-        }
+            return 0;
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{
@@ -397,6 +394,94 @@ void Parser::_parse_insert_value(InsertRecordActor &actor) {
             };
         }
     }
+}
+
+void Parser::_parse_column_predicate_operator(ColumnPredicate &predicate) {
+    switch (_scanner.lookahead()) {
+        case TokenTag::EQUAL:
+            _scanner.match_token(TokenTag::EQUAL);
+            predicate.op = ColumnPredicateOperator::EQUAL;
+            _parse_value(predicate.operand);
+            break;
+        case TokenTag::UNEQUAL:
+            _scanner.match_token(TokenTag::UNEQUAL);
+            predicate.op = ColumnPredicateOperator::UNEQUAL;
+            _parse_value(predicate.operand);
+            break;
+        case TokenTag::LESS:
+            _scanner.match_token(TokenTag::LESS);
+            predicate.op = ColumnPredicateOperator::LESS;
+            _parse_value(predicate.operand);
+            break;
+        case TokenTag::LESS_EQUAL:
+            _scanner.match_token(TokenTag::LESS_EQUAL);
+            predicate.op = ColumnPredicateOperator::LESS_EQUAL;
+            _parse_value(predicate.operand);
+            break;
+        case TokenTag::GREATER:
+            _scanner.match_token(TokenTag::GREATER);
+            predicate.op = ColumnPredicateOperator::GREATER;
+            _parse_value(predicate.operand);
+            break;
+        case TokenTag::GREATER_EQUAL:
+            _scanner.match_token(TokenTag::GREATER_EQUAL);
+            predicate.op = ColumnPredicateOperator::GREATER_EQUAL;
+            _parse_value(predicate.operand);
+            break;
+        case TokenTag::IS:
+            _scanner.match_token(TokenTag::IS);
+            predicate.op = _parse_column_predicate_null_operator();
+            break;
+        default: {
+            auto token = _scanner.match_token(_scanner.lookahead());
+            throw ParserError{std::string{"Unrecognized operator \""}.append(token.raw).append("\"."), token.offset};
+        }
+    }
+}
+
+ColumnPredicateOperator Parser::_parse_column_predicate_null_operator() {
+    if (_scanner.lookahead() == TokenTag::NUL) {
+        _scanner.match_token(TokenTag::NUL);
+        return ColumnPredicateOperator::IS_NULL;
+    }
+    _scanner.match_token(TokenTag::NOT);
+    _scanner.match_token(TokenTag::NUL);
+    return ColumnPredicateOperator::NOT_NULL;
+}
+
+ColumnPredicate Parser::_parse_column_predicate() {
+    ColumnPredicate predicate;
+    _parse_column(predicate.table_name, predicate.column_name);
+    _parse_column_predicate_operator(predicate);
+    return predicate;
+}
+
+void Parser::_parse_column(char *table_name, char *column_name) {
+    auto name = _scanner.match_token(TokenTag::IDENTIFIER).raw;
+    if (_scanner.lookahead() == TokenTag::DOT) {
+        _scanner.match_token(TokenTag::DOT);
+        StringViewCopier::copy(name, table_name);
+        name = _scanner.match_token(TokenTag::IDENTIFIER).raw;
+    }
+    StringViewCopier::copy(name, column_name);
+}
+
+std::vector<ColumnPredicate> Parser::_parse_where_clause() {
+    if (_scanner.lookahead() != TokenTag::WHERE) { return {}; }
+    _scanner.match_token(TokenTag::WHERE);
+    std::vector<ColumnPredicate> predicates{_parse_column_predicate()};
+    while (_scanner.lookahead() == TokenTag::AND) {
+        _scanner.match_token(TokenTag::AND);
+        predicates.emplace_back(_parse_column_predicate());
+    }
+    return predicates;
+}
+
+Actor Parser::_parse_delete_statement() {
+    _scanner.match_token(TokenTag::DELETE);
+    _scanner.match_token(TokenTag::FROM);
+    auto table = _scanner.match_token(TokenTag::IDENTIFIER).raw;
+    return DeleteRecordActor{table, _parse_where_clause()};
 }
 
 }

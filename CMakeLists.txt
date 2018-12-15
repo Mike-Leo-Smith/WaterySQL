@@ -32,7 +32,6 @@ set(SOURCE_FILES
     src/data_storage/type_tag.h
     src/data_storage/data_descriptor.h
     src/utility/type/non_copyable.h
-    src/utility/memory/binary_stream.h
     src/index_management/index_manager.cpp
     src/index_management/index_manager.h
     src/page_management/page_manager.cpp
@@ -85,7 +84,7 @@ set(SOURCE_FILES
     src/execution/drop_database_actor.h
     src/data_storage/field_constraint.h
     src/data_storage/data_comparator.h
-    src/data_storage/index_key_comparator.h src/execution/create_table_actor.h src/execution/create_index_actor.h src/execution/drop_index_actor.h src/execution/drop_table_actor.h src/execution/describe_table_actor.h src/parsing/token_tag_helper.h src/parsing/token_tag_helper.cpp src/execution/insert_record_actor.h src/utility/io/reader.h src/utility/memory/string_view_copier.h src/data_storage/data_view.h src/utility/memory/value_decoder.h src/errors/value_decoder_error.h src/utility/time/date_validator.h)
+    src/data_storage/index_key_comparator.h src/execution/create_table_actor.h src/execution/create_index_actor.h src/execution/drop_index_actor.h src/execution/drop_table_actor.h src/execution/describe_table_actor.h src/parsing/token_tag_helper.h src/parsing/token_tag_helper.cpp src/execution/insert_record_actor.h src/utility/io/reader.h src/utility/memory/string_view_copier.h src/data_storage/data_view.h src/utility/memory/value_decoder.h src/errors/value_decoder_error.h src/utility/time/date_validator.h src/execution/column_predicate.h src/execution/delete_record_actor.h src/execution/column_predicate_operator.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

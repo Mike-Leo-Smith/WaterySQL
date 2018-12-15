@@ -48,8 +48,8 @@ int main() {
     try {
         index = index_manager.open_index(name);
         
-        index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>("hello, world"), {1, 2});
-        index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>("hello, world"), {1, 2});
+        index_manager.insert_index_entry(index, "hello, world", {1, 2});
+        index_manager.delete_index_entry(index, "hello, world", {1, 2});
         
         constexpr auto count = 5'000'000;
         std::default_random_engine random{std::random_device{}()};
@@ -80,7 +80,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.insert_index_entry(index, reinterpret_cast<const Byte *>(&entry), rid);
+                    index_manager.insert_index_entry(index, reinterpret_cast<Byte *>(&entry), rid);
                 }
             }).first << "ms" << std::endl;
         }
@@ -90,7 +90,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.search_index_entry(index, reinterpret_cast<const Byte *>(&entry));
+                    index_manager.search_index_entry(index, reinterpret_cast<Byte *>(&entry));
                 }
             }).first << "ms" << std::endl;
         }
@@ -100,7 +100,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             std::cout << "elapsed time: " << timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.delete_index_entry(index, reinterpret_cast<const Byte *>(&entry), rid);
+                    index_manager.delete_index_entry(index, reinterpret_cast<Byte *>(&entry), rid);
                 }
             }).first << "ms" << std::endl;
         }

@@ -19,7 +19,7 @@ using PageOffset = int32_t;
 using SlotOffset = int32_t;
 using ChildOffset = int32_t;
 
-using Byte = uint8_t;
+using Byte = char;
 using Buffer = Byte *;
 
 static constexpr uint32_t PAGE_SIZE = 16384;  // 16K

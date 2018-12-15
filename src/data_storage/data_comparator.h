@@ -30,8 +30,8 @@ public:
             case TypeTag::FLOAT:
                 return sgn(MemoryMapper::map_memory<float>(lhs) - MemoryMapper::map_memory<float>(rhs));
             case TypeTag::CHAR:
-                return std::string_view{reinterpret_cast<const char *>(lhs)}
-                    .compare(std::string_view{reinterpret_cast<const char *>(lhs)});
+                return std::string_view{lhs}
+                    .compare(std::string_view{lhs});
             default:
                 return 0;
         }
