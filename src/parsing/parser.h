@@ -12,6 +12,7 @@
 #include "../execution/create_table_actor.h"
 #include "../execution/insert_record_actor.h"
 #include "../execution/column_predicate.h"
+#include "../execution/update_record_actor.h"
 
 namespace watery {
 
@@ -21,12 +22,14 @@ private:
 
 protected:
     Actor _parse_show_statement();
-    Actor _parse_create_statement();
     Actor _parse_use_statement();
     Actor _parse_drop_statement();
-    Actor _parse_describe_statement();
+    Actor _parse_create_statement();
     Actor _parse_insert_statement();
     Actor _parse_delete_statement();
+    Actor _parse_update_statement();
+    Actor _parse_select_statement();
+    Actor _parse_describe_statement();
     
     void _parse_field_list(CreateTableActor &actor);
     void _parse_field(CreateTableActor &actor);
@@ -46,7 +49,10 @@ protected:
     ColumnPredicateOperator _parse_column_predicate_null_operator();
     ColumnPredicate _parse_column_predicate();
     void _parse_column(char *table_name, char *column_name);
-    std::vector<ColumnPredicate> _parse_where_clause();
+    void _parse_where_clause(std::vector<ColumnPredicate> &predicates);
+    void _parse_set_clause(UpdateRecordActor &actor);
+    void _parse_selector(std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> &sel);
+    void _parse_selection_table_list(std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> &tables);
     
 public:
     explicit Parser(std::string_view program = "");

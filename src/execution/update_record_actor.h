@@ -1,13 +1,9 @@
-#include <utility>
-
 //
 // Created by Mike Smith on 2018-12-15.
 //
 
-#ifndef WATERYSQL_DELETE_RECORD_ACTOR_H
-#define WATERYSQL_DELETE_RECORD_ACTOR_H
-
-#include <vector>
+#ifndef WATERYSQL_UPDATE_RECORD_ACTOR_H
+#define WATERYSQL_UPDATE_RECORD_ACTOR_H
 
 #include "../config/config.h"
 #include "column_predicate.h"
@@ -16,19 +12,31 @@
 
 namespace watery {
 
-struct DeleteRecordActor {
+struct UpdateRecordActor {
     
-    char table_name[MAX_FIELD_COUNT + 1]{0};
+    char table_name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    std::vector<std::array<Byte, MAX_IDENTIFIER_LENGTH + 1>> columns;
+    std::vector<Byte> values;
+    std::vector<uint16_t> lengths;
     std::vector<ColumnPredicate> predicates;
     
-    explicit DeleteRecordActor(std::string_view tab) noexcept {
-        StringViewCopier::copy(tab, table_name);
+    explicit UpdateRecordActor(std::string_view n) {
+        StringViewCopier::copy(n, table_name);
     }
     
     void operator()() const {
-        std::cout << "DELETE FROM " << table_name;
+        std::cout << "UPDATE " << table_name << " SET\n";
+        auto p = 0ul;
+        auto idx = 0;
+        for (auto &&col: columns) {
+            auto l = lengths[idx++];
+            std::cout << "  " << col.data() << " = "
+                      << (l == 0 ? "NULL" : values.data() + p)
+                      << "\n";
+            p += l;
+        }
         if (!predicates.empty()) {
-            std::cout << " WHERE\n  ";
+            std::cout << "WHERE\n  ";
             bool first = true;
             for (auto &&pred : predicates) {
                 if (!first) { std::cout << " AND\n  "; }
@@ -54,4 +62,4 @@ struct DeleteRecordActor {
 
 }
 
-#endif  // WATERYSQL_DELETE_RECORD_ACTOR_H
+#endif  // WATERYSQL_UPDATE_RECORD_ACTOR_H

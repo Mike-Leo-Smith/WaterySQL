@@ -97,6 +97,12 @@ int main() {
     std::variant<int, float> x{11};
     std::cout << std::holds_alternative<float>(x) << std::endl;
     
+    parser.parse("delete from `some_table` where `some_table`.`x` = 0 and y < 5 and z is not null;").match()();
+    parser.parse("delete from `some_table`;").match()();
+    
+    parser.parse("update test_tab set aaa = 0, bb = NULL where aaa = 1 and b = 2;").match()();
+    parser.parse("select app.le, badGirl from boy, girl where a = 1 and b = 0;").match()();
+    
     return 0;
     
 }

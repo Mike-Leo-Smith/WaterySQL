@@ -5,7 +5,7 @@ Stmt                ->  SHOW ShowStmtBody ';'                               // d
                     |   DESCRIBE IDENTIFIER ';'                             // done
                     |   INSERT INTO IDENTIFIER VALUES ValueTupleList ';'    // done
                     |   DELETE FROM IDENTIFIER WhereClause ';'              // done
-                    |   UPDATE IDENTIFIER SetClause WhereClause ';'
+                    |   UPDATE IDENTIFIER SetClause WhereClause ';'         // done
                     |   SELECT Selector FROM TableList WhereClause ';'
 
 ShowStmtBody        ->  DATABASES                                           // done
@@ -75,15 +75,15 @@ Column              ->  IDENTIFIER ColumnDomain                             // d
 ColumnDomain        ->  '.' IDENTIFIER                                      // done
                     |   // empty, lookahead == OPERATOR || lookahead == IS  // done
 
-SetClause           ->  SET SetClauseBody
+SetClause           ->  SET SetClauseBody                                   // done
 
-SetClauseBody       ->  IDENTIFIER '=' Value SetClauseTail
-                    
-SetClauseTail       ->  ',' SetClauseBody
-                    |   // empty, lookahead == WHERE || lookahead == ';'
+SetClauseBody       ->  IDENTIFIER '=' Value SetClauseTail                  // done
+
+SetClauseTail       ->  ',' SetClauseBody                                   // done
+                    |   // empty, lookahead == WHERE || lookahead == ';'    // done
 
 Selector            ->  '*'
-                    |   IDENTIFIER ColumnDomain SelectorTail
+                    |   Column SelectorTail
 
 SelectorTail        ->  ',' Column SelectorTail
                     |   // empty, lookahead == FROM

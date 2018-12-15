@@ -24,6 +24,7 @@
 #include "../execution/delete_record_actor.h"
 
 #include "../utility/memory/value_decoder.h"
+#include "../execution/select_record_actor.h"
 
 namespace watery {
 
@@ -51,6 +52,10 @@ Actor Parser::match() {
             return _parse_insert_statement();
         case TokenTag::DELETE:
             return _parse_delete_statement();
+        case TokenTag::UPDATE:
+            return _parse_update_statement();
+        case TokenTag::SELECT:
+            return _parse_select_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{std::string{"Unexpected command token \""}.append(token.raw).append("\"."), token.offset};
@@ -466,22 +471,88 @@ void Parser::_parse_column(char *table_name, char *column_name) {
     StringViewCopier::copy(name, column_name);
 }
 
-std::vector<ColumnPredicate> Parser::_parse_where_clause() {
-    if (_scanner.lookahead() != TokenTag::WHERE) { return {}; }
+void Parser::_parse_where_clause(std::vector<ColumnPredicate> &predicates) {
+    if (_scanner.lookahead() != TokenTag::WHERE) { return; }
     _scanner.match_token(TokenTag::WHERE);
-    std::vector<ColumnPredicate> predicates{_parse_column_predicate()};
+    predicates.emplace_back(_parse_column_predicate());
     while (_scanner.lookahead() == TokenTag::AND) {
         _scanner.match_token(TokenTag::AND);
         predicates.emplace_back(_parse_column_predicate());
     }
-    return predicates;
 }
 
 Actor Parser::_parse_delete_statement() {
     _scanner.match_token(TokenTag::DELETE);
     _scanner.match_token(TokenTag::FROM);
-    auto table = _scanner.match_token(TokenTag::IDENTIFIER).raw;
-    return DeleteRecordActor{table, _parse_where_clause()};
+    DeleteRecordActor actor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
+    _parse_where_clause(actor.predicates);
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return actor;
+}
+
+Actor Parser::_parse_update_statement() {
+    _scanner.match_token(TokenTag::UPDATE);
+    UpdateRecordActor actor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
+    _parse_set_clause(actor);
+    _parse_where_clause(actor.predicates);
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return actor;
+}
+
+void Parser::_parse_set_clause(UpdateRecordActor &actor) {
+    auto &&encode_identifier = [&actor](std::string_view id) {
+        actor.columns.emplace_back();
+        StringViewCopier::copy(id, actor.columns.back().data());
+    };
+    _scanner.match_token(TokenTag::SET);
+    encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+    _scanner.match_token(TokenTag::EQUAL);
+    actor.lengths.emplace_back(_parse_value(actor.values));
+    while (_scanner.lookahead() == TokenTag::COMMA) {
+        _scanner.match_token(TokenTag::COMMA);
+        encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+        _scanner.match_token(TokenTag::EQUAL);
+        actor.lengths.emplace_back(_parse_value(actor.values));
+    }
+}
+
+Actor Parser::_parse_select_statement() {
+    _scanner.match_token(TokenTag::SELECT);
+    SelectRecordActor actor;
+    _parse_selector(actor.selections);
+    _scanner.match_token(TokenTag::FROM);
+    _parse_selection_table_list(actor.tables);
+    _parse_where_clause(actor.predicates);
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return actor;
+}
+
+void Parser::_parse_selector(std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> &sel) {
+    if (_scanner.lookahead() == TokenTag::WILDCARD) {
+        _scanner.match_token(TokenTag::WILDCARD);
+        return;
+    }
+    sel.emplace_back();
+    sel.emplace_back();
+    _parse_column(sel[sel.size() - 2].data(), sel[sel.size() - 1].data());
+    while (_scanner.lookahead() == TokenTag::COMMA) {
+        _scanner.match_token(TokenTag::COMMA);
+        sel.emplace_back();
+        sel.emplace_back();
+        _parse_column(sel[sel.size() - 2].data(), sel[sel.size() - 1].data());
+    }
+}
+
+void Parser::_parse_selection_table_list(std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> &tables) {
+    auto &&encode_identifier = [&tables](std::string_view id) {
+        tables.emplace_back();
+        StringViewCopier::copy(id, tables.back().data());
+    };
+    encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+    while (_scanner.lookahead() == TokenTag::COMMA) {
+        _scanner.match_token(TokenTag::COMMA);
+        encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+    }
 }
 
 }
