@@ -15,8 +15,8 @@ namespace watery {
 
 struct SelectRecordActor {
 
-    std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> selections;
-    std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> tables;
+    std::vector<Identifier> selections;
+    std::vector<Identifier> tables;
     std::vector<ColumnPredicate> predicates;
     
     void operator()() const {
@@ -44,8 +44,8 @@ struct SelectRecordActor {
             for (auto &&pred : predicates) {
                 if (!first) { std::cout << " AND\n  "; }
                 first = false;
-                std::string_view table_name{pred.table_name};
-                std::string_view column_name{pred.column_name};
+                std::string_view table_name{pred.table_name.data()};
+                std::string_view column_name{pred.column_name.data()};
                 if (!table_name.empty()) {
                     std::cout << table_name << ".";
                 }

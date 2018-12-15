@@ -18,11 +18,11 @@ namespace watery {
 
 struct FieldDescriptor final {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{};
+    Identifier name{};
     DataDescriptor data_descriptor{};
     FieldConstraint constraints{};
-    char foreign_table_name[MAX_IDENTIFIER_LENGTH + 1]{};
-    char foreign_column_name[MAX_IDENTIFIER_LENGTH + 1]{};
+    Identifier foreign_table_name{};
+    Identifier foreign_column_name{};
     
     constexpr uint32_t record_field_length() const noexcept {
         return data_descriptor.length();

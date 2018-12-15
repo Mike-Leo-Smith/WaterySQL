@@ -14,8 +14,8 @@ namespace watery {
 
 struct ColumnPredicate {
     
-    char table_name[MAX_IDENTIFIER_LENGTH + 1]{0};
-    char column_name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier table_name{0};
+    Identifier column_name{0};
     
     ColumnPredicateOperator op;
     std::vector<Byte> operand;

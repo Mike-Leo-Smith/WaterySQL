@@ -24,6 +24,7 @@
 #include "../execution/delete_record_actor.h"
 
 #include "../utility/memory/value_decoder.h"
+#include "../utility/memory/identifier_comparison.h"
 #include "../execution/select_record_actor.h"
 
 namespace watery {
@@ -461,7 +462,7 @@ ColumnPredicate Parser::_parse_column_predicate() {
     return predicate;
 }
 
-void Parser::_parse_column(char *table_name, char *column_name) {
+void Parser::_parse_column(Identifier &table_name, Identifier &column_name) {
     auto name = _scanner.match_token(TokenTag::IDENTIFIER).raw;
     if (_scanner.lookahead() == TokenTag::DOT) {
         _scanner.match_token(TokenTag::DOT);
@@ -527,23 +528,23 @@ Actor Parser::_parse_select_statement() {
     return actor;
 }
 
-void Parser::_parse_selector(std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> &sel) {
+void Parser::_parse_selector(std::vector<Identifier> &sel) {
     if (_scanner.lookahead() == TokenTag::WILDCARD) {
         _scanner.match_token(TokenTag::WILDCARD);
         return;
     }
     sel.emplace_back();
     sel.emplace_back();
-    _parse_column(sel[sel.size() - 2].data(), sel[sel.size() - 1].data());
+    _parse_column(sel[sel.size() - 2], sel[sel.size() - 1]);
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
         sel.emplace_back();
         sel.emplace_back();
-        _parse_column(sel[sel.size() - 2].data(), sel[sel.size() - 1].data());
+        _parse_column(sel[sel.size() - 2], sel[sel.size() - 1]);
     }
 }
 
-void Parser::_parse_selection_table_list(std::vector<std::array<Byte, MAX_FIELD_COUNT + 1>> &tables) {
+void Parser::_parse_selection_table_list(std::vector<Identifier> &tables) {
     auto &&encode_identifier = [&tables](std::string_view id) {
         tables.emplace_back();
         StringViewCopier::copy(id, tables.back().data());

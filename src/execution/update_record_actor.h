@@ -14,8 +14,8 @@ namespace watery {
 
 struct UpdateRecordActor {
     
-    char table_name[MAX_IDENTIFIER_LENGTH + 1]{0};
-    std::vector<std::array<Byte, MAX_IDENTIFIER_LENGTH + 1>> columns;
+    Identifier table_name{0};
+    std::vector<Identifier> columns;
     std::vector<Byte> values;
     std::vector<uint16_t> lengths;
     std::vector<ColumnPredicate> predicates;
@@ -41,8 +41,8 @@ struct UpdateRecordActor {
             for (auto &&pred : predicates) {
                 if (!first) { std::cout << " AND\n  "; }
                 first = false;
-                std::string_view table_name{pred.table_name};
-                std::string_view column_name{pred.column_name};
+                std::string_view table_name{pred.table_name.data()};
+                std::string_view column_name{pred.column_name.data()};
                 if (!table_name.empty()) {
                     std::cout << table_name << ".";
                 }

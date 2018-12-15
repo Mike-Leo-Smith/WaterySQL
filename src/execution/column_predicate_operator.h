@@ -8,7 +8,10 @@
 namespace watery {
 
 enum struct ColumnPredicateOperator {
-    EQUAL, UNEQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, IS_NULL, NOT_NULL
+    EQUAL, UNEQUAL,
+    LESS, LESS_EQUAL,
+    GREATER, GREATER_EQUAL,
+    IS_NULL, NOT_NULL
 };
 
 }

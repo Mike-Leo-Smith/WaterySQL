@@ -15,6 +15,7 @@
 #include "../src/page_management/page_manager.h"
 
 #include "../src/utility/io/error_printer.h"
+#include "../src/utility/io/identifier_printing.h"
 #include "../src/record_management/record_manager.h"
 
 int main() {

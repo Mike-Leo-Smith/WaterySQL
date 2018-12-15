@@ -14,14 +14,14 @@ namespace watery {
 
 struct DropDatabaseActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier name{0};
     
     explicit DropDatabaseActor(std::string_view n) noexcept {
         StringViewCopier::copy(n, name);
     }
     
     void operator()() const {
-        SystemManager::instance().delete_database(name);
+        SystemManager::instance().delete_database(name.data());
     }
     
 };

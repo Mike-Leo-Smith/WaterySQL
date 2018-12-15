@@ -8,12 +8,13 @@
 #include <iostream>
 
 #include "../data_storage/record_descriptor.h"
+#include "../utility/io/identifier_printing.h"
 
 namespace watery {
 
 struct CreateTableActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier name{0};
     RecordDescriptor descriptor;
     
     explicit CreateTableActor(std::string_view n) noexcept {

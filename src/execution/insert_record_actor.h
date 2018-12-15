@@ -15,7 +15,8 @@ namespace watery {
 
 struct InsertRecordActor {
     
-    char table_name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier table_name{0};
+    
     std::vector<Byte> buffer;
     std::vector<uint16_t> field_lengths;
     std::vector<uint16_t> field_counts;

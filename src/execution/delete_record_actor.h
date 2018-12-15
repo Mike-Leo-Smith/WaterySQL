@@ -11,14 +11,15 @@
 
 #include "../config/config.h"
 #include "column_predicate.h"
-#include "../utility/memory/string_view_copier.h"
 #include "column_predicate_helper.h"
+#include "../utility/io/identifier_printing.h"
+#include "../utility/memory/string_view_copier.h"
 
 namespace watery {
 
 struct DeleteRecordActor {
     
-    char table_name[MAX_FIELD_COUNT + 1]{0};
+    Identifier table_name{0};
     std::vector<ColumnPredicate> predicates;
     
     explicit DeleteRecordActor(std::string_view tab) noexcept {
@@ -33,12 +34,11 @@ struct DeleteRecordActor {
             for (auto &&pred : predicates) {
                 if (!first) { std::cout << " AND\n  "; }
                 first = false;
-                std::string_view table_name{pred.table_name};
-                std::string_view column_name{pred.column_name};
+                std::string_view table_name{pred.table_name.data()};
                 if (!table_name.empty()) {
                     std::cout << table_name << ".";
                 }
-                std::cout << column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                std::cout << pred.column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
                 if (!pred.operand.empty()) {
                     std::cout << " " << std::string_view{pred.operand.data()};
                 }

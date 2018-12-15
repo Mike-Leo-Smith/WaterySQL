@@ -11,10 +11,17 @@
 namespace watery {
 
 struct StringViewCopier : NonTrivialConstructible {
+    
     static inline void copy(std::string_view sv, char *buffer) noexcept {
         sv.copy(buffer, sv.size());
         buffer[sv.size()] = '\0';
     }
+    
+    template<typename Size, Size size>
+    static inline void copy(std::string_view sv, std::array<Byte, size> &id) noexcept {
+        copy(sv, id.data());
+    }
+    
 };
 
 }

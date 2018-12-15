@@ -13,14 +13,14 @@ namespace watery {
 
 struct UseDatabaseActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier name{0};
     
     explicit UseDatabaseActor(std::string_view n) noexcept {
         StringViewCopier::copy(n, name);
     }
     
     void operator()() const {
-        SystemManager::instance().use_database(name);
+        SystemManager::instance().use_database(name.data());
     }
     
 };

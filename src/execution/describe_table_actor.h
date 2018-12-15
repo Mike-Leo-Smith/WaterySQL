@@ -12,7 +12,7 @@ namespace watery {
 
 struct DescribeTableActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier name{0};
     
     explicit DescribeTableActor(std::string_view n) noexcept {
         StringViewCopier::copy(n, name);

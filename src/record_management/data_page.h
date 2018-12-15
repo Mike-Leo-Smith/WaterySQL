@@ -16,7 +16,7 @@ namespace watery {
 
 struct DataPage : NonCopyable, NonTrivialConstructible, NonMovable {
     DataPageHeader header;
-    alignas(8) Byte data[];  // serves as a position indicator.
+    alignas(8) Byte data[1];  // serves as a position indicator.
 };
 
 }
