@@ -18,6 +18,9 @@ int main() {
     
     using namespace watery;
     
+    char a[3] {'A', '\0', '\0'};
+    std::cout << std::string_view{a, 3} << std::endl;
+    
     std::ostream::sync_with_stdio(false);
     
     constexpr auto query = "select (*.app_le) from PERSON\n where age<>'apple';\n";
@@ -82,7 +85,10 @@ int main() {
     
     std::cout << sizeof(std::bitset<1024>) << std::endl;
     std::cout << "elapsed time: " << timed_run([&parser]() {
+        parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/food.sql")).match()();
+        parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/orders.sql")).match()();
         parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/customer.sql")).match()();
+        parser.parse(FileReader::read("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/restaurant.sql")).match()();
     }).first << "ms" << std::endl;
     
     return 0;

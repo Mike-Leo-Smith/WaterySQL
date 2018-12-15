@@ -37,7 +37,7 @@ protected:
     
     void _parse_value_tuple_list(InsertRecordActor &actor);
     void _parse_value_tuple(InsertRecordActor &actor);
-    void _parse_value(InsertRecordActor &actor);
+    void _parse_insert_value(InsertRecordActor &actor);
     
     int32_t _parse_integer();
     float _parse_float();

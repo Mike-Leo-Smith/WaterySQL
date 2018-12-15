@@ -12,6 +12,7 @@
 #include "../utility/type_constraints/non_copyable.h"
 #include "field_constraint.h"
 #include "../record_management/record_offset.h"
+#include "../utility/io_helpers/string_view_copier.h"
 
 namespace watery {
 
@@ -38,7 +39,7 @@ struct FieldDescriptor final {
     
     FieldDescriptor(std::string_view n, DataDescriptor desc, FieldConstraint c)
         : data_descriptor{desc}, constraints{c} {
-        n.copy(name, n.size());
+        StringViewCopier::copy(n, name);
     }
 };
 

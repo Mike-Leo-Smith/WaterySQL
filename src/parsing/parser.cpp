@@ -297,8 +297,8 @@ void Parser::_parse_foreign_key(CreateTableActor &actor) {
         auto &field = actor.descriptor.field_descriptors[i];
         if (column.raw == field.name) {
             field.constraints.set_foreign(true);
-            foreign_table.copy(field.foreign_table_name, foreign_table.size());
-            foreign_column.copy(field.foreign_column_name, foreign_column.size());
+            StringViewCopier::copy(foreign_table, field.foreign_table_name);
+            StringViewCopier::copy(foreign_column, field.foreign_column_name);
             return;
         }
     }
@@ -378,18 +378,18 @@ void Parser::_parse_value_tuple_list(InsertRecordActor &actor) {
 
 void Parser::_parse_value_tuple(InsertRecordActor &actor) {
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
-    _parse_value(actor);
+    _parse_insert_value(actor);
     uint16_t field_count = 1;
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        _parse_value(actor);
+        _parse_insert_value(actor);
         field_count++;
     }
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
     actor.field_counts.emplace_back(field_count);
 }
 
-void Parser::_parse_value(InsertRecordActor &actor) {
+void Parser::_parse_insert_value(InsertRecordActor &actor) {
     
     auto &&encode_value = [&actor](std::string_view raw) {
         auto curr_pos = actor.buffer.size();
@@ -397,7 +397,7 @@ void Parser::_parse_value(InsertRecordActor &actor) {
             actor.buffer.reserve(actor.buffer.capacity() * 2);
         }
         actor.buffer.resize(curr_pos + raw.size());
-        raw.copy(actor.buffer.data() + curr_pos, raw.size());
+        StringViewCopier::copy(raw, actor.buffer.data() + curr_pos);
         actor.field_lengths.emplace_back(raw.size());
     };
     

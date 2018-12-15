@@ -14,10 +14,10 @@ namespace watery {
 
 struct DropDatabaseActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{};
+    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
     
     explicit DropDatabaseActor(std::string_view n) noexcept {
-        n.copy(name, n.size());
+        StringViewCopier::copy(n, name);
     }
     
     void operator()() const {

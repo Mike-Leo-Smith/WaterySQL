@@ -13,11 +13,11 @@ namespace watery {
 
 struct CreateTableActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{};
+    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
     RecordDescriptor descriptor;
     
     explicit CreateTableActor(std::string_view n) noexcept {
-        n.copy(name, n.size());
+        StringViewCopier::copy(n, name);
     }
     
     void operator()() const {

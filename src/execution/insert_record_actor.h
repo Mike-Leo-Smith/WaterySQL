@@ -15,17 +15,17 @@ namespace watery {
 
 struct InsertRecordActor {
     
-    char target[MAX_IDENTIFIER_LENGTH + 1]{};
+    char table_name[MAX_IDENTIFIER_LENGTH + 1]{0};
     std::vector<char> buffer;
     std::vector<uint16_t> field_lengths;
     std::vector<uint16_t> field_counts;
     
     explicit InsertRecordActor(std::string_view t) noexcept {
-        t.copy(target, t.size());
+        StringViewCopier::copy(t, table_name);
     }
     
     void operator()() const {
-        std::cout << "INSERT INTO " << target << " VALUES(" << field_counts.size() << ")" << "\n";
+        std::cout << "INSERT INTO " << table_name << " VALUES(" << field_counts.size() << ")" << "\n";
         auto field_pos = 0ul;
         auto field_index = 0ul;
         bool first_row = true;

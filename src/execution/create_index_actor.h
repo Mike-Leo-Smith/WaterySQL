@@ -12,12 +12,12 @@ namespace watery {
 
 struct CreateIndexActor {
     
-    char table_name[MAX_IDENTIFIER_LENGTH + 1]{};
-    char column_name[MAX_IDENTIFIER_LENGTH + 1]{};
+    char table_name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    char column_name[MAX_IDENTIFIER_LENGTH + 1]{0};
     
     CreateIndexActor(std::string_view tab, std::string_view col) noexcept {
-        tab.copy(table_name, tab.size());
-        col.copy(column_name, col.size());
+        StringViewCopier::copy(tab, table_name);
+        StringViewCopier::copy(col, column_name);
     }
     
     void operator()() const {

@@ -16,7 +16,7 @@ namespace watery {
 
 struct FileReader : NonTrivialConstructible {
     
-    static std::string_view read(std::string_view file_name) {
+    static std::string_view read(const std::string &file_name) {
         thread_local static std::string buffer;
         auto size = std::filesystem::file_size(file_name);
         buffer.resize(size + 1);

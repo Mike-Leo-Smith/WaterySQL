@@ -21,7 +21,7 @@ struct DataDescriptor {
             case TypeTag::FLOAT:
                 return sizeof(float);
             case TypeTag::CHAR:
-                return size_hint;
+                return size_hint + 1;  // strings are zero-ended
             default:
                 return 0;
         }
