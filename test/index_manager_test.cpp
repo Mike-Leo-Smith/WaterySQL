@@ -11,13 +11,11 @@
 
 #include "../src/config/config.h"
 #include "../src/data_storage/record_descriptor.h"
-#include "../src/data_storage/data.h"
-#include "../src/data_storage/char.h"
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
 
 #include "../src/utility/io/error_printer.h"
-#include "../src/utility/timing/elapsed_time.h"
+#include "../src/utility/time/elapsed_time.h"
 #include "../src/record_management/record_manager.h"
 
 #include "../src/index_management/index_manager.h"

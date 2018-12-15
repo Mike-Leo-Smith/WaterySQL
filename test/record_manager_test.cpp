@@ -11,7 +11,6 @@
 
 #include "../src/config/config.h"
 #include "../src/data_storage/record_descriptor.h"
-#include "../src/data_storage/data.h"
 #include "../src/errors/page_manager_error.h"
 #include "../src/page_management/page_manager.h"
 
@@ -109,7 +108,6 @@ int main() {
         print_error(std::cerr, e);
     }
     
-    std::cout << sizeof(Data) << std::endl;
     std::cout << sizeof(DataPageHeader) << std::endl;
     
     return 0;

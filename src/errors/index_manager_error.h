@@ -10,7 +10,7 @@
 namespace watery {
 
 struct IndexManagerError : public Error {
-    explicit IndexManagerError(std::string_view reason)
+    explicit IndexManagerError(std::string_view reason) noexcept
         : Error{"IndexManagerError", reason} {}
 };
 

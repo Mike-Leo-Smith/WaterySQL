@@ -10,8 +10,8 @@
 namespace watery {
 
 struct PageManagerError : public Error {
-    explicit PageManagerError(std::string_view reason):
-        Error{"PageManagerError", reason} {}
+    explicit PageManagerError(std::string_view reason) noexcept
+        : Error{"PageManagerError", reason} {}
 };
 
 }

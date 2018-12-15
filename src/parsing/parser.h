@@ -39,8 +39,6 @@ protected:
     void _parse_value_tuple(InsertRecordActor &actor);
     void _parse_insert_value(InsertRecordActor &actor);
     
-    int32_t _parse_integer();
-    float _parse_float();
     std::string_view _parse_string();
     
 public:

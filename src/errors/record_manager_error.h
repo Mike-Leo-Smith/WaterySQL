@@ -10,7 +10,7 @@
 namespace watery {
 
 struct RecordManagerError : public Error {
-    explicit RecordManagerError(std::string_view reason)
+    explicit RecordManagerError(std::string_view reason) noexcept
         : Error{"RecordManagerError", reason} {}
 };
 

@@ -14,7 +14,7 @@ struct ParserError : public Error {
     
     const TokenOffset offset;
     
-    ParserError(std::string_view reason, TokenOffset offset)
+    ParserError(std::string_view reason, TokenOffset offset) noexcept
         : Error("ParserError", reason), offset{offset} {}
         
 };

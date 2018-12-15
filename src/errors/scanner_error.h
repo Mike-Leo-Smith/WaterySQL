@@ -14,7 +14,7 @@ struct ScannerError : public Error {
     
     const TokenOffset offset;
     
-    explicit ScannerError(std::string_view reason, TokenOffset offset)
+    explicit ScannerError(std::string_view reason, TokenOffset offset) noexcept
         : Error{"ScannerError", reason}, offset{offset} {}
 };
 

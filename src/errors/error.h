@@ -16,7 +16,7 @@ private:
     std::string _message;
     
 public:
-    Error(std::string_view type, std::string_view reason) {
+    Error(std::string_view type, std::string_view reason) noexcept {
         _message.append(type).append(": ").append(reason);
     }
     

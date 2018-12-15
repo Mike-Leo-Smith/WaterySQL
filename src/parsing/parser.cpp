@@ -21,6 +21,7 @@
 #include "../execution/drop_table_actor.h"
 #include "../execution/describe_table_actor.h"
 #include "token_tag_helper.h"
+#include "../utility/memory/value_decoder.h"
 
 namespace watery {
 
@@ -191,36 +192,6 @@ bool Parser::_parse_nullable_hint() {
            _scanner.lookahead() == TokenTag::RIGHT_PARENTHESIS;
 }
 
-int32_t Parser::_parse_integer() {
-    int32_t result;
-    auto token = _scanner.match_token(TokenTag::NUMBER);
-    auto ec = std::from_chars(token.raw.begin(), token.raw.end(), result).ec;
-    if (ec == std::errc::invalid_argument) {
-        throw ParserError{
-            "Failed to convert number literal into integer because of the mismatched pattern.", token.offset};
-    }
-    if (ec == std::errc::result_out_of_range) {
-        throw ParserError{
-            "Failed to convert number literal into integer because of overflow.", token.offset};
-    }
-    return result;
-}
-
-float Parser::_parse_float() {
-    auto token = _scanner.match_token(TokenTag::NUMBER);
-    char *end;
-    auto result = std::strtof(token.raw.begin(), &end);
-    if (result == HUGE_VALF) {
-        throw ParserError{
-            "Failed to convert number literal into float because of overflow.", token.offset};
-    }
-    if (end == token.raw.begin()) {
-        throw ParserError{
-            "Failed to convert number literal into float because of the mismatched pattern.", token.offset};
-    }
-    return result;
-}
-
 std::string_view Parser::_parse_string() {
     thread_local static std::string s;
     s.clear();
@@ -271,7 +242,7 @@ uint16_t Parser::_parse_size_hint() {
     if (_scanner.lookahead() == TokenTag::LEFT_PARENTHESIS) {
         _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
         auto size_hint_offset = _scanner.current_offset();
-        auto size = _parse_integer();
+        auto size = ValueDecoder::decode_integer(_scanner.match_token(TokenTag::NUMBER).raw);
         _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
         if (size < 0 || size > std::numeric_limits<uint16_t>::max()) {
             throw ParserError{

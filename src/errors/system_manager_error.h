@@ -11,7 +11,7 @@ namespace watery {
 
 struct SystemManagerError : public Error {
     
-    explicit SystemManagerError(std::string_view reason)
+    explicit SystemManagerError(std::string_view reason) noexcept
         : Error("SystemManagerError", reason) {}
     
 };
