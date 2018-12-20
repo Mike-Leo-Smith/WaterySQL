@@ -75,34 +75,34 @@ int main() {
 
         RecordOffset rid{1, 2};
         
-        std::cout << "-------- testing insertion ---------" << std::endl;
+        Printer::println(std::cout, "-------- testing insertion ---------");
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            std::cout << "elapsed time: " << timed_run([&] {
+            Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
                     index_manager.insert_index_entry(index, reinterpret_cast<Byte *>(&entry), rid);
                 }
-            }).first << "ms" << std::endl;
+            }).first, "ms");
         }
         
-        std::cout << "------- testing search --------" << std::endl;
+        Printer::println(std::cout, "------- testing search --------");
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            std::cout << "elapsed time: " << timed_run([&] {
+            Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
                     index_manager.search_index_entry(index, reinterpret_cast<Byte *>(&entry));
                 }
-            }).first << "ms" << std::endl;
+            }).first, "ms");
         }
         
-        std::cout << "------- testing deletion --------" << std::endl;
+        Printer::println(std::cout, "------- testing deletion --------");
         {
             std::shuffle(data_set.begin(), data_set.end(), random);
-            std::cout << "elapsed time: " << timed_run([&] {
+            Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
                     index_manager.delete_index_entry(index, reinterpret_cast<Byte *>(&entry), rid);
                 }
-            }).first << "ms" << std::endl;
+            }).first, "ms");
         }
     } catch (const std::exception &e) {
         print_error(std::cerr, e);

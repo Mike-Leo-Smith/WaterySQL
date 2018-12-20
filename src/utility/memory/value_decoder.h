@@ -29,13 +29,13 @@ struct ValueDecoder : NonTrivialConstructible {
         return result;
     }
     
-    static int32_t decode_date(std::string_view raw) {  // some string look like "1998-08-10"
-        if (raw[4] != '-' || raw[7] != '-') {
+    static int32_t decode_date(std::string_view raw) {  // string look like '1998-08-10'
+        if (raw.size() != 12 || raw[0] != '\'' || raw[5] != '-' || raw[8] != '-' || raw[11] != '\'') {
             throw ValueDecoderError{raw, "DATE", "of unrecognized pattern."};
         }
-        auto year = decode_integer(raw.substr(0, 4));
-        auto month = decode_integer(raw.substr(5, 2));
-        auto day = decode_integer(raw.substr(8, 2));
+        auto year = decode_integer(raw.substr(1, 4));
+        auto month = decode_integer(raw.substr(6, 2));
+        auto day = decode_integer(raw.substr(9, 2));
         if (!DateValidator::validate(year, month, day)) {
             throw ValueDecoderError{raw, "DATE", "the date is not in a valid range."};
         }
@@ -52,6 +52,13 @@ struct ValueDecoder : NonTrivialConstructible {
             throw ValueDecoderError{raw, "FLOAT", "of the mismatched pattern."};
         }
         return result;
+    }
+    
+    static std::string_view decode_char(std::string_view raw) {
+        if (raw.size() < 2 || raw[0] != '\'' || raw.back() != '\'') {
+            throw ValueDecoderError{raw, "CHAR", "it cannot be seen as a string."};
+        }
+        return raw.substr(1, raw.size() - 2);  // remove quotation marks.
     }
     
 };

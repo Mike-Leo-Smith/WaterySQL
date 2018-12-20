@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 
+#include "../utility/io/printer.h"
 #include "../system_management/system_manager.h"
 
 namespace watery {
@@ -21,6 +22,7 @@ struct DropDatabaseActor {
     }
     
     void operator()() const {
+        Printer::println(std::cout, "DROP DATABASE ", name.data(), ";");
         SystemManager::instance().delete_database(name.data());
     }
     

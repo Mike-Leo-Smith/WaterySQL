@@ -82,13 +82,13 @@ SetClauseBody       ->  IDENTIFIER '=' Value SetClauseTail                  // d
 SetClauseTail       ->  ',' SetClauseBody                                   // done
                     |   // empty, lookahead == WHERE || lookahead == ';'    // done
 
-Selector            ->  '*'
-                    |   Column SelectorTail
+Selector            ->  '*'                                                 // done
+                    |   Column SelectorTail                                 // done with hack
 
-SelectorTail        ->  ',' Column SelectorTail
-                    |   // empty, lookahead == FROM
+SelectorTail        ->  ',' Column SelectorTail                             // done
+                    |   // empty, lookahead == FROM                         // done
 
-TableList           ->  IDENTIFIER TableListTail
+TableList           ->  IDENTIFIER TableListTail                            // done with hack
 
-TableListTail       ->  ',' TableList
-                    |   // empty, lookahead == WHERE || lookahead == ';'
+TableListTail       ->  ',' TableList                                       // done
+                    |   // empty, lookahead == WHERE || lookahead == ';'    // done

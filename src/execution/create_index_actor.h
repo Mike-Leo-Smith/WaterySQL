@@ -20,7 +20,9 @@ struct CreateIndexActor {
         StringViewCopier::copy(col, column_name);
     }
     
-    void operator()() const {}
+    void operator()() const {
+        Printer::println(std::cout, "CREATE INDEX ", table_name.data(), "(", column_name.data(), ");");
+    }
     
 };
 

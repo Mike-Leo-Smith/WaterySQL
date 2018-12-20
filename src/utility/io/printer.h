@@ -11,10 +11,18 @@
 namespace watery {
 
 struct Printer : NonTrivialConstructible {
+    
     template<typename OStream, typename ...Args>
-    static void print(OStream &os, Args &&...args) {
-        (os << ... << args) << std::endl;
+    static void println(OStream &&os, Args &&...args) noexcept {
+        print(std::forward<OStream>(os), std::forward<Args>(args)...);
+        os << std::endl;
     }
+    
+    template<typename OStream, typename ...Args>
+    static void print(OStream &os, Args &&...args) noexcept {
+        (void)(os << ... << std::forward<Args>(args));
+    }
+    
 };
 
 }

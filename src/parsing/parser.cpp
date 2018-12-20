@@ -205,10 +205,12 @@ bool Parser::_parse_nullable_hint() {
 std::string_view Parser::_parse_string() {
     thread_local static std::string s;
     s.clear();
+    s.push_back('\'');
     auto token = _scanner.match_token(TokenTag::STRING).raw;
     for (auto iter = token.cbegin(); iter != token.cend(); iter++) {
         s.push_back(*iter == '\\' ? *(++iter) : *iter);
     }
+    s.push_back('\'');
     return s;
 }
 

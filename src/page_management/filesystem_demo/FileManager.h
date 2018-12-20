@@ -12,6 +12,7 @@
 #include <fcntl.h>
 
 #include "../../config/config.h"
+#include "../../utility/io/printer.h"
 
 namespace watery {
 
@@ -23,7 +24,7 @@ private:
     int _create_file(const char *name) {
         FILE *f = fopen(name, "a+");
         if (f == nullptr) {
-            std::cout << "fail" << std::endl;
+            Printer::println(std::cerr, "Failed to create file ", name, "...");
             return -1;
         }
         fclose(f);

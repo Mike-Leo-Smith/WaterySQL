@@ -8,19 +8,21 @@
 #include <string>
 #include <string_view>
 #include "../system_management/system_manager.h"
+#include "../utility/io/printer.h"
 
 namespace watery {
 
 struct CreateDatabaseActor {
     
-    char name[MAX_IDENTIFIER_LENGTH + 1]{0};
+    Identifier name{0};
     
     explicit CreateDatabaseActor(std::string_view n) noexcept {
         StringViewCopier::copy(n, name);
     }
     
     void operator()() const {
-        SystemManager::instance().create_database(name);
+        Printer::println(std::cout, "CREATE DATABASE ", name.data(), ";");
+        SystemManager::instance().create_database(name.data());
     }
 };
 

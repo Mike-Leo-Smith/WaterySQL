@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 
+#include "../utility/io/printer.h"
+
 namespace watery {
 
 struct DropTableActor {
@@ -19,7 +21,7 @@ struct DropTableActor {
     }
     
     void operator()() const {
-    
+        Printer::println(std::cout, "DROP TABLE ", name.data(), ";");
     }
     
 };
