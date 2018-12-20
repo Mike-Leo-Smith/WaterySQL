@@ -24,7 +24,7 @@ FieldList           ->  Field FieldListTail                                 // d
 FieldListTail       ->  ',' FieldList                                       // done with hack
                     |   // empty, lookahead == ')'                          // done with hack
 
-Field               ->  IDENTIFIER Type NullableHint                        // done
+Field               ->  IDENTIFIER Type SizeHint NullableHint               // done
                     |   PRIMARY KEY '(' IDENTIFIER ')'                      // done
                     |   FOREIGN KEY '(' IDENTIFIER ')' REFERENCES
                           IDENTIFIER '(' IDENTIFIER ')'                     // done

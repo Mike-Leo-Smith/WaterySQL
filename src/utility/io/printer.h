@@ -20,7 +20,7 @@ struct Printer : NonTrivialConstructible {
     
     template<typename OStream, typename ...Args>
     static void print(OStream &os, Args &&...args) noexcept {
-        (void)(os << ... << std::forward<Args>(args));
+        auto &&_ = (os << ... << std::forward<Args>(args));  // making compilers happy when args is empty.
     }
     
 };

@@ -23,6 +23,8 @@ int main() {
     std::ostream::sync_with_stdio(false);
     std::istream::sync_with_stdio(false);
     
+    Printer::println(std::cout);
+    
     Parser parser;
     while (true) {
         Printer::print(std::cout, "[IN]\n  ");
