@@ -279,7 +279,7 @@ void Parser::_parse_foreign_key(CreateTableActor &actor) {
     for (auto i = 0; i < actor.descriptor.field_count; i++) {
         auto &field = actor.descriptor.field_descriptors[i];
         if (column.raw == field.name) {
-            field.constraints.set_foreign(true);
+            field.constraints.set_foreign();
             StringViewCopier::copy(foreign_table, field.foreign_table_name);
             StringViewCopier::copy(foreign_column, field.foreign_column_name);
             return;
@@ -298,7 +298,7 @@ void Parser::_parse_primary_key(CreateTableActor &actor) {
     for (auto i = 0; i < actor.descriptor.field_count; i++) {
         auto &field = actor.descriptor.field_descriptors[i];
         if (column.raw == field.name) {
-            field.constraints.set_primary(true);
+            field.constraints.set_primary();
             return;
         }
     }
@@ -314,7 +314,7 @@ void Parser::_parse_unique(CreateTableActor &actor) {
     for (auto i = 0; i < actor.descriptor.field_count; i++) {
         auto &field = actor.descriptor.field_descriptors[i];
         if (column.raw == field.name) {
-            field.constraints.set_unique(true);
+            field.constraints.set_unique();
             return;
         }
     }

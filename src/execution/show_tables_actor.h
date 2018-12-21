@@ -14,7 +14,7 @@ struct ShowTablesActor {
     
     void operator()() const {
         Printer::println(std::cout, "SHOW TABLES;");
-        for (auto &&t : SystemManager::instance().all_tables()) {
+        for (auto &&t : SystemManager::instance().table_list()) {
             std::cout << t << std::endl;
         }
     }

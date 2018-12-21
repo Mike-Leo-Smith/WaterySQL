@@ -23,17 +23,7 @@ struct FieldDescriptor final {
     FieldConstraint constraints{};
     Identifier foreign_table_name{};
     Identifier foreign_column_name{};
-    
-    constexpr uint32_t record_field_length() const noexcept {
-        return data_descriptor.length();
-    }
-    
-    constexpr uint32_t index_key_length() const noexcept {
-        return constraints.unique() ?
-               data_descriptor.length() :
-               // rid will be composed into index key to make it unique when it's actually not
-               data_descriptor.length() + sizeof(RecordOffset);
-    }
+    bool indexed{false};
     
     FieldDescriptor() = default;
     

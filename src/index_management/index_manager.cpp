@@ -12,10 +12,10 @@
 
 namespace watery {
 
-void IndexManager::create_index(const std::string &name, FieldDescriptor field_desc) {
+void IndexManager::create_index(const std::string &name, DataDescriptor data_desc, bool unique) {
     
-    auto dl = field_desc.data_descriptor.length();
-    auto kl = field_desc.index_key_length();
+    auto dl = data_desc.length();
+    auto kl = static_cast<uint32_t>(unique ? dl : dl + sizeof(RecordOffset));
     auto pl = static_cast<uint32_t>(sizeof(RecordOffset));
     auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8 /* for alignment */) / (kl + pl) / 2 * 2;  // rounded to even
     
@@ -43,7 +43,7 @@ void IndexManager::create_index(const std::string &name, FieldDescriptor field_d
     
     auto page = _page_manager.allocate_page(file_handle, 0);
     
-    MemoryMapper::map_memory<IndexHeader>(page.data) = {field_desc, kl, dl, 1, static_cast<uint32_t>(cpn), -1};
+    MemoryMapper::map_memory<IndexHeader>(page.data) = {data_desc, unique, kl, dl, 1, static_cast<uint32_t>(cpn), -1};
     _page_manager.mark_page_dirty(page);
     _page_manager.flush_page(page);
     _page_manager.close_file(file_handle);
@@ -342,12 +342,7 @@ IndexNodeLink IndexManager::_get_index_node_link(const Index &idx, const IndexNo
 void IndexManager::_write_index_entry_key(
     const Index &idx, IndexNode &n, ChildOffset i, const Byte *k, RecordOffset rid) noexcept {
     auto p = &n.fields[_get_child_key_position(idx, i)];
-//    if (idx.header.key_descriptor.constraint.unique()) {
-        std::memmove(p, k, idx.header.key_length);
-//    } else {
-//        memmove(p, &rid, sizeof(RecordOffset));
-//        memmove(p + sizeof(RecordOffset), k, idx.header.data_length);
-//    }
+    std::memmove(p, k, idx.header.key_length);
 }
 
 IndexEntryOffset IndexManager::search_index_entry(Index &index, const Byte *data) {
@@ -362,7 +357,7 @@ IndexEntryOffset IndexManager::search_index_entry(Index &index, const Byte *data
 void IndexManager::_make_key_compact(
     const Index &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const {
     key_compact.resize(index.header.key_length);
-    if (index.header.key_descriptor.constraints.unique()) {
+    if (index.header.unique) {
         memmove(key_compact.data(), data, index.header.key_length);
     } else {  // composed key
         memmove(key_compact.data(), &rid, sizeof(RecordOffset));
@@ -385,5 +380,5 @@ void IndexManager::close_all_indices() noexcept {
     }
     _open_indices.clear();
 }
-
+    
 }

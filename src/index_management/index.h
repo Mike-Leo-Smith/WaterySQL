@@ -24,7 +24,7 @@ struct Index {
     Index() = default;
     
     Index(std::string name, FileHandle fh, IndexHeader h)
-        : name{std::move(name)}, file_handle{fh}, header{h}, comparator{h.key_descriptor} {}
+        : name{std::move(name)}, file_handle{fh}, header{h}, comparator{h.key_descriptor, h.unique} {}
     
     Index(Index &&) = default;
     Index(const Index &) = default;

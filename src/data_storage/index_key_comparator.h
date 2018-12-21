@@ -19,8 +19,8 @@ private:
 public:
     IndexKeyComparator() = default;
     
-    explicit IndexKeyComparator(const FieldDescriptor &fd)
-        : _unique{fd.constraints.unique()}, _data_cmp{fd.data_descriptor} {}
+    explicit IndexKeyComparator(DataDescriptor desc, bool unique)
+        : _unique{unique}, _data_cmp{desc} {}
     
     bool less(const Byte *lhs, const Byte *rhs) const noexcept {
         if (_unique) {

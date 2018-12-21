@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string_view>
 #include <array>
+#include <bitset>
 
 namespace watery {
 
@@ -34,11 +35,11 @@ static constexpr uint32_t MAX_SLOT_COUNT_PER_PAGE = 512;
 
 static constexpr auto DATABASE_BASE_PATH = "watery-db";
 static constexpr auto DATABASE_DIRECTORY_EXTENSION = ".db";
-
 static constexpr auto TABLE_FILE_EXTENSION = ".tab";
 static constexpr auto INDEX_FILE_EXTENSION = ".idx";
 
 using Identifier = std::array<Byte, MAX_IDENTIFIER_LENGTH + 1>;
+using NullFieldBitmap = std::bitset<MAX_FIELD_COUNT>;
 
 }
 

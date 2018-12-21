@@ -13,7 +13,8 @@ namespace watery {
 
 struct IndexHeader {
     
-    FieldDescriptor key_descriptor{};
+    DataDescriptor key_descriptor{};
+    bool unique{false};
     uint32_t key_length{0};
     uint32_t data_length{0};
     uint32_t page_count{1};

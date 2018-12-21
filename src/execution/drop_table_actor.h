@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include "../utility/io/printer.h"
+#include "../system_management/system_manager.h"
 
 namespace watery {
 
@@ -22,6 +23,7 @@ struct DropTableActor {
     
     void operator()() const {
         Printer::println(std::cout, "DROP TABLE ", name.data(), ";");
+        SystemManager::instance().drop_table(name.data());
     }
     
 };

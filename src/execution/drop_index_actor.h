@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include "../utility/io/printer.h"
+#include "../system_management/system_manager.h"
 
 namespace watery {
 
@@ -24,6 +25,7 @@ struct DropIndexActor {
     
     void operator()() const {
         Printer::println(std::cout, "DROP INDEX ", table_name.data(), "(", column_name.data(), ");");
+        SystemManager::instance().drop_index(table_name.data(), column_name.data());
     }
     
 };

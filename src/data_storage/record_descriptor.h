@@ -45,9 +45,9 @@ struct RecordDescriptor final {
     constexpr uint32_t length() const noexcept {
         auto size = 0u;
         for (auto i = 0; i < field_count; i++) {
-            size += field_descriptors[i].record_field_length();
+            size += field_descriptors[i].data_descriptor.length();
         }
-        return null_mapped ? size + sizeof(std::bitset<MAX_FIELD_COUNT>) : size;
+        return null_mapped ? size + sizeof(NullFieldBitmap) : size;
     }
     
 };

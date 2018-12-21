@@ -56,7 +56,7 @@ protected:
 public:
     ~IndexManager();
     
-    void create_index(const std::string &name, FieldDescriptor field_desc);
+    void create_index(const std::string &name, DataDescriptor data_desc, bool unique);
     void delete_index(const std::string &name);
     Index &open_index(const std::string &name);
     void close_index(const std::string &index) noexcept;

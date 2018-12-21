@@ -107,8 +107,7 @@ set(SOURCE_FILES
     src/execution/select_record_actor.h
     src/utility/io/identifier_printing.h
     src/utility/memory/identifier_comparison.h
-    src/execution/execution_engine.cpp
-    src/execution/execution_engine.h)
+    )
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

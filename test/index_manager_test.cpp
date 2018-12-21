@@ -35,10 +35,8 @@ int main() {
     }
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
-    FieldDescriptor field_desc{"test", data_descriptor, FieldConstraint{}};
-    
     try {
-        index_manager.create_index(name, field_desc);
+        index_manager.create_index(name, data_descriptor, true);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }

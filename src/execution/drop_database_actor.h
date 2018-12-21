@@ -23,7 +23,7 @@ struct DropDatabaseActor {
     
     void operator()() const {
         Printer::println(std::cout, "DROP DATABASE ", name.data(), ";");
-        SystemManager::instance().delete_database(name.data());
+        SystemManager::instance().drop_database(name.data());
     }
     
 };
