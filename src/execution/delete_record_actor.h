@@ -12,7 +12,6 @@
 #include "../config/config.h"
 #include "column_predicate.h"
 #include "column_predicate_helper.h"
-#include "../utility/io/identifier_printing.h"
 #include "../utility/memory/string_view_copier.h"
 
 namespace watery {
@@ -27,7 +26,7 @@ struct DeleteRecordActor {
     }
     
     void operator()() const {
-        std::cout << "DELETE FROM " << table_name;
+        std::cout << "DELETE FROM " << table_name.data();
         if (!predicates.empty()) {
             std::cout << " WHERE\n  ";
             bool first = true;
@@ -38,7 +37,7 @@ struct DeleteRecordActor {
                 if (!table_name.empty()) {
                     std::cout << table_name << ".";
                 }
-                std::cout << pred.column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                std::cout << pred.column_name.data() << " " << ColumnPredicateHelper::operator_symbol(pred.op);
                 if (!pred.operand.empty()) {
                     std::cout << " " << std::string_view{pred.operand.data()};
                 }

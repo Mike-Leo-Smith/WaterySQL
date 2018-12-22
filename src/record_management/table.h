@@ -8,7 +8,6 @@
 #include <string>
 #include "../config/config.h"
 #include "../data_storage/record_descriptor.h"
-#include "../page_management/buffered_page.h"
 #include "table_header.h"
 
 namespace watery {
@@ -18,7 +17,8 @@ struct Table {
     FileHandle file_handle{-1};
     TableHeader header;
     
-    Table() = default;
+    Table(std::string name, FileHandle fh, TableHeader th)
+        : name{std::move(name)}, file_handle{fh}, header{th} {}
 };
 
 }

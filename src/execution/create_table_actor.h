@@ -8,7 +8,6 @@
 #include <iostream>
 
 #include "../data_storage/record_descriptor.h"
-#include "../utility/io/identifier_printing.h"
 #include "../system_management/system_manager.h"
 
 namespace watery {
@@ -28,19 +27,19 @@ struct CreateTableActor {
     }
     
     void print_info() const {
-        Printer::println(std::cout, "CREATE TABLE ", name);
+        Printer::println(std::cout, "CREATE TABLE ", name.data());
         std::for_each(
             descriptor.field_descriptors.begin(),
             descriptor.field_descriptors.begin() + descriptor.field_count,
             [](FieldDescriptor fd) {
                 Printer::print(
-                    std::cout, "  ", fd.name, ": ", fd.data_descriptor.type,
+                    std::cout, "  ", fd.name.data(), ": ", fd.data_descriptor.type,
                     "(", fd.data_descriptor.size_hint, ") | ",
                     fd.constraints.nullable() ? "NULL " : "NOT NULL ");
                 if (fd.constraints.foreign()) {
                     Printer::print(
-                        std::cout, "| FOREIGN KEY REFERENCES ", fd.foreign_table_name,
-                        "(", fd.foreign_column_name, ") ");
+                        std::cout, "| FOREIGN KEY REFERENCES ", fd.foreign_table_name.data(),
+                        "(", fd.foreign_column_name.data(), ") ");
                 }
                 if (fd.constraints.primary()) {
                     Printer::print(std::cout, "| PRIMARY KEY ");

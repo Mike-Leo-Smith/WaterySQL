@@ -15,7 +15,6 @@
 #include "../src/page_management/page_manager.h"
 
 #include "../src/utility/io/error_printer.h"
-#include "../src/utility/io/identifier_printing.h"
 #include "../src/record_management/record_manager.h"
 
 int main() {
@@ -24,7 +23,7 @@ int main() {
     
     auto &&record_manager = RecordManager::instance();
     
-    auto name = "test3";
+    auto name = "test_fs";
     try {
         record_manager.delete_table(name);
     } catch (const std::exception &e) {
@@ -33,46 +32,29 @@ int main() {
     FieldConstraint c{FieldConstraint::UNIQUE_BIT_MASK};
     auto record_descriptor = RecordDescriptor{
         FieldDescriptor{"SomeThing", DataDescriptor{TypeTag::INTEGER, 4}, c},
-        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
-        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
-        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
-        FieldDescriptor{"Another",   DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another", DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another", DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another", DataDescriptor{TypeTag::INTEGER, 8}, c},
+        FieldDescriptor{"Another", DataDescriptor{TypeTag::INTEGER, 8}, c},
     };
     
-    try {
-        record_manager.create_table(name, record_descriptor);
-    } catch (const std::exception &e) {
-        print_error(std::cerr, e);
-    }
+    record_manager.create_table(name, record_descriptor);
     
-    Table table{};
+    auto table = record_manager.open_table(name);
+    std::cout << table.lock()->header.record_length << std::endl;
+    std::cout << table.lock()->header.record_count << std::endl;
+    std::cout << table.lock()->header.page_count << std::endl;
+    auto &&rd = table.lock()->header.record_descriptor;
+    std::for_each(rd.field_descriptors.begin(), rd.field_descriptors.begin() + rd.field_count, [](auto &&fd) {
+        std::cout << fd.name.data() << ", " << fd.data_descriptor.length() << std::endl;
+    });
     
-    try {
-        table = record_manager.open_table(name);
-        std::cout << table.header.record_length << std::endl;
-        std::cout << table.header.record_count << std::endl;
-        std::cout << table.header.page_count << std::endl;
-        auto &&rd = table.header.record_descriptor;
-        std::for_each(rd.field_descriptors.begin(), rd.field_descriptors.begin() + rd.field_count, [](auto &&fd) {
-            std::cout << fd.name << ", " << fd.data_descriptor.length() << std::endl;
-        });
-    } catch (const std::exception &e) {
-        print_error(std::cerr, e);
-    }
-    
-    try {
-        
-        std::cout << "------- inserting --------" << std::endl;
-        record_manager.insert_record(table, "Hello, World!!! I am happy!!!");
-        record_manager.insert_record(table, "Hello, Luisa!!! I am happy!!!");
-        auto r = record_manager.insert_record(table, "Hello, Mike!!! I am happy!!!");
-        record_manager.insert_record(table, "Hello, John!!! I am happy!!!");
-        
-        record_manager.delete_record(table, r);
-        
-    } catch (const std::exception &e) {
-        print_error(std::cerr, e);
-    }
+    std::cout << "------- inserting --------" << std::endl;
+    record_manager.insert_record(table, "Hello, World!!! I am happy!!!");
+    record_manager.insert_record(table, "Hello, Luisa!!! I am happy!!!");
+    auto r = record_manager.insert_record(table, "Hello, Mike!!! I am happy!!!");
+    record_manager.insert_record(table, "Hello, John!!! I am happy!!!");
+//    record_manager.delete_record(table, r);
     
     try {
         record_manager.close_table(name);
@@ -81,17 +63,13 @@ int main() {
     }
     
     std::cout << "------- retrieving -------" << std::endl;
-    record_manager.open_table(name);
+    table = record_manager.open_table(name);
     for (auto slot = 0; slot < 4; slot++) {
-        try {
-            auto buffer = record_manager.get_record(table, {1, slot});
-            for (auto i = 0; i < 15; i++) {
-                std::cout << buffer[i];
-            }
-            std::cout << std::endl;
-        } catch (const std::exception &e) {
-            print_error(std::cerr, e);
+        auto buffer = record_manager.get_record(table, {1, slot});
+        for (auto i = 0; i < 15; i++) {
+            std::cout << buffer[i];
         }
+        std::cout << std::endl;
     }
     
     std::cout << "------- speed test -------" << std::endl;

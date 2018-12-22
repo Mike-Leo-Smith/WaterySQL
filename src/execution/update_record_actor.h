@@ -9,6 +9,7 @@
 #include "column_predicate.h"
 #include "../utility/memory/string_view_copier.h"
 #include "column_predicate_helper.h"
+#include "../utility/io/printer.h"
 
 namespace watery {
 
@@ -25,7 +26,7 @@ struct UpdateRecordActor {
     }
     
     void operator()() const {
-        std::cout << "UPDATE " << table_name << " SET\n";
+        std::cout << "UPDATE " << table_name.data() << " SET\n";
         auto p = 0ul;
         auto idx = 0;
         for (auto &&col: columns) {

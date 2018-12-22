@@ -10,6 +10,7 @@
 #include <string_view>
 
 #include "../config/config.h"
+#include "../utility/io/printer.h"
 
 namespace watery {
 
@@ -26,7 +27,7 @@ struct InsertRecordActor {
     }
     
     void operator()() const {
-        std::cout << "INSERT INTO " << table_name << " VALUES(" << field_counts.size() << ")" << "\n";
+        std::cout << "INSERT INTO " << table_name.data() << " VALUES(" << field_counts.size() << ")" << "\n";
         auto field_pos = 0ul;
         auto field_index = 0ul;
         bool first_row = true;

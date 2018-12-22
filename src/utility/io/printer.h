@@ -13,14 +13,14 @@ namespace watery {
 struct Printer : NonTrivialConstructible {
     
     template<typename OStream, typename ...Args>
-    static void println(OStream &&os, Args &&...args) noexcept {
-        print(std::forward<OStream>(os), std::forward<Args>(args)...);
+    static void println(OStream &os, Args &&...args) noexcept {
+        print(os, args...);
         os << std::endl;
     }
     
     template<typename OStream, typename ...Args>
     static void print(OStream &os, Args &&...args) noexcept {
-        auto &&_ = (os << ... << std::forward<Args>(args));  // making compilers happy when args is empty.
+        (void)(os << ... << std::forward<Args>(args));  // making compilers happy when args is empty.
     }
     
 };

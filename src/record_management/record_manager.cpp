@@ -20,130 +20,105 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
                         static_cast<uint32_t>((PAGE_SIZE - sizeof(DataPageHeader) - 8 /* for alignment */) / rl));
     
     if (spp == 0) {
-        throw RecordManagerError{std::string{"Failed to create table because the records are too long ("}
-                                     .append(std::to_string(rl)).append(" bytes).")};
+        throw RecordManagerError{
+            std::string{"Failed to create table because the records are too long ("}
+                .append(std::to_string(rl)).append(" bytes).")};
     }
     
     auto file_name = name + TABLE_FILE_EXTENSION;
     
-    if (_page_manager.file_exists(file_name)) {
-        throw RecordManagerError{
-            std::string{"Failed to create file for table \""}.append(name).append("\" which already exists.")};
-    }
+    _page_manager.create_file(file_name);
+    auto file_handle = _page_manager.open_file(file_name);
     
-    FileHandle file_handle;
-    try {
-        _page_manager.create_file(file_name);
-        file_handle = _page_manager.open_file(file_name);
-    } catch (const PageManagerError &e) {
-        print_error(std::cerr, e);
-        throw RecordManagerError{std::string{"Failed to create file for table \""}.append(name).append("\".")};
-    }
-    
-    auto page = _page_manager.allocate_page(file_handle, 0);
-    
-    MemoryMapper::map_memory<TableHeader>(page.data) = {record_descriptor, 1, 0, rl, spp, -1};
-    _page_manager.mark_page_dirty(page);
-    _page_manager.flush_page(page);
+    auto cache_handle = _page_manager.allocate_page_cache({file_handle, 0});
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    MemoryMapper::map_memory<TableHeader>(cache) = {record_descriptor, 1, 0, rl, spp, -1};
     _page_manager.close_file(file_handle);
 }
 
-Table &RecordManager::open_table(const std::string &name) {
+std::weak_ptr<Table> RecordManager::open_table(const std::string &name) {
     
     if (!is_table_open(name)) {
-    
-        FileHandle file_handle = 0;
-        try {
-            auto file_name = name + TABLE_FILE_EXTENSION;
-            file_handle = _page_manager.open_file(file_name);
-        } catch (const PageManagerError &e) {
-            print_error(std::cerr, e);
-            throw RecordManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
-        }
+        
+        FileHandle file_handle = _page_manager.open_file(name + TABLE_FILE_EXTENSION);
         
         // load table header
-        auto header_page = _page_manager.get_page(file_handle, 0);
-        _page_manager.mark_page_accessed(header_page);
-        auto table_header = MemoryMapper::map_memory<TableHeader>(header_page.data);
-        _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
-    
-        _open_tables.emplace(name, Table{name, file_handle, table_header});
+        auto cache_handle = _page_manager.load_page_cache({file_handle, 0});
+        auto cache = _page_manager.access_cache_for_reading(cache_handle);
+        const auto &table_header = MemoryMapper::map_memory<TableHeader>(cache);
+        _open_tables.emplace(name, std::make_shared<Table>(name, file_handle, table_header));
     }
     
     return _open_tables[name];
 }
 
 void RecordManager::close_table(const std::string &name) {
-    if (!is_table_open(name)) {
-        return;
+    if (auto it = _open_tables.find(name); it != _open_tables.end()) {
+        auto table = it->second;
+        auto table_header_cache_handle = _page_manager.allocate_page_cache({table->file_handle, 0});
+        auto table_header_cache = _page_manager.access_cache_for_writing(table_header_cache_handle);
+        MemoryMapper::map_memory<TableHeader>(table_header_cache) = table->header;
+        _page_manager.close_file(table->file_handle);
+        _open_tables.erase(it);
     }
-    _close_table(_open_tables[name]);
-    _open_tables.erase(name);
 }
 
-void RecordManager::_close_table(const Table &table) noexcept {
-    // update table header
-    auto header_page = _page_manager.get_page(table.file_handle, 0);
-    MemoryMapper::map_memory<TableHeader>(header_page.data) = table.header;
-    _page_manager.mark_page_dirty(header_page);
-    _page_manager.flush_page(header_page);
-    
-    for (auto &&buffer : _used_buffers[table.file_handle]) {
-        PageHandle page{buffer.second, buffer.first, nullptr};
-        if (_page_manager.not_flushed(page)) {
-            _page_manager.flush_page(page);
-        }
-    }
-    _used_buffers[table.file_handle].clear();
-    _page_manager.close_file(table.file_handle);
-}
-
-void RecordManager::delete_table(const std::string &name) {
-    if (is_table_open(name)) {
-        close_table(name);
-    }
-    try {
-        auto file_name = name + TABLE_FILE_EXTENSION;
-        _page_manager.delete_file(file_name);
-    } catch (const PageManagerError &e) {
-        print_error(std::cerr, e);
-        throw RecordManagerError{std::string{"Failed to delete file for table \""}.append(name).append("\".")};
-    }
+void RecordManager::delete_table(std::string name) {
+    close_table(name);
+    _page_manager.delete_file(name.append(TABLE_FILE_EXTENSION));
 }
 
 bool RecordManager::is_table_open(const std::string &name) const {
     return _open_tables.count(name) != 0;
 }
 
-const Byte *RecordManager::get_record(Table &table, RecordOffset record_offset) {
-    return _visit_record(table, record_offset, [](Table &t, PageHandle bp, DataPage &dp, RecordOffset ro) {
-        if (!dp.header.slot_usage_bitmap[ro.slot_offset]) {
-            throw RecordManagerError{"Failed to get record that does not exist."};
-        }
-        return &dp.data[t.header.record_length * ro.slot_offset];
-    });
+const Byte *RecordManager::get_record(std::weak_ptr<Table> t, RecordOffset record_offset) {
+    
+    auto table = t.lock();
+    if (table == nullptr) {
+        throw RecordManagerError{"Failed to get record from a closed table."};
+    }
+    if (record_offset.page_offset >= table->header.page_count) {
+        throw RecordManagerError{
+            "Failed to get the record whose expected page offset is greater than table page count."};
+    }
+    auto cache_handle = _page_manager.load_page_cache({table->file_handle, record_offset.page_offset});
+    auto cache = _page_manager.access_cache_for_reading(cache_handle);
+    auto &data_page = MemoryMapper::map_memory<DataPage>(cache);
+    if (record_offset.slot_offset >= table->header.slot_count_per_page) {
+        throw RecordManagerError{
+            "Failed to get the record whose expected slot offset is greater than slot count in page."};
+    }
+    if (!data_page.header.slot_usage_bitmap[record_offset.slot_offset]) {
+        throw RecordManagerError{"Failed to get the record that does not exist."};
+    }
+    return &data_page.data[table->header.record_length * record_offset.slot_offset];
 }
 
-RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
-    if (table.header.first_free_page == -1) {  // no available pages
-        auto page_handle = _page_manager.allocate_page(table.file_handle, table.header.page_count);
-        _page_manager.mark_page_dirty(page_handle);
-        _used_buffers[table.file_handle].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
-        auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
+RecordOffset RecordManager::insert_record(std::weak_ptr<Table> t, const Byte *data) {
+    auto table = t.lock();
+    if (table == nullptr) {
+        throw RecordManagerError{"Failed to insert record into a closed table."};
+    }
+    if (table->header.first_free_page == -1) {  // no available pages
+        auto page_offset = static_cast<PageOffset>(table->header.page_count);
+        auto cache_handle = _page_manager.allocate_page_cache({table->file_handle, page_offset});
+        auto cache = _page_manager.access_cache_for_writing(cache_handle);
+        auto &data_page = MemoryMapper::map_memory<DataPage>(cache);
         data_page.header.record_count = 1;
         data_page.header.slot_usage_bitmap.reset();
         data_page.header.slot_usage_bitmap[0] = true;
         data_page.header.next_free_page = -1;
-        std::memmove(&data_page.data[0], data, table.header.record_length);
-        table.header.first_free_page = page_handle.buffer_offset.page_offset;
-        table.header.page_count++;
-        table.header.record_count++;
-        return {page_handle.buffer_offset.page_offset, 0};
+        std::memmove(&data_page.data[0], data, table->header.record_length);
+        table->header.first_free_page = page_offset;
+        table->header.page_count++;
+        table->header.record_count++;
+        return {page_offset, 0};
     } else {  // have available pages, take out the first free page.
-        auto page_handle = _page_manager.get_page(table.file_handle, table.header.first_free_page);
-        _page_manager.mark_page_dirty(page_handle);
-        _used_buffers[table.file_handle].emplace(page_handle.buffer_handle, page_handle.buffer_offset);
-        auto &data_page = MemoryMapper::map_memory<DataPage>(page_handle.data);
+        auto page_offset = table->header.first_free_page;
+        auto cache_handle = _page_manager.load_page_cache({table->file_handle, page_offset});
+        auto cache = _page_manager.access_cache_for_writing(cache_handle);
+        auto &data_page = MemoryMapper::map_memory<DataPage>(cache);
         using Pack = uint64_t;
         constexpr auto bit_count_per_pack = sizeof(Pack) * 8;
         constexpr auto slot_pack_count = (MAX_SLOT_COUNT_PER_PAGE + bit_count_per_pack - 1) / bit_count_per_pack;
@@ -156,13 +131,13 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
                     if (!data_page.header.slot_usage_bitmap[slot]) {
                         data_page.header.slot_usage_bitmap[slot] = true;
                         std::memmove(
-                            &data_page.data[table.header.record_length * slot], data, table.header.record_length);
+                            &data_page.data[table->header.record_length * slot], data, table->header.record_length);
                         data_page.header.record_count++;
-                        table.header.record_count++;
-                        if (data_page.header.record_count == table.header.slot_count_per_page) {
-                            table.header.first_free_page = data_page.header.next_free_page;
+                        table->header.record_count++;
+                        if (data_page.header.record_count == table->header.slot_count_per_page) {
+                            table->header.first_free_page = data_page.header.next_free_page;
                         }
-                        return {page_handle.buffer_offset.page_offset, static_cast<SlotOffset>(slot)};
+                        return {page_offset, static_cast<SlotOffset>(slot)};
                     }
                 }
             }
@@ -171,41 +146,66 @@ RecordOffset RecordManager::insert_record(Table &table, const Byte *data) {
     throw RecordManagerError{"Failed to insert new record in the data file that might be corrupt."};
 }
 
-void RecordManager::update_record(Table &table, RecordOffset record_offset, const Byte *data) {
-    _visit_record(table, record_offset,
-                  [&pm = this->_page_manager, d = data, l = table.header.record_length]
-                      (Table &t, PageHandle bp, DataPage &dp, RecordOffset ro) {
-                      if (!dp.header.slot_usage_bitmap[ro.slot_offset]) {
-                          throw RecordManagerError{"Failed to update record that does not exist."};
-                      }
-                      std::uninitialized_copy_n(d, l, &dp.data[t.header.record_length * ro.slot_offset]);
-                      pm.mark_page_dirty(bp);
-                  });
+void RecordManager::update_record(std::weak_ptr<Table> t, RecordOffset record_offset, const Byte *data) {
+    auto table = t.lock();
+    if (table == nullptr) {
+        throw RecordManagerError{"Failed to update record in a closed table."};
+    }
+    
+    if (record_offset.page_offset >= table->header.page_count) {
+        throw RecordManagerError{
+            "Failed to update the record whose expected page offset is greater than table page count."};
+    }
+    auto cache_handle = _page_manager.load_page_cache({table->file_handle, record_offset.page_offset});
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto &data_page = MemoryMapper::map_memory<DataPage>(cache);
+    if (record_offset.slot_offset >= table->header.slot_count_per_page) {
+        throw RecordManagerError{
+            "Failed to update the record whose expected slot offset is greater than slot count in page."};
+    }
+    if (!data_page.header.slot_usage_bitmap[record_offset.slot_offset]) {
+        throw RecordManagerError{"Failed to update the record that does not exist."};
+    }
+    std::uninitialized_copy_n(
+        data, table->header.record_length,
+        &data_page.data[table->header.record_length * record_offset.slot_offset]);
 }
 
-void RecordManager::delete_record(Table &table, RecordOffset record_offset) {
-    _visit_record(table, record_offset,
-                  [&pm = this->_page_manager](Table &t, PageHandle bp, DataPage &dp, RecordOffset ro) {
-                      if (dp.header.slot_usage_bitmap[ro.slot_offset]) {
-                          if (dp.header.record_count == t.header.slot_count_per_page) {  // a new free page.
-                              dp.header.next_free_page = t.header.first_free_page;
-                              t.header.first_free_page = bp.buffer_offset.page_offset;
-                          }
-                          dp.header.slot_usage_bitmap[ro.slot_offset] = false;
-                          dp.header.record_count--;
-                          t.header.record_count--;
-                          pm.mark_page_dirty(bp);
-                      } else {
-                          throw RecordManagerError{"Failed to delete record that does not exist."};
-                      }
-                  });
+void RecordManager::delete_record(std::weak_ptr<Table> t, RecordOffset record_offset) {
+    
+    auto table = t.lock();
+    if (table == nullptr) {
+        throw RecordManagerError{"Failed to delete record from a closed table."};
+    }
+    
+    if (record_offset.page_offset >= table->header.page_count) {
+        throw RecordManagerError{
+            "Failed to delete the record whose expected page offset is greater than table page count."};
+    }
+    auto cache_handle = _page_manager.load_page_cache({table->file_handle, record_offset.page_offset});
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto &data_page = MemoryMapper::map_memory<DataPage>(cache);
+    if (record_offset.slot_offset >= table->header.slot_count_per_page) {
+        throw RecordManagerError{
+            "Failed to delete the record whose expected slot offset is greater than slot count in page."};
+    }
+    if (data_page.header.slot_usage_bitmap[record_offset.slot_offset]) {
+        if (data_page.header.record_count == table->header.slot_count_per_page) {  // a new free page.
+            data_page.header.next_free_page = table->header.first_free_page;
+            table->header.first_free_page = record_offset.page_offset;
+        }
+        data_page.header.slot_usage_bitmap[record_offset.slot_offset] = false;
+        data_page.header.record_count--;
+        table->header.record_count--;
+    } else {
+        throw RecordManagerError{"Failed to delete the record that does not exist."};
+    }
 }
 
 void RecordManager::close_all_tables() {
-    for (auto &&entry : _open_tables) {
-        _close_table(entry.second);
+    while (!_open_tables.empty()) {
+        _page_manager.close_file(_open_tables.begin()->second->file_handle);
     }
-    _open_tables.clear();
 }
 
 RecordManager::~RecordManager() {

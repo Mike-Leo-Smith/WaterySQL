@@ -14,16 +14,18 @@ namespace watery {
 
 inline namespace config {
 
+using TimeStamp = uint32_t;
 using FileHandle = int32_t;
-using BufferHandle = int32_t;
+using PageOffset = int32_t;
+using CacheHandle = int32_t;
 
 using PageOffset = int32_t;
 using SlotOffset = int32_t;
 using ChildOffset = int32_t;
 
 using Byte = char;
-using Buffer = Byte *;
 
+static constexpr uint32_t MAX_PAGE_COUNT = 32;
 static constexpr uint32_t PAGE_SIZE = 16384;  // 16K
 static constexpr uint32_t MAX_FILE_COUNT = 31;
 static constexpr uint32_t MAX_BUFFERED_PAGE_COUNT = 65535;

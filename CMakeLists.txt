@@ -21,11 +21,6 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native -mtun
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native -mtune=native -fomit-frame-pointer")
 
 set(SOURCE_FILES
-    src/page_management/filesystem_demo/BufferedPageManager.h
-    src/page_management/filesystem_demo/FindReplace.h
-    src/page_management/filesystem_demo/FileManager.h
-    src/page_management/filesystem_demo/MyHashMap.h
-    src/page_management/filesystem_demo/MyLinkList.h
     src/config/config.h
     src/data_storage/record_descriptor.h
     src/data_storage/field_descriptor.h
@@ -39,7 +34,6 @@ set(SOURCE_FILES
     src/utility/type/singleton.h
     src/utility/type/non_movable.h
     src/errors/page_manager_error.h
-    src/page_management/buffered_page.h
     src/utility/io/error_printer.h
     src/utility/io/printer.h
     src/errors/error.h
@@ -50,7 +44,6 @@ set(SOURCE_FILES
     src/record_management/table.h
     src/record_management/data_page_header.h
     src/utility/memory/memory_mapper.h
-    src/page_management/buffer_offset.h
     src/record_management/table_header.h
     src/record_management/data_page.h
     src/errors/record_manager_error.h
@@ -58,10 +51,10 @@ set(SOURCE_FILES
     src/index_management/index.h
     src/index_management/index_header.h
     src/index_management/index_node_header.h
-    src/errors/index_manager_error.h
     src/index_management/index_entry_offset.h
-    src/errors/data_error.h
     src/index_management/index_node_link.h
+    src/errors/index_manager_error.h
+    src/errors/data_error.h
     src/utility/mathematics/sgn.h
     src/utility/time/elapsed_time.h
     src/system_management/system_manager.cpp
@@ -105,9 +98,8 @@ set(SOURCE_FILES
     src/execution/column_predicate_helper.h
     src/execution/update_record_actor.h
     src/execution/select_record_actor.h
-    src/utility/io/identifier_printing.h
     src/utility/memory/identifier_comparison.h
-    )
+    src/page_management/page_handle.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
