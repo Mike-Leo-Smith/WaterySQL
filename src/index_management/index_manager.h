@@ -22,49 +22,60 @@ class IndexManager : public Singleton<IndexManager> {
 
 private:
     PageManager &_page_manager{PageManager::instance()};
-    std::unordered_map<std::string, Index> _open_indices;
+    std::map<std::string, std::shared_ptr<Index>> _open_indices;
 
 protected:
     IndexManager() = default;
     
-    void _close_index(const Index &index) noexcept;
+    void _close_index(const std::shared_ptr<Index> &index) noexcept;
     
-    CacheHandle _load_node_page_cache(const Index &index, PageOffset node_offset) noexcept;
-    CacheHandle _allocate_node_page_cache(Index &index) noexcept;
+    CacheHandle _load_node_page_cache(const std::shared_ptr<Index> &index, PageOffset node_offset) noexcept;
+    CacheHandle _allocate_node_page_cache(const std::shared_ptr<Index> &index) noexcept;
     
-    IndexEntryOffset _search_entry_in(Index &index, PageOffset p, const Byte *data) noexcept;
+    IndexEntryOffset _search_entry_in(const std::shared_ptr<Index> &index, PageOffset p, const Byte *data) noexcept;
     
-    static ChildOffset _search_entry_in_node(Index &index, const IndexNode &node, const Byte *k) noexcept;
-    static uint32_t _get_child_pointer_position(const Index &index, ChildOffset i) noexcept;
-    static uint32_t _get_child_key_position(const Index &index, ChildOffset i) noexcept;
-    static PageOffset _get_index_entry_page_offset(const Index &index, const IndexNode &node, ChildOffset i) noexcept;
-    static const Byte *_get_index_entry_key(const Index &index, const IndexNode &node, ChildOffset i) noexcept;
+    static ChildOffset _search_entry_in_node(
+        const std::shared_ptr<Index> &index, const IndexNode &node, const Byte *k) noexcept;
+    static uint32_t _get_child_pointer_position(const std::shared_ptr<Index> &index, ChildOffset i) noexcept;
+    static uint32_t _get_child_key_position(const std::shared_ptr<Index> &index, ChildOffset i) noexcept;
+    static PageOffset _get_index_entry_page_offset(
+        const std::shared_ptr<Index> &index, const IndexNode &node, ChildOffset i) noexcept;
+    static const Byte *_get_index_entry_key(
+        const std::shared_ptr<Index> &index, const IndexNode &node, ChildOffset i) noexcept;
     static RecordOffset _get_index_entry_record_offset(
-        const Index &index, const IndexNode &node, ChildOffset i) noexcept;
-    static void _write_index_entry_page_offset(const Index &idx, IndexNode &n, ChildOffset i, PageOffset p) noexcept;
+        const std::shared_ptr<Index> &index, const IndexNode &node, ChildOffset i) noexcept;
+    static void _write_index_entry_page_offset(
+        const std::shared_ptr<Index> &idx, IndexNode &n,
+        ChildOffset i, PageOffset p) noexcept;
     static void _write_index_entry_record_offset(
-        const Index &idx, IndexNode &n, ChildOffset i, RecordOffset r) noexcept;
-    static void _write_index_entry_key(
-        const Index &idx, IndexNode &n, ChildOffset i, const Byte *k, RecordOffset rid) noexcept;
-    static void _write_index_node_link(const Index &idx, IndexNode &n, IndexNodeLink l) noexcept;
-    static IndexNodeLink _get_index_node_link(const Index &idx, const IndexNode &n) noexcept;
+        const std::shared_ptr<Index> &idx, IndexNode &n, ChildOffset i, RecordOffset r) noexcept;
+    static void _write_index_entry_key(const std::shared_ptr<Index> &idx,
+                                          IndexNode &n,
+                                          ChildOffset i,
+                                          const Byte *k) noexcept;
+    static void _write_index_node_link(const std::shared_ptr<Index> &idx, IndexNode &n, IndexNodeLink l) noexcept;
+    static IndexNodeLink _get_index_node_link(const std::shared_ptr<Index> &idx, const IndexNode &n) noexcept;
     static void _move_trailing_index_entries(
-        const Index &index, IndexNode &src_node, ChildOffset src_i, IndexNode &dest_node, ChildOffset dest_i) noexcept;
+        const std::shared_ptr<Index> &index, IndexNode &src_node, ChildOffset src_i,
+        IndexNode &dest_node, ChildOffset dest_i) noexcept;
+    void _make_key_compact(
+        const std::shared_ptr<Index> &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const;
+    
+    static std::shared_ptr<Index> _try_lock_index_weak_pointer(std::weak_ptr<Index> idx_ptr);
 
 public:
     ~IndexManager();
     
     void create_index(const std::string &name, DataDescriptor data_desc, bool unique);
     void delete_index(const std::string &name);
-    Index &open_index(const std::string &name);
-    void close_index(const std::string &index) noexcept;
+    std::weak_ptr<Index> open_index(const std::string &name);
+    void close_index(const std::string &name) noexcept;
     void close_all_indices() noexcept;
     bool is_index_open(const std::string &name) const noexcept;
-    IndexEntryOffset search_index_entry(Index &index, const Byte *data);
-    void insert_index_entry(Index &index, const Byte *data, RecordOffset rid);
+    IndexEntryOffset search_index_entry(std::weak_ptr<Index> index, const Byte *data);
+    void insert_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
     
-    void delete_index_entry(Index &index, const Byte *data, RecordOffset rid);
-    void _make_key_compact(const Index &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const;
+    void delete_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
 };
 
 }

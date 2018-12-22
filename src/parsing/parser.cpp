@@ -39,6 +39,8 @@ Parser &Parser::parse(std::string_view program) {
 
 Actor Parser::match() {
     switch (_scanner.lookahead()) {
+        case TokenTag::SEMICOLON:
+            return []{};
         case TokenTag::SHOW:
             return _parse_show_statement();
         case TokenTag::CREATE:

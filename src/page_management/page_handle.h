@@ -17,6 +17,10 @@ struct PageHandle {
         return file_handle == rhs.file_handle && page_offset == rhs.page_offset;
     }
     
+    bool operator<(PageHandle rhs) const noexcept {
+        return file_handle < rhs.file_handle || (file_handle == rhs.file_handle && page_offset < rhs.page_offset);
+    }
+    
     struct Hash {
         uint64_t operator()(PageHandle h) const noexcept {
             return std::hash<uint64_t>{}((static_cast<uint64_t>(h.file_handle) << 32) | h.page_offset);

@@ -29,7 +29,7 @@ public:
 private:
     TimeStamp _current_time_stamp{0};
     std::map<TimeStamp, CacheHandle> _cache_usage;
-    std::unordered_map<PageHandle, CacheHandle, PageHandle::Hash> _cached_pages;
+    std::map<PageHandle, CacheHandle> _cached_pages;
     std::vector<CacheDescriptor> _cache_descriptors;
     std::vector<Byte> _cache;
     std::queue<CacheHandle> _available_cache_handles;
@@ -55,8 +55,8 @@ public:
     void create_file(const std::string &file_name);
     void delete_file(const std::string &file_name);
     
-    CacheHandle allocate_page_cache(PageHandle page_handle);
-    CacheHandle load_page_cache(PageHandle page_handle);
+    CacheHandle allocate_page(PageHandle page_handle);
+    CacheHandle load_page(PageHandle page_handle);
     
     Byte *access_cache_for_writing(CacheHandle h);
     const Byte *access_cache_for_reading(CacheHandle h);

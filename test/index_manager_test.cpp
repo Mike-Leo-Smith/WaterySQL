@@ -42,7 +42,7 @@ int main() {
     }
     
     try {
-        Index &index = index_manager.open_index(name);
+        auto index = index_manager.open_index(name);
         
         index_manager.insert_index_entry(index, "hello, world", {1, 2});
         index_manager.delete_index_entry(index, "hello, world", {1, 2});

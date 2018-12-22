@@ -121,14 +121,14 @@ void PageManager::delete_file(const std::string &file_name) {
     }
 }
 
-CacheHandle PageManager::allocate_page_cache(PageHandle page_handle) {
+CacheHandle PageManager::allocate_page(PageHandle page_handle) {
     if (auto it = _cached_pages.find(page_handle); it != _cached_pages.end()) {  // already cached
         return it->second;
     }
     return _assign_cache_handle(page_handle);
 }
 
-CacheHandle PageManager::load_page_cache(PageHandle page_handle) {
+CacheHandle PageManager::load_page(PageHandle page_handle) {
     
     // return the cache handle if the page is already cached.
     if (auto it = _cached_pages.find(page_handle); it != _cached_pages.end()) {  // already cached

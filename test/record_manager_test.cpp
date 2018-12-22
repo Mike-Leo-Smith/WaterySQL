@@ -41,11 +41,11 @@ int main() {
     record_manager.create_table(name, record_descriptor);
     
     {
-        auto &table = record_manager.open_table(name);
-        std::cout << table.header.record_length << std::endl;
-        std::cout << table.header.record_count << std::endl;
-        std::cout << table.header.page_count << std::endl;
-        auto &&rd = table.header.record_descriptor;
+        auto table = record_manager.open_table(name);
+        std::cout << table.lock()->header.record_length << std::endl;
+        std::cout << table.lock()->header.record_count << std::endl;
+        std::cout << table.lock()->header.page_count << std::endl;
+        auto &&rd = table.lock()->header.record_descriptor;
         std::for_each(rd.field_descriptors.begin(), rd.field_descriptors.begin() + rd.field_count, [](auto &&fd) {
             std::cout << fd.name.data() << ", " << fd.data_descriptor.length() << std::endl;
         });
@@ -55,7 +55,6 @@ int main() {
         record_manager.insert_record(table, "Hello, Luisa!!! I am happy!!!");
         auto r = record_manager.insert_record(table, "Hello, Mike!!! I am happy!!!");
         record_manager.insert_record(table, "Hello, John!!! I am happy!!!");
-//    record_manager.delete_record(table, r);
     }
     
     try {
@@ -66,7 +65,7 @@ int main() {
     
     {
         std::cout << "------- retrieving -------" << std::endl;
-        auto &table = record_manager.open_table(name);
+        auto table = record_manager.open_table(name);
         for (auto slot = 0; slot < 4; slot++) {
             auto buffer = record_manager.get_record(table, {1, slot});
             for (auto i = 0; i < 15; i++) {
