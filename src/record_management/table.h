@@ -19,6 +19,8 @@ struct Table {
     
     Table(std::string name, FileHandle fh, TableHeader th)
         : name{std::move(name)}, file_handle{fh}, header{th} {}
+    
+    Table() = default;
 };
 
 }
