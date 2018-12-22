@@ -47,7 +47,7 @@ int main() {
         index_manager.insert_index_entry(index, "hello, world", {1, 2});
         index_manager.delete_index_entry(index, "hello, world", {1, 2});
         
-        constexpr auto count = 1'000'000;
+        constexpr auto count = 5'000'000;
         std::default_random_engine random{std::random_device{}()};
         
         std::vector<int32_t> data_set;

@@ -9,17 +9,17 @@
 
 namespace watery {
 
-Byte *FileManager::_get_cache(CacheHandle h) noexcept {
+Byte *PageManager::_get_cache(CacheHandle h) noexcept {
     return _cache.data() + h * PAGE_SIZE;
 }
 
-Byte *FileManager::_access_cache(CacheHandle h) {
+Byte *PageManager::_access_cache(CacheHandle h) {
     _cache_usage.erase(_cache_descriptors[h].time_stamp);
     _cache_usage.emplace(_cache_descriptors[h].time_stamp = _assign_time_stamp(), h);
     return _get_cache(h);
 }
 
-CacheHandle FileManager::_assign_cache_handle(PageHandle page_handle) {
+CacheHandle PageManager::_assign_cache_handle(PageHandle page_handle) {
     
     // no free page remains, flush the least recently used one.
     if (_available_cache_handles.empty()) {
@@ -39,11 +39,11 @@ CacheHandle FileManager::_assign_cache_handle(PageHandle page_handle) {
     return cache_handle;
 }
 
-inline TimeStamp FileManager::_assign_time_stamp() noexcept {
+inline TimeStamp PageManager::_assign_time_stamp() noexcept {
     return _current_time_stamp++;
 }
 
-void FileManager::_flush_cache(CacheHandle h) {
+void PageManager::_flush_cache(CacheHandle h) {
     auto &cache_desc = _cache_descriptors[h];
     auto page_handle = cache_desc.page_handle;
     if (cache_desc.dirty) {  // write back if the page is dirty
@@ -61,7 +61,7 @@ void FileManager::_flush_cache(CacheHandle h) {
     _file_associated_cache_sets[page_handle.file_handle].erase(h);
 }
 
-FileManager::FileManager() {
+PageManager::PageManager() {
     std::ios::sync_with_stdio(false);
     _cache.resize(PAGE_SIZE * MAX_PAGE_COUNT);
     for (auto i = 0u; i < MAX_PAGE_COUNT; i++) {
@@ -75,13 +75,13 @@ FileManager::FileManager() {
     _file_associated_cache_sets.resize(MAX_FILE_COUNT);
 }
 
-FileManager::~FileManager() {
+PageManager::~PageManager() {
     for (auto fh = 0; fh < MAX_FILE_COUNT; fh++) {
         close_file(fh);
     }
 }
 
-FileHandle FileManager::open_file(const std::string &file_name) {
+FileHandle PageManager::open_file(const std::string &file_name) {
     if (_available_file_handles.empty()) {
         throw PageManagerError{"Too many files to open."};
     }
@@ -94,7 +94,7 @@ FileHandle FileManager::open_file(const std::string &file_name) {
     return handle;
 }
 
-void FileManager::close_file(FileHandle h) {
+void PageManager::close_file(FileHandle h) {
     
     // flush all the cached pages associated to the file.
     while (!_file_associated_cache_sets[h].empty()) {
@@ -108,27 +108,27 @@ void FileManager::close_file(FileHandle h) {
     _available_file_handles.emplace(h);
 }
 
-void FileManager::create_file(const std::string &file_name) {
+void PageManager::create_file(const std::string &file_name) {
     std::ofstream{file_name};  // create the file
     if (!std::filesystem::exists(file_name)) {  // check if successful
         throw PageManagerError{std::string{"Failed to create file\""}.append(file_name).append("\"")};
     }
 }
 
-void FileManager::delete_file(const std::string &file_name) {
+void PageManager::delete_file(const std::string &file_name) {
     if (!std::filesystem::remove(file_name)) {
         throw PageManagerError(std::string{"Failed to delete file \""}.append(file_name).append("\"."));
     }
 }
 
-CacheHandle FileManager::allocate_page_cache(PageHandle page_handle) {
+CacheHandle PageManager::allocate_page_cache(PageHandle page_handle) {
     if (auto it = _cached_pages.find(page_handle); it != _cached_pages.end()) {  // already cached
         return it->second;
     }
     return _assign_cache_handle(page_handle);
 }
 
-CacheHandle FileManager::load_page_cache(PageHandle page_handle) {
+CacheHandle PageManager::load_page_cache(PageHandle page_handle) {
     
     // return the cache handle if the page is already cached.
     if (auto it = _cached_pages.find(page_handle); it != _cached_pages.end()) {  // already cached
@@ -150,12 +150,12 @@ CacheHandle FileManager::load_page_cache(PageHandle page_handle) {
     return cache_handle;
 }
 
-Byte *FileManager::access_cache_for_writing(CacheHandle h) {
+Byte *PageManager::access_cache_for_writing(CacheHandle h) {
     _cache_descriptors[h].dirty = true;
     return _access_cache(h);
 }
 
-const Byte *FileManager::access_cache_for_reading(CacheHandle h) {
+const Byte *PageManager::access_cache_for_reading(CacheHandle h) {
     return _access_cache(h);
 }
 

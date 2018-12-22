@@ -22,7 +22,7 @@ namespace watery {
 class RecordManager : public Singleton<RecordManager> {
 
 private:
-    FileManager &_page_manager = FileManager::instance();
+    PageManager &_page_manager = PageManager::instance();
     std::map<std::string, Table> _open_tables;
 
 protected:

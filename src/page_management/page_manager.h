@@ -17,7 +17,7 @@
 
 namespace watery {
 
-class FileManager : public Singleton<FileManager> {
+class PageManager : public Singleton<PageManager> {
 
 public:
     struct CacheDescriptor {
@@ -45,10 +45,10 @@ private:
     Byte *_access_cache(CacheHandle h);
 
 protected:
-    FileManager();
+    PageManager();
 
 public:
-    ~FileManager();
+    ~PageManager();
     
     FileHandle open_file(const std::string &file_name);
     void close_file(FileHandle h);

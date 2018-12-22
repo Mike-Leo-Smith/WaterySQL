@@ -21,7 +21,7 @@ namespace watery {
 class IndexManager : public Singleton<IndexManager> {
 
 private:
-    FileManager &_page_manager{FileManager::instance()};
+    PageManager &_page_manager{PageManager::instance()};
     std::unordered_map<std::string, Index> _open_indices;
 
 protected:
