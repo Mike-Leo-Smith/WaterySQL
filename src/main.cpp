@@ -29,7 +29,7 @@ int main() {
     
     Parser parser;
     while (true) {
-        Printer::print(std::cout, "[IN]\n  ");
+        Printer::print(std::cout, "\n[IN]\n  ");
         std::string command;
         command.push_back(static_cast<char>(std::cin.get()));
         while (command.back() != EOF && command.back() != ';') {
@@ -41,8 +41,12 @@ int main() {
             Printer::println(std::cout, "Bye.");
             break;
         }
-        Printer::print(std::cout, "[OUT]\n  ");
-        parser.parse(command).match()();
+        Printer::print(std::cout, "\n[OUT]\n  ");
+        try {
+            parser.parse(command).match()();
+        } catch (const std::exception &e) {
+            print_error(std::cerr, e);
+        }
     }
     
     return 0;

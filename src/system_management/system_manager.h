@@ -35,6 +35,7 @@ protected:
     
     template<typename Visitor>
     void _visit_field_descriptor(const std::string &table_name, const std::string &column_name, Visitor &&visit) {
+        Printer::println(std::cout, "visiting table ", table_name);
         if (_table_list.count(table_name) == 0) {
             throw SystemManagerError{
                 std::string{"Failed to visit table \""}.append(table_name).append("\" which does not exist.")};
@@ -42,9 +43,10 @@ protected:
         auto &&record_desc = _record_manager.open_table(table_name).header.record_descriptor;
         for (auto i = 0; i < record_desc.field_count; i++) {
             auto &&field_desc = record_desc.field_descriptors[i];
+            Printer::println(std::cout, "  visiting column ", field_desc.name.data());
             if (field_desc.name.data() == column_name) {
                 visit(field_desc);
-                break;
+                return;
             }
         }
         throw SystemManagerError{
@@ -58,7 +60,7 @@ public:
     void drop_database(const std::string &name);
     void use_database(const std::string &name);
     
-    void create_table(const std::string &name, const RecordDescriptor &descriptor);
+    void create_table(const std::string &name, RecordDescriptor descriptor);
     void drop_table(const std::string &name);
     void create_index(const std::string &table_name, const std::string &column_name);
     void drop_index(const std::string &table_name, const std::string &column_name);

@@ -50,26 +50,27 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
 
 Table &RecordManager::open_table(const std::string &name) {
     
-    if (is_table_open(name)) {
-        return _open_tables[name];
+    if (!is_table_open(name)) {
+    
+        FileHandle file_handle = 0;
+        try {
+            auto file_name = name + TABLE_FILE_EXTENSION;
+            file_handle = _page_manager.open_file(file_name);
+        } catch (const PageManagerError &e) {
+            print_error(std::cerr, e);
+            throw RecordManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
+        }
+        
+        // load table header
+        auto header_page = _page_manager.get_page(file_handle, 0);
+        _page_manager.mark_page_accessed(header_page);
+        auto table_header = MemoryMapper::map_memory<TableHeader>(header_page.data);
+        _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
+    
+        _open_tables.emplace(name, Table{name, file_handle, table_header});
     }
     
-    FileHandle file_handle = 0;
-    try {
-        auto file_name = name + TABLE_FILE_EXTENSION;
-        file_handle = _page_manager.open_file(file_name);
-    } catch (const PageManagerError &e) {
-        print_error(std::cerr, e);
-        throw RecordManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
-    }
-    
-    // load table header
-    auto header_page = _page_manager.get_page(file_handle, 0);
-    _page_manager.mark_page_accessed(header_page);
-    auto table_header = MemoryMapper::map_memory<TableHeader>(header_page.data);
-    _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
-    
-    return _open_tables.emplace(name, Table{name, file_handle, table_header}).first->second;
+    return _open_tables[name];
 }
 
 void RecordManager::close_table(const std::string &name) {

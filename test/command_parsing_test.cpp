@@ -36,9 +36,7 @@ int main() {
     auto &&system_manager = SystemManager::instance();
     
     Parser parser;
-    
     parser.parse("drop database orderDB;").match()();
-    
     parser.parse(FileReader::read_all("/Users/mike/Desktop/数据库/WaterySQL/res/dataset_small/create.sql"));
     while (!parser.end()) {
         parser.match()();
@@ -64,21 +62,19 @@ int main() {
         }
     }
     
-    parser.parse("drop database test;").match()();
     parser.parse("create database test;").match()();
     parser.parse("use test;").match()();
-    
     parser.parse("insert into test values (123, 456, 'apple'), (null);").match()();
+    parser.parse("drop database test;").match()();
     
     auto &&index_manager = IndexManager::instance();
     
     std::string name{"test4"};
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
-    FieldDescriptor field_desc{"test", data_descriptor, FieldConstraint{}};
     
     try {
-        index_manager.create_index(name, field_desc);
+        index_manager.create_index(name, data_descriptor, true);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }

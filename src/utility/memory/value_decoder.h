@@ -5,6 +5,7 @@
 #ifndef WATERYSQL_VALUE_DECODER_H
 #define WATERYSQL_VALUE_DECODER_H
 
+#include <cmath>
 #include <cstdint>
 #include <string_view>
 #include <charconv>

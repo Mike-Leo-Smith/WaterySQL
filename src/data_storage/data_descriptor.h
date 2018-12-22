@@ -17,9 +17,9 @@ struct DataDescriptor {
     constexpr uint32_t length() const noexcept {
         switch (type) {
             case TypeTag::INTEGER:
-                return sizeof(int32_t);
             case TypeTag::FLOAT:
-                return sizeof(float);
+            case TypeTag::DATE:
+                return 4;
             case TypeTag::CHAR:
                 return size_hint + 1;  // strings are zero-ended
             default:

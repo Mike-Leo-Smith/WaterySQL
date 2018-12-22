@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 
+#include "../system_management/system_manager.h"
+
 namespace watery {
 
 struct CreateIndexActor {
@@ -22,6 +24,7 @@ struct CreateIndexActor {
     
     void operator()() const {
         Printer::println(std::cout, "CREATE INDEX ", table_name.data(), "(", column_name.data(), ");");
+        SystemManager::instance().create_index(table_name.data(), column_name.data());
     }
     
 };

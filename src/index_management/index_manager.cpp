@@ -2,6 +2,8 @@
 // Created by Mike Smith on 2018/11/24.
 //
 
+#include <cstring>
+
 #include "index_manager.h"
 #include "index_entry_offset.h"
 #include "../errors/index_manager_error.h"
@@ -63,24 +65,24 @@ void IndexManager::delete_index(const std::string &name) {
 }
 
 Index &IndexManager::open_index(const std::string &name) {
-    if (is_index_open(name)) {
-        return _open_indices[name];
-    }
-    FileHandle file_handle;
-    try {
-        auto file_name = name + INDEX_FILE_EXTENSION;
-        file_handle = _page_manager.open_file(file_name);
-    } catch (const PageManagerError &e) {
-        print_error(std::cerr, e);
-        throw IndexManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
-    }
+    if (!is_index_open(name)) {
+        FileHandle file_handle;
+        try {
+            auto file_name = name + INDEX_FILE_EXTENSION;
+            file_handle = _page_manager.open_file(file_name);
+        } catch (const PageManagerError &e) {
+            print_error(std::cerr, e);
+            throw IndexManagerError(std::string{"Failed to open file for table \""}.append(name).append("\"."));
+        }
     
-    // load table header
-    auto header_page = _page_manager.get_page(file_handle, 0);
-    _page_manager.mark_page_accessed(header_page);
-    _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
-    auto index_header = MemoryMapper::map_memory<IndexHeader>(header_page.data);
-    return _open_indices.emplace(name, Index{name, file_handle, index_header}).first->second;
+        // load table header
+        auto header_page = _page_manager.get_page(file_handle, 0);
+        _page_manager.mark_page_accessed(header_page);
+        _used_buffers[file_handle].emplace(header_page.buffer_handle, header_page.buffer_offset);
+        auto index_header = MemoryMapper::map_memory<IndexHeader>(header_page.data);
+        _open_indices.emplace(name, Index{name, file_handle, index_header});
+    }
+    return _open_indices[name];
 }
 
 void IndexManager::close_index(const std::string &name) noexcept {
@@ -380,5 +382,5 @@ void IndexManager::close_all_indices() noexcept {
     }
     _open_indices.clear();
 }
-    
+
 }
