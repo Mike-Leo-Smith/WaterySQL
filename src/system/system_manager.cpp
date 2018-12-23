@@ -13,6 +13,11 @@
 namespace watery {
 
 void SystemManager::create_database(const std::string &name) {
+    
+    if (!std::filesystem::exists(_base_path) && !std::filesystem::create_directories(_base_path)) {
+        throw SystemManagerError{"Failed to create directory for holding databases."};
+    }
+    
     auto dir_name = name + DATABASE_DIRECTORY_EXTENSION;
     if (_database_list.count(name) != 0 || std::filesystem::exists(_base_path / dir_name)) {
         throw SystemManagerError{

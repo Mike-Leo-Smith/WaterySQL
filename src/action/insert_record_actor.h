@@ -19,7 +19,7 @@ struct InsertRecordActor {
     Identifier table_name{0};
     
     std::vector<Byte> buffer;
-    std::vector<uint16_t> field_lengths;
+    std::vector<uint16_t> field_sizes;
     std::vector<uint16_t> field_counts;
     
     explicit InsertRecordActor(std::string_view t) noexcept {
@@ -37,7 +37,7 @@ struct InsertRecordActor {
             for (auto i = field_index; i < field_index + c; i++) {
                 if (!first) { std::cout << ", "; }
                 first = false;
-                auto l = field_lengths[i];
+                auto l = field_sizes[i];
                 std::cout << (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}) << ":" << l;
                 field_pos += l;
             }

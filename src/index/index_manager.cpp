@@ -1,5 +1,7 @@
 #include <utility>
 
+#include <utility>
+
 //
 // Created by Mike Smith on 2018/11/24.
 //
@@ -18,7 +20,7 @@ namespace watery {
 
 void IndexManager::create_index(const std::string &name, DataDescriptor data_desc, bool unique) {
     
-    auto dl = data_desc.length();
+    auto dl = data_desc.length;
     auto kl = static_cast<uint32_t>(unique ? dl : dl + sizeof(RecordOffset));
     auto pl = static_cast<uint32_t>(sizeof(RecordOffset));
     auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8 /* for alignment */) / (kl + pl) / 2 * 2;  // rounded to even
@@ -274,6 +276,22 @@ void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, const Byte *data
     }
 }
 
+void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, IndexEntryOffset entry_offset) {
+    
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    
+    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+    if (entry_offset.child_offset < node.header.key_count) {
+        _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
+        node.header.key_count--;
+    } else {
+        throw IndexManagerError{"Failed to delete index entry that may not exist."};
+    }
+    
+}
+
 IndexEntryOffset IndexManager::_search_entry_in(
     const std::shared_ptr<Index> &index, PageOffset p, const Byte *data) noexcept {
     while (true) {
@@ -365,6 +383,10 @@ std::shared_ptr<Index> IndexManager::_try_lock_index_weak_pointer(std::weak_ptr<
         return p;
     }
     throw IndexManagerError{"Weak pointer to the index has already expired."};
+}
+
+bool IndexManager::contains(std::weak_ptr<Index> index, const Byte *data) {
+    return false;
 }
 
 }

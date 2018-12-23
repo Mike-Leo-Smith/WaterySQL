@@ -11,27 +11,32 @@ namespace watery {
 
 struct DataDescriptor {
     
-    TypeTag type;
-    uint16_t size_hint;
+    TypeTag type{};
+    uint16_t length{};
     
-    constexpr uint32_t length() const noexcept {
+    DataDescriptor() = default;
+    
+    DataDescriptor(TypeTag t, uint16_t sh)
+        : type{t} {
         switch (type) {
             case TypeTag::INTEGER:
             case TypeTag::FLOAT:
             case TypeTag::DATE:
-                return 4;
+                length = 4;
+                break;
             case TypeTag::CHAR:
-                return size_hint + 1;  // strings are zero-ended
+                length = sh + uint16_t{1};  // strings are zero-ended
+                break;
             default:
-                return 0;
+                length = 0;
         }
     }
     
-    constexpr bool operator==(DataDescriptor rhs) const noexcept {
-        return type == rhs.type && size_hint == rhs.size_hint;
+    bool operator==(DataDescriptor rhs) const noexcept {
+        return type == rhs.type && length == rhs.length;
     }
     
-    constexpr bool operator!=(DataDescriptor rhs) const noexcept {
+    bool operator!=(DataDescriptor rhs) const noexcept {
         return !(*this == rhs);
     }
 };

@@ -231,6 +231,16 @@ void Parser::_parse_field_list(CreateTableActor &actor) {
         }
         _parse_field(actor);
     }
+    actor.descriptor.length = 0u;
+    for (auto i = 0; i < actor.descriptor.field_count; i++) {
+        actor.descriptor.length += actor.descriptor.field_descriptors[i].data_descriptor.length;
+    }
+    if (actor.descriptor.null_mapped) {
+        actor.descriptor.length += sizeof(NullFieldBitmap);
+    }
+    if (actor.descriptor.reference_counted) {
+        actor.descriptor.length += sizeof(uint32_t);
+    }
 }
 
 void Parser::_parse_field(CreateTableActor &actor) {
@@ -248,6 +258,9 @@ void Parser::_parse_field(CreateTableActor &actor) {
             auto identifier = _scanner.match_token(TokenTag::IDENTIFIER).raw;
             auto type = _parse_type();
             auto nullable = _parse_nullable_hint();
+            if (nullable) {
+                actor.descriptor.null_mapped = true;
+            }
             FieldConstraint constraints{nullable ? FieldConstraint::NULLABLE_BIT_MASK : uint8_t{0}};
             actor.descriptor.field_descriptors[actor.descriptor.field_count++] = {identifier, type, constraints};
             break;
@@ -304,6 +317,7 @@ void Parser::_parse_primary_key(CreateTableActor &actor) {
         auto &field = actor.descriptor.field_descriptors[i];
         if (column.raw == field.name) {
             field.constraints.set_primary();
+            actor.descriptor.reference_counted = true;
             return;
         }
     }
@@ -366,11 +380,11 @@ void Parser::_parse_value_tuple_list(InsertRecordActor &actor) {
 
 void Parser::_parse_value_tuple(InsertRecordActor &actor) {
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
-    actor.field_lengths.emplace_back(_parse_value(actor.buffer));
+    actor.field_sizes.emplace_back(_parse_value(actor.buffer));
     uint16_t field_count = 1;
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        actor.field_lengths.emplace_back(_parse_value(actor.buffer));
+        actor.field_sizes.emplace_back(_parse_value(actor.buffer));
         field_count++;
     }
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);

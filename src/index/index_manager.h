@@ -73,10 +73,14 @@ public:
     void close_index(const std::string &name) noexcept;
     void close_all_indices() noexcept;
     bool is_index_open(const std::string &name) const noexcept;
+    
     IndexEntryOffset search_index_entry(std::weak_ptr<Index> index, const Byte *data);
     void insert_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
     
     void delete_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
+    void delete_index_entry(std::weak_ptr<Index> index, IndexEntryOffset entry_offset);
+    
+    bool contains(std::weak_ptr<Index> index, const Byte *data);
 };
 
 }

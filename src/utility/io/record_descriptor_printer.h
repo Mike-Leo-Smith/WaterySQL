@@ -15,14 +15,14 @@ struct RecordDescriptorPrinter : NonTrivialConstructible {
     
     template<typename Stream>
     static void print(Stream &os, const RecordDescriptor &descriptor) noexcept {
-        Printer::println(os, "  Record of length ", descriptor.length());
+        Printer::println(os, "  Record of length ", descriptor.length);
         std::for_each(
             descriptor.field_descriptors.begin(),
             descriptor.field_descriptors.begin() + descriptor.field_count,
             [&os](FieldDescriptor fd) {
                 Printer::print(
                     os, "    ", fd.name.data(), ": ", fd.data_descriptor.type,
-                    "(", fd.data_descriptor.size_hint, ") | ",
+                    "(", fd.data_descriptor.length, "B) | ",
                     fd.constraints.nullable() ? "NULL " : "NOT NULL ");
                 if (fd.constraints.foreign()) {
                     Printer::print(
@@ -37,10 +37,10 @@ struct RecordDescriptorPrinter : NonTrivialConstructible {
                 }
                 Printer::print(os, "\n");
             });
-        if (descriptor.has_nullable_fields()) {
+        if (descriptor.null_mapped) {
             Printer::println(os, "    [implicit] null_map: ", sizeof(NullFieldBitmap));
         }
-        if (descriptor.has_primary_key()) {
+        if (descriptor.reference_counted) {
             Printer::println(os, "    [implicit] ref_count: ", sizeof(uint32_t));
         }
         Printer::println(os);

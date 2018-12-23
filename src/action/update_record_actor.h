@@ -6,9 +6,9 @@
 #define WATERYSQL_UPDATE_RECORD_ACTOR_H
 
 #include "../config/config.h"
-#include "column_predicate.h"
+#include "../query/column_predicate.h"
 #include "../utility/memory/string_view_copier.h"
-#include "column_predicate_helper.h"
+#include "../query/column_predicate_helper.h"
 #include "../utility/io/printer.h"
 
 namespace watery {
