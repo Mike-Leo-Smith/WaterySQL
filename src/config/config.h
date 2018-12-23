@@ -25,9 +25,9 @@ using ChildOffset = int32_t;
 
 using Byte = char;
 
-static constexpr uint32_t MAX_PAGE_COUNT = 65536;
-static constexpr uint32_t PAGE_SIZE = 16384;  // 16K
 static constexpr uint32_t MAX_FILE_COUNT = 31;
+static constexpr uint32_t PAGE_SIZE = 16384;
+static constexpr uint32_t MAX_PAGE_COUNT = 65536;
 
 static constexpr uint32_t MAX_IDENTIFIER_LENGTH = 31;
 static constexpr uint32_t MAX_FIELD_COUNT = 32;

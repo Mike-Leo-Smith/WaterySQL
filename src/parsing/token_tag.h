@@ -22,7 +22,10 @@ enum struct TokenTag : uint32_t {
     // delimiters and operators
         END, SEMICOLON, COMMA, LEFT_PARENTHESIS, RIGHT_PARENTHESIS,
     DOT, EQUAL, UNEQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL,
-    WILDCARD
+    WILDCARD,
+    
+    // system commands
+    EXIT
 };
 
 }

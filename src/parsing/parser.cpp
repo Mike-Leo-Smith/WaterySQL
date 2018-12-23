@@ -9,23 +9,24 @@
 
 #include "parser.h"
 #include "token_tag_helper.h"
-#include "../errors/parser_error.h"
+#include "../error/parser_error.h"
 
-#include "../execution/show_databases_actor.h"
-#include "../execution/show_tables_actor.h"
-#include "../execution/create_database_actor.h"
-#include "../execution/use_database_actor.h"
-#include "../execution/drop_database_actor.h"
-#include "../execution/create_table_actor.h"
-#include "../execution/create_index_actor.h"
-#include "../execution/drop_index_actor.h"
-#include "../execution/drop_table_actor.h"
-#include "../execution/describe_table_actor.h"
-#include "../execution/delete_record_actor.h"
+#include "../action/show_databases_actor.h"
+#include "../action/show_tables_actor.h"
+#include "../action/create_database_actor.h"
+#include "../action/use_database_actor.h"
+#include "../action/drop_database_actor.h"
+#include "../action/create_table_actor.h"
+#include "../action/create_index_actor.h"
+#include "../action/drop_index_actor.h"
+#include "../action/drop_table_actor.h"
+#include "../action/describe_table_actor.h"
+#include "../action/delete_record_actor.h"
 
 #include "../utility/memory/value_decoder.h"
 #include "../utility/memory/identifier_comparison.h"
-#include "../execution/select_record_actor.h"
+#include "../action/select_record_actor.h"
+#include "../action/exit_actor.h"
 
 namespace watery {
 
@@ -41,6 +42,8 @@ Actor Parser::match() {
     switch (_scanner.lookahead()) {
         case TokenTag::SEMICOLON:
             return []{};
+        case TokenTag::EXIT:
+            return _parse_exit_statement();
         case TokenTag::SHOW:
             return _parse_show_statement();
         case TokenTag::CREATE:
@@ -558,6 +561,12 @@ void Parser::_parse_selection_table_list(std::vector<Identifier> &tables) {
         _scanner.match_token(TokenTag::COMMA);
         encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
     }
+}
+
+Actor Parser::_parse_exit_statement() {
+    _scanner.match_token(TokenTag::EXIT);
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return ExitActor{};
 }
 
 }

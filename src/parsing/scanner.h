@@ -11,7 +11,7 @@
 #include "token_tag.h"
 #include "token_offset.h"
 #include "token.h"
-#include "../errors/scanner_error.h"
+#include "../error/scanner_error.h"
 
 namespace watery {
 

@@ -10,12 +10,12 @@
 #include <functional>
 
 #include "../src/config/config.h"
-#include "../src/data_storage/record_descriptor.h"
-#include "../src/errors/page_manager_error.h"
-#include "../src/page_management/page_manager.h"
+#include "../src/data/record_descriptor.h"
+#include "../src/error/page_manager_error.h"
+#include "../src/page/page_manager.h"
 
 #include "../src/utility/io/error_printer.h"
-#include "../src/record_management/record_manager.h"
+#include "../src/record/record_manager.h"
 
 int main() {
     

@@ -24,7 +24,7 @@ private:
 
 public:
     static UnderlyingClass &instance() {
-        static UnderlyingClassConstructor singleton{};
+        static UnderlyingClassConstructor singleton;
         return singleton;
     }
     

@@ -7,12 +7,12 @@
 
 #include <functional>
 #include "scanner.h"
-#include "../execution/actor.h"
-#include "../data_storage/field_descriptor.h"
-#include "../execution/create_table_actor.h"
-#include "../execution/insert_record_actor.h"
-#include "../execution/column_predicate.h"
-#include "../execution/update_record_actor.h"
+#include "../action/actor.h"
+#include "../data/field_descriptor.h"
+#include "../action/create_table_actor.h"
+#include "../action/insert_record_actor.h"
+#include "../action/column_predicate.h"
+#include "../action/update_record_actor.h"
 
 namespace watery {
 
@@ -61,6 +61,7 @@ public:
     bool end() const;
     Actor match();
     void skip();
+    Actor _parse_exit_statement();
 };
 
 }

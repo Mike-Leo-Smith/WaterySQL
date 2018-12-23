@@ -5,13 +5,13 @@
 #include <variant>
 
 #include "../src/parsing/scanner.h"
-#include "../src/system_management/system_manager.h"
-#include "../src/index_management/index_manager.h"
+#include "../src/system/system_manager.h"
+#include "../src/index/index_manager.h"
 
 #include "../src/utility/io/error_printer.h"
 #include "../src/parsing/parser.h"
 
-#include "../src/data_storage/data_comparator.h"
+#include "../src/data/data_comparator.h"
 #include "../src/utility/io/reader.h"
 #include "../src/utility/time/elapsed_time.h"
 #include "../src/utility/memory/value_decoder.h"

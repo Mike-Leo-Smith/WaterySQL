@@ -11,7 +11,7 @@
 #include <charconv>
 
 #include "../type/non_trivial_constructible.h"
-#include "../../errors/value_decoder_error.h"
+#include "../../error/value_decoder_error.h"
 #include "../time/date_validator.h"
 
 namespace watery {
