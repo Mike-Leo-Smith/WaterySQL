@@ -16,7 +16,7 @@ namespace watery {
 struct CreateTableActor {
     
     Identifier name{0};
-    RecordDescriptor descriptor;
+    RecordDescriptor descriptor{};
     
     explicit CreateTableActor(std::string_view n) noexcept {
         StringViewCopier::copy(n, name);

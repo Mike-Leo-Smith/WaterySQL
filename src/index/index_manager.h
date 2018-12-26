@@ -59,10 +59,15 @@ protected:
     static void _move_trailing_index_entries(
         const std::shared_ptr<Index> &index, IndexNode &src_node, ChildOffset src_i,
         IndexNode &dest_node, ChildOffset dest_i) noexcept;
-    void _make_key_compact(
-        const std::shared_ptr<Index> &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const;
+    static const Byte * _make_key_compact(const std::shared_ptr<Index> &index, const Byte *data, RecordOffset rid);
     
     static std::shared_ptr<Index> _try_lock_index_weak_pointer(std::weak_ptr<Index> idx_ptr);
+    
+    static bool _index_entry_key_matches(
+        const std::shared_ptr<Index> &index, const IndexNode &node, ChildOffset offset, const Byte *data);
+    
+    static bool _index_entry_data_matches(
+        const std::shared_ptr<Index> &index, const IndexNode &node, ChildOffset offset, const Byte *data);
 
 public:
     ~IndexManager();
@@ -75,10 +80,16 @@ public:
     bool is_index_open(const std::string &name) const noexcept;
     
     IndexEntryOffset search_index_entry(std::weak_ptr<Index> index, const Byte *data);
+    IndexEntryOffset next_index_entry(std::weak_ptr<Index> index, IndexEntryOffset offset);
+    IndexEntryOffset prev_index_entry(std::weak_ptr<Index> index, IndexEntryOffset offset);
+    RecordOffset related_record_offset(std::weak_ptr<Index> index, IndexEntryOffset offset);
+    
     void insert_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
     
     void delete_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
     void delete_index_entry(std::weak_ptr<Index> index, IndexEntryOffset entry_offset);
+    
+    RecordOffset search_unique_index_entry(std::weak_ptr<Index> index,const Byte *data);
     
     bool contains(std::weak_ptr<Index> index, const Byte *data);
 };

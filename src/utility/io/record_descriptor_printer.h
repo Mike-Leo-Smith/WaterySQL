@@ -40,7 +40,7 @@ struct RecordDescriptorPrinter : NonTrivialConstructible {
         if (descriptor.null_mapped) {
             Printer::println(os, "    [implicit] null_map: ", sizeof(NullFieldBitmap));
         }
-        if (descriptor.reference_counted) {
+        if (descriptor.reference_counted()) {
             Printer::println(os, "    [implicit] ref_count: ", sizeof(uint32_t));
         }
         Printer::println(os);

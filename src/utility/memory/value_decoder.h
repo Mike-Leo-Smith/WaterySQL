@@ -13,6 +13,7 @@
 #include "../type/non_trivial_constructible.h"
 #include "../../error/value_decoder_error.h"
 #include "../time/date_validator.h"
+#include "../../data/type_tag_helper.h"
 
 namespace watery {
 
@@ -60,6 +61,25 @@ struct ValueDecoder : NonTrivialConstructible {
             throw ValueDecoderError{raw, "CHAR", "it cannot be seen as a string."};
         }
         return raw.substr(1, raw.size() - 2);  // remove quotation marks.
+    }
+    
+    static void decode(TypeTag type, std::string_view raw, Byte *result) {
+        switch (type) {
+            case TypeTag::INTEGER:
+                MemoryMapper::map_memory<int32_t>(result) = ValueDecoder::decode_integer(raw);
+                break;
+            case TypeTag::FLOAT:
+                MemoryMapper::map_memory<float>(result) = ValueDecoder::decode_float(raw);
+                break;
+            case TypeTag::CHAR:
+                StringViewCopier::copy(ValueDecoder::decode_char(raw), result);
+                break;
+            case TypeTag::DATE:
+                MemoryMapper::map_memory<int32_t>(result) = ValueDecoder::decode_date(raw);
+                break;
+            default:
+                throw ValueDecoderError{raw, TypeTagHelper::name(type), "because of unknown type tag."};
+        }
     }
     
 };

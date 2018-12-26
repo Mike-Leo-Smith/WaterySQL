@@ -14,8 +14,12 @@ struct RecordOffset {
     SlotOffset slot_offset;
 };
 
-static inline bool operator==(const RecordOffset &lhs, const RecordOffset &rhs) {
+static constexpr bool operator==(const RecordOffset &lhs, const RecordOffset &rhs) noexcept {
     return lhs.page_offset == rhs.page_offset && lhs.slot_offset == rhs.slot_offset;
+}
+
+static constexpr bool operator!=(const RecordOffset &lhs, const RecordOffset &rhs) noexcept {
+    return lhs.page_offset != rhs.page_offset || lhs.slot_offset != rhs.slot_offset;
 }
 
 }

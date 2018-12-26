@@ -19,6 +19,7 @@ using FileHandle = int32_t;
 using PageOffset = int32_t;
 using CacheHandle = int32_t;
 
+using ColumnOffset = int32_t;
 using PageOffset = int32_t;
 using SlotOffset = int32_t;
 using ChildOffset = int32_t;

@@ -19,7 +19,7 @@ struct FileReader : NonTrivialConstructible {
     static std::string_view read_all(const std::string &file_name) {
         thread_local static std::string buffer;
         auto size = std::filesystem::file_size(file_name);
-        buffer.resize(size + 1);
+        buffer.resize(size);
         std::ifstream{file_name}.read(buffer.data(), size);
         return buffer;
     }

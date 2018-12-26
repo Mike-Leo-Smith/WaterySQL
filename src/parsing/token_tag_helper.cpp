@@ -42,7 +42,8 @@ const std::unordered_map<std::string_view, TokenTag> &TokenTagHelper::keyword_di
         {"FOREIGN",    TokenTag::FOREIGN},
         {"UNIQUE",     TokenTag::UNIQUE},
         {"EXIT",       TokenTag::EXIT},
-        {"QUIT",       TokenTag::EXIT}
+        {"QUIT",       TokenTag::EXIT},
+        {"EXEC",       TokenTag::EXEC}
     };
     return dict;
 }
@@ -147,6 +148,8 @@ std::string_view TokenTagHelper::name(TokenTag tag) noexcept {
             return "*";
         case TokenTag::EXIT:
             return "EXIT";
+        case TokenTag::EXEC:
+            return "EXEC";
         default:
             return "<UNKNOWN>";
     }

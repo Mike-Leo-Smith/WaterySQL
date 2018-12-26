@@ -12,7 +12,7 @@
 #include "../src/parsing/parser.h"
 
 #include "../src/data/data_comparator.h"
-#include "../src/utility/io/reader.h"
+#include "../src/utility/io/file_reader.h"
 #include "../src/utility/time/elapsed_time.h"
 #include "../src/utility/memory/value_decoder.h"
 

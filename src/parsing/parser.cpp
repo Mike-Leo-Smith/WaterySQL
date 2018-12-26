@@ -27,6 +27,7 @@
 #include "../utility/memory/identifier_comparison.h"
 #include "../action/select_record_actor.h"
 #include "../action/exit_actor.h"
+#include "../action/execute_file_actor.h"
 
 namespace watery {
 
@@ -41,7 +42,7 @@ Parser &Parser::parse(std::string_view program) {
 Actor Parser::match() {
     switch (_scanner.lookahead()) {
         case TokenTag::SEMICOLON:
-            return []{};
+            return [] {};
         case TokenTag::EXIT:
             return _parse_exit_statement();
         case TokenTag::SHOW:
@@ -62,6 +63,8 @@ Actor Parser::match() {
             return _parse_update_statement();
         case TokenTag::SELECT:
             return _parse_select_statement();
+        case TokenTag::EXEC:
+            return _parse_execute_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{std::string{"Unexpected command token \""}.append(token.raw).append("\"."), token.offset};
@@ -220,6 +223,7 @@ std::string_view Parser::_parse_string() {
 }
 
 void Parser::_parse_field_list(CreateTableActor &actor) {
+    actor.descriptor.length = 0u;
     _parse_field(actor);
     while (_scanner.lookahead() == TokenTag::COMMA) {  // this is a hack to the LL(1) grammar for efficiency
         _scanner.match_token(TokenTag::COMMA);
@@ -231,15 +235,16 @@ void Parser::_parse_field_list(CreateTableActor &actor) {
         }
         _parse_field(actor);
     }
-    actor.descriptor.length = 0u;
-    for (auto i = 0; i < actor.descriptor.field_count; i++) {
-        actor.descriptor.length += actor.descriptor.field_descriptors[i].data_descriptor.length;
-    }
+    actor.descriptor.length = 0;
     if (actor.descriptor.null_mapped) {
         actor.descriptor.length += sizeof(NullFieldBitmap);
     }
-    if (actor.descriptor.reference_counted) {
+    if (actor.descriptor.reference_counted()) {
         actor.descriptor.length += sizeof(uint32_t);
+    }
+    for (auto i = 0; i < actor.descriptor.field_count; i++) {
+        actor.descriptor.field_offsets[i] = actor.descriptor.length;
+        actor.descriptor.length += actor.descriptor.field_descriptors[i].data_descriptor.length;
     }
 }
 
@@ -261,7 +266,7 @@ void Parser::_parse_field(CreateTableActor &actor) {
             if (nullable) {
                 actor.descriptor.null_mapped = true;
             }
-            FieldConstraint constraints{nullable ? FieldConstraint::NULLABLE_BIT_MASK : uint8_t{0}};
+            FieldConstraint constraints{nullable ? FieldConstraint::NULLABLE_BIT_MASK : FieldConstraint::Mask{0}};
             actor.descriptor.field_descriptors[actor.descriptor.field_count++] = {identifier, type, constraints};
             break;
         }
@@ -294,17 +299,17 @@ void Parser::_parse_foreign_key(CreateTableActor &actor) {
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
     auto foreign_column = _scanner.match_token(TokenTag::IDENTIFIER).raw;
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
-    for (auto i = 0; i < actor.descriptor.field_count; i++) {
-        auto &field = actor.descriptor.field_descriptors[i];
-        if (column.raw == field.name) {
-            field.constraints.set_foreign();
-            StringViewCopier::copy(foreign_table, field.foreign_table_name);
-            StringViewCopier::copy(foreign_column, field.foreign_column_name);
-            return;
-        }
+    
+    auto foreign_col_offset = actor.descriptor.get_column_offset(column.raw);
+    auto &field = actor.descriptor.field_descriptors[foreign_col_offset];
+    if (field.constraints.foreign()) {
+        throw ParserError{
+            std::string{"Already set foreign key constraint on column \""}.append(column.raw).append("\""),
+            column.offset};
     }
-    throw ParserError{
-        std::string{"Foreign key constraint on undeclared column \""}.append(column.raw).append("\"."), column.offset};
+    field.constraints.set_foreign();
+    StringViewCopier::copy(foreign_table, field.foreign_table_name);
+    StringViewCopier::copy(foreign_column, field.foreign_column_name);
 }
 
 void Parser::_parse_primary_key(CreateTableActor &actor) {
@@ -313,16 +318,13 @@ void Parser::_parse_primary_key(CreateTableActor &actor) {
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
     auto column = _scanner.match_token(TokenTag::IDENTIFIER);
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
-    for (auto i = 0; i < actor.descriptor.field_count; i++) {
-        auto &field = actor.descriptor.field_descriptors[i];
-        if (column.raw == field.name) {
-            field.constraints.set_primary();
-            actor.descriptor.reference_counted = true;
-            return;
-        }
+    
+    if (actor.descriptor.primary_key_column_offset != -1) {
+        throw ParserError{"Primary key constraint cannot be set on multiple columns in one table.", column.offset};
     }
-    throw ParserError{
-        std::string{"Primary key constraint on undeclared column \""}.append(column.raw).append("\"."), column.offset};
+    auto primary_col_offset = actor.descriptor.get_column_offset(column.raw);
+    actor.descriptor.field_descriptors[primary_col_offset].constraints.set_primary();
+    actor.descriptor.primary_key_column_offset = primary_col_offset;
 }
 
 void Parser::_parse_unique(CreateTableActor &actor) {
@@ -330,15 +332,14 @@ void Parser::_parse_unique(CreateTableActor &actor) {
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
     auto column = _scanner.match_token(TokenTag::IDENTIFIER);
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
-    for (auto i = 0; i < actor.descriptor.field_count; i++) {
-        auto &field = actor.descriptor.field_descriptors[i];
-        if (column.raw == field.name) {
-            field.constraints.set_unique();
-            return;
-        }
+    
+    auto unique_col_offset = actor.descriptor.get_column_offset(column.raw);
+    auto &field = actor.descriptor.field_descriptors[unique_col_offset];
+    if (field.constraints.unique()) {
+        throw ParserError{
+            std::string{"Column \""}.append(column.raw).append("\" has already be set unique."), column.offset};
     }
-    throw ParserError{
-        std::string{"Unique constraint on undeclared column \""}.append(column.raw).append("\"."), column.offset};
+    field.constraints.set_unique();
 }
 
 bool Parser::end() const {
@@ -581,6 +582,13 @@ Actor Parser::_parse_exit_statement() {
     _scanner.match_token(TokenTag::EXIT);
     _scanner.match_token(TokenTag::SEMICOLON);
     return ExitActor{};
+}
+
+Actor Parser::_parse_execute_statement() {
+    _scanner.match_token(TokenTag::EXEC);
+    auto file_name = ValueDecoder::decode_char(_parse_string());
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return ExecuteFileActor{std::string{file_name}};
 }
 
 }

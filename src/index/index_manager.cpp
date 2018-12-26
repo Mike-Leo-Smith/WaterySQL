@@ -132,8 +132,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
     
     auto index = _try_lock_index_weak_pointer(std::move(idx));
     
-    thread_local static std::vector<Byte> key_compact;
-    _make_key_compact(index, key_compact, data, rid);
+    auto key_compact = _make_key_compact(index, data, rid);
     if (index->header.root_offset == -1) {  // empty, create new root
         auto root_page_cache_handle = _allocate_node_page_cache(index);
         auto root_page_cache = _page_manager.access_cache_for_writing(root_page_cache_handle);
@@ -141,7 +140,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
         index->header.root_offset = 1;
         root_node.header.key_count = 1;
         root_node.header.is_leaf = true;
-        _write_index_entry_key(index, root_node, 0, key_compact.data());
+        _write_index_entry_key(index, root_node, 0, key_compact);
         _write_index_entry_record_offset(index, root_node, 0, rid);
         _write_index_node_link(index, root_node, {-1, -1});
     } else {
@@ -152,9 +151,16 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
             auto cache_handle = _load_node_page_cache(index, page_offset);
             auto cache = _page_manager.access_cache_for_reading(cache_handle);
             const auto &node = MemoryMapper::map_memory<IndexNode>(cache);
-            auto child_offset = _search_entry_in_node(index, node, key_compact.data());
+            auto child_offset = _search_entry_in_node(index, node, key_compact);
             path.emplace_back(page_offset, child_offset);
-            if (node.header.is_leaf) { break; }  // search terminates at leaf.
+            if (node.header.is_leaf) {
+                if (child_offset < node.header.key_count) {
+                    if (_index_entry_key_matches(index, node, child_offset, key_compact)) {
+                        throw IndexManagerError{"Failed to insert index entry that already exists."};
+                    }
+                }
+                break;
+            }  // search terminates at leaf.
             page_offset = _get_index_entry_page_offset(index, node, child_offset);
         }
         
@@ -163,7 +169,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
         // consider the possibility that the page k is bound to will be
         // swapped during the insertion for efficiency, but still this
         // can be thought as a potential vulnerability.
-        const auto *k = key_compact.data();
+        const auto *k = key_compact;
         auto split_page_offset = 0;
         
         // insert popped up entry into upper nodes.
@@ -258,17 +264,15 @@ void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, const Byte *data
     
     auto index = _try_lock_index_weak_pointer(std::move(idx));
     
-    thread_local static std::vector<Byte> key_compact;
     if (index->header.root_offset == -1) {
         throw IndexManagerError{"Failed to delete index entry in an empty index tree."};
     }
-    _make_key_compact(index, key_compact, data, rid);
-    auto entry_offset = _search_entry_in(index, index->header.root_offset, key_compact.data());
+    auto key_compact = _make_key_compact(index, data, rid);
+    auto entry_offset = _search_entry_in(index, index->header.root_offset, key_compact);
     auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
     auto cache = _page_manager.access_cache_for_writing(cache_handle);
     auto &node = MemoryMapper::map_memory<IndexNode>(cache);
-    if (entry_offset.child_offset < node.header.key_count &&
-        rid == _get_index_entry_record_offset(index, node, entry_offset.child_offset)) {
+    if (_index_entry_key_matches(index, node, entry_offset.child_offset, key_compact)) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
     } else {
@@ -343,16 +347,17 @@ void IndexManager::_write_index_entry_key(
 
 IndexEntryOffset IndexManager::search_index_entry(std::weak_ptr<Index> idx, const Byte *data) {
     auto index = _try_lock_index_weak_pointer(std::move(idx));
-    thread_local static std::vector<Byte> key_compact;
     if (index->header.root_offset == -1) {  // searching in empty tree.
         throw IndexManagerError{"Failed to search index entry in an empty index tree."};
     }
-    _make_key_compact(index, key_compact, data, {-1, -1});
-    return _search_entry_in(index, index->header.root_offset, key_compact.data());
+    auto key_compact = _make_key_compact(index, data, {-1, -1});
+    return _search_entry_in(index, index->header.root_offset, key_compact);
 }
 
-void IndexManager::_make_key_compact(
-    const std::shared_ptr<Index> &index, std::vector<Byte> &key_compact, const Byte *data, RecordOffset rid) const {
+const Byte *IndexManager::_make_key_compact(const std::shared_ptr<Index> &index,
+                                            const Byte *data,
+                                            RecordOffset rid) {
+    thread_local static std::vector<Byte> key_compact;
     key_compact.resize(index->header.key_length);
     if (index->header.unique) {
         memmove(key_compact.data(), data, index->header.key_length);
@@ -360,6 +365,7 @@ void IndexManager::_make_key_compact(
         memmove(key_compact.data(), &rid, sizeof(RecordOffset));
         memmove(key_compact.data() + sizeof(RecordOffset), data, index->header.data_length);
     }
+    return key_compact.data();
 }
 
 void IndexManager::_write_index_entry_record_offset(
@@ -385,8 +391,61 @@ std::shared_ptr<Index> IndexManager::_try_lock_index_weak_pointer(std::weak_ptr<
     throw IndexManagerError{"Weak pointer to the index has already expired."};
 }
 
-bool IndexManager::contains(std::weak_ptr<Index> index, const Byte *data) {
-    return false;
+bool IndexManager::contains(std::weak_ptr<Index> idx, const Byte *data) {
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    if (index->header.root_offset == -1) {  // searching in empty tree.
+        return false;
+    }
+    auto key_compact = _make_key_compact(index, data, {-1, -1});
+    auto entry_offset = _search_entry_in(index, index->header.root_offset, key_compact);
+    
+    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+    return _index_entry_data_matches(index, node, entry_offset.child_offset, key_compact);
 }
 
+bool IndexManager::_index_entry_key_matches(const std::shared_ptr<Index> &index,
+                                            const IndexNode &node,
+                                            ChildOffset offset,
+                                            const Byte *data) {
+    return offset < node.header.key_count &&
+           memcmp(data, _get_index_entry_key(index, node, offset), index->header.key_length) == 0;
+}
+
+bool IndexManager::_index_entry_data_matches(const std::shared_ptr<Index> &index,
+                                             const IndexNode &node,
+                                             ChildOffset offset,
+                                             const Byte *data) {
+    return offset < node.header.key_count &&
+           (index->header.unique ?
+            memcmp(data, _get_index_entry_key(index, node, offset), index->header.data_length) :
+            memcmp(data + sizeof(RecordOffset),
+                   _get_index_entry_key(index, node, offset) + sizeof(RecordOffset),
+                   index->header.data_length)) == 0;
+}
+
+RecordOffset IndexManager::search_unique_index_entry(std::weak_ptr<Index> idx, const Byte *data) {
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    
+    if (!index->header.unique) {
+        throw IndexManagerError{"Failed to do unique search in a non-unique index."};
+    }
+    
+    if (index->header.root_offset == -1) {  // searching in empty tree.
+        throw IndexManagerError{"Failed to search in a empty index tree."};
+    }
+    
+    auto entry_offset = _search_entry_in(index, index->header.root_offset, data);
+    
+    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+    
+    if (_index_entry_key_matches(index, node, entry_offset.child_offset, data)) {
+        return _get_index_entry_record_offset(index, node, entry_offset.child_offset);
+    }
+    throw IndexManagerError{"No matching index entry with the given unique key found."};
+}
+    
 }

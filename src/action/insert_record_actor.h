@@ -11,6 +11,7 @@
 
 #include "../config/config.h"
 #include "../utility/io/printer.h"
+#include "../query/query_engine.h"
 
 namespace watery {
 
@@ -27,24 +28,27 @@ struct InsertRecordActor {
     }
     
     void operator()() const {
-        std::cout << "INSERT INTO " << table_name.data() << " VALUES(" << field_counts.size() << ")" << "\n";
+        Printer::println(std::cout, "INSERT INTO ", table_name.data(), " VALUES(", field_counts.size(), ")");
         auto field_pos = 0ul;
         auto field_index = 0ul;
         bool first_row = true;
         for (auto &&c : field_counts) {
-            std::cout << "  (";
+            Printer::print(std::cout, "  (");
             bool first = true;
             for (auto i = field_index; i < field_index + c; i++) {
-                if (!first) { std::cout << ", "; }
+                if (!first) { Printer::print(std::cout, ", "); }
                 first = false;
                 auto l = field_sizes[i];
-                std::cout << (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}) << ":" << l;
+                Printer::print(std::cout, (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}),  ":", l);
                 field_pos += l;
             }
             field_index += c;
-            std::cout << ")\n";
+            Printer::print(std::cout, ")\n");
         }
-        std::cout << std::endl;
+        Printer::println(std::cout);
+        Printer::println(std::cout, "Inserting...");
+        QueryEngine::instance().insert_records(table_name.data(), buffer, field_sizes, field_counts);
+        Printer::println(std::cout, "Done.");
     }
     
 };

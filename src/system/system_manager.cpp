@@ -108,7 +108,6 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
     foreign_tables.clear();
     
     try {
-        auto has_primary_key = false;
         for (auto i = 0; i < descriptor.field_count; i++) {
             auto &&field_desc = descriptor.field_descriptors[i];
             if (field_desc.constraints.foreign()) {
@@ -126,13 +125,6 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
                 foreign_table->header.foreign_key_reference_count++;
                 foreign_tables.emplace_back(field_desc.foreign_table_name);
             }
-            if (field_desc.constraints.primary()) {
-                if (has_primary_key) {
-                    throw SystemManagerError{
-                        std::string{"Failed to create table \""}.append(name).append("\" with multiple primary keys")};
-                }
-                has_primary_key = true;
-            }
             if (field_desc.constraints.unique()) {
                 _index_manager.create_index(
                     std::string{name}.append(".").append(field_desc.name.data()),
@@ -145,13 +137,14 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
         _record_manager.create_table(name, descriptor);
         _table_list.emplace(name);
     } catch (...) {  // assumed that no more exceptions are thrown during rollback
+        auto e = std::current_exception();
         for (auto &&ft : foreign_tables) {
             _record_manager.open_table(ft.data()).lock()->header.foreign_key_reference_count--;
         }
         for (auto &&idx : indices) {
             _index_manager.delete_index(std::string{name}.append(".").append(idx.data()));
         }
-        std::rethrow_exception(std::current_exception());  // rethrow
+        std::rethrow_exception(e);  // rethrow
     }
 }
 

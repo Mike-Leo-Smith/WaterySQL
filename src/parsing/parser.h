@@ -30,6 +30,7 @@ protected:
     Actor _parse_update_statement();
     Actor _parse_select_statement();
     Actor _parse_describe_statement();
+    Actor _parse_execute_statement();
     
     void _parse_field_list(CreateTableActor &actor);
     void _parse_field(CreateTableActor &actor);

@@ -86,7 +86,7 @@ set(SOURCE_FILES
     src/parsing/token_tag_helper.h
     src/parsing/token_tag_helper.cpp
     src/action/insert_record_actor.h
-    src/utility/io/reader.h
+    src/utility/io/file_reader.h
     src/utility/memory/string_view_copier.h
     src/data/data_view.h
     src/utility/memory/value_decoder.h
@@ -101,7 +101,12 @@ set(SOURCE_FILES
     src/utility/memory/identifier_comparison.h
     src/page/page_handle.h
     src/action/exit_actor.h
-    src/utility/io/record_descriptor_printer.h src/query/query_engine.cpp src/query/query_engine.h src/error/query_engine_error.h)
+    src/utility/io/record_descriptor_printer.h
+    src/query/query_engine.cpp
+    src/query/query_engine.h
+    src/error/query_engine_error.h
+    src/data/type_tag_helper.h
+    src/action/execute_file_actor.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

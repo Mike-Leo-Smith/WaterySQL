@@ -36,7 +36,7 @@ int main() {
     
     DataDescriptor data_descriptor{TypeTag::INTEGER, 10};
     try {
-        index_manager.create_index(name, data_descriptor, true);
+        index_manager.create_index(name, data_descriptor, false);
     } catch (const std::exception &e) {
         print_error(std::cerr, e);
     }
@@ -45,6 +45,7 @@ int main() {
         auto index = index_manager.open_index(name);
         
         index_manager.insert_index_entry(index, "hello, world", {1, 2});
+        Printer::println(std::cout, index_manager.contains(index, "hello, world") ? "true" : "false");
         index_manager.delete_index_entry(index, "hello, world", {1, 2});
         
         constexpr auto count = 5'000'000;

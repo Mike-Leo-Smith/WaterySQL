@@ -1,3 +1,7 @@
+#include <utility>
+
+#include <utility>
+
 //
 // Created by Mike Smith on 2018/11/24.
 //
@@ -77,7 +81,7 @@ bool RecordManager::is_table_open(const std::string &name) const {
 
 const Byte *RecordManager::get_record(std::weak_ptr<Table> t, RecordOffset record_offset) {
     
-    auto table = _try_lock_table_weak_pointer(t);
+    auto table = _try_lock_table_weak_pointer(std::move(t));
     
     if (record_offset.page_offset >= table->header.page_count) {
         throw RecordManagerError{
@@ -98,7 +102,7 @@ const Byte *RecordManager::get_record(std::weak_ptr<Table> t, RecordOffset recor
 
 RecordOffset RecordManager::insert_record(std::weak_ptr<Table> t, const Byte *data) {
     
-    auto table = _try_lock_table_weak_pointer(t);
+    auto table = _try_lock_table_weak_pointer(std::move(t));
     
     if (table->header.first_free_page == -1) {  // no available pages
         auto page_offset = static_cast<PageOffset>(table->header.page_count);
@@ -146,32 +150,16 @@ RecordOffset RecordManager::insert_record(std::weak_ptr<Table> t, const Byte *da
     throw RecordManagerError{"Failed to insert new record in the data file that might be corrupt."};
 }
 
-void RecordManager::update_record(std::weak_ptr<Table> t, RecordOffset record_offset, const Byte *data) {
-    
-    auto table = _try_lock_table_weak_pointer(t);
-    
-    if (record_offset.page_offset >= table->header.page_count) {
-        throw RecordManagerError{
-            "Failed to update the record whose expected page offset is greater than table page count."};
-    }
-    auto cache_handle = _page_manager.load_page({table->file_handle, record_offset.page_offset});
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
-    auto &data_page = MemoryMapper::map_memory<DataPage>(cache);
-    if (record_offset.slot_offset >= table->header.slot_count_per_page) {
-        throw RecordManagerError{
-            "Failed to update the record whose expected slot offset is greater than slot count in page."};
-    }
-    if (!data_page.header.slot_usage_bitmap[record_offset.slot_offset]) {
-        throw RecordManagerError{"Failed to update the record that does not exist."};
-    }
-    std::uninitialized_copy_n(
-        data, table->header.record_length,
-        &data_page.data[table->header.record_length * record_offset.slot_offset]);
+void RecordManager::overwrite_record(std::weak_ptr<Table> t, RecordOffset record_offset, const Byte *data) {
+    auto table = _try_lock_table_weak_pointer(std::move(t));
+    update_record(table, record_offset, [rl = table->header.record_length, data](Byte *old) {
+        std::memmove(old, data, rl);
+    });
 }
 
 void RecordManager::delete_record(std::weak_ptr<Table> t, RecordOffset record_offset) {
     
-    auto table = _try_lock_table_weak_pointer(t);
+    auto table = _try_lock_table_weak_pointer(std::move(t));
     
     if (record_offset.page_offset >= table->header.page_count) {
         throw RecordManagerError{
@@ -213,6 +201,28 @@ std::shared_ptr<Table> RecordManager::_try_lock_table_weak_pointer(std::weak_ptr
         return p;
     }
     throw RecordManagerError{"Weak pointer to the table has already expired."};
+}
+
+RecordOffset RecordManager::next_record_offset(std::weak_ptr<Table> t, RecordOffset rid) {
+    auto table = _try_lock_table_weak_pointer(std::move(t));
+    auto init_slot = rid.slot_offset + 1;
+    auto init_page = rid.page_offset;
+    if (init_slot > table->header.slot_count_per_page) {
+        init_slot = 0;
+        init_page++;
+    }
+    for (auto page = init_page; page < table->header.page_count; page++) {
+        auto cache_handle = _page_manager.load_page({table->file_handle, page});
+        auto cache = _page_manager.access_cache_for_reading(cache_handle);
+        auto &p = MemoryMapper::map_memory<DataPage>(cache);
+        for (auto slot = init_slot; slot < table->header.slot_count_per_page; slot++) {
+            if (p.header.slot_usage_bitmap[slot]) {
+                return {page, slot};
+            }
+        }
+        init_slot = 0;
+    }
+    return {-1, -1};
 }
 
 }
