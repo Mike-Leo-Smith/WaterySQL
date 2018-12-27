@@ -66,6 +66,11 @@ void RecordManager::delete_table(std::string name) {
 }
 
 void RecordManager::close_all_tables() {
+    for (auto &&item : _open_tables) {
+        if (!item.second.unique()) {
+            throw ClosingSharedTable{item.first};
+        }
+    }
     _open_tables.clear();
 }
 

@@ -26,13 +26,10 @@ private:
     TableHeader _header;
 
 public:
-    Table(std::string name, FileHandle fh, TableHeader th)
-        : _name{std::move(name)}, _file_handle{fh}, _header{th} {}
-    
+    Table(std::string name, FileHandle fh, TableHeader th);
     ~Table();
     
     const std::string &name() const noexcept;
-    
     RecordDescriptor &descriptor() noexcept;
     const RecordDescriptor &descriptor() const noexcept;
     

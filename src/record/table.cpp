@@ -163,4 +163,7 @@ RecordDescriptor &Table::descriptor() noexcept {
     return _header.record_descriptor;
 }
 
+Table::Table(std::string name, FileHandle fh, TableHeader th)
+    : _name{std::move(name)}, _file_handle{fh}, _header{th} {}
+    
 }

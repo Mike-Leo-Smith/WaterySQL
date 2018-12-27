@@ -5,6 +5,8 @@
 #ifndef WATERYSQL_INDEX_ENTRY_OFFSET_H
 #define WATERYSQL_INDEX_ENTRY_OFFSET_H
 
+#include <string>
+
 #include "../config/config.h"
 
 namespace watery {
@@ -16,6 +18,12 @@ struct IndexEntryOffset {
     
     IndexEntryOffset(PageOffset p, ChildOffset c)
         : page_offset{p}, child_offset{c} {}
+    
+    std::string to_string() const noexcept {
+        return std::string{"("}
+            .append(std::to_string(page_offset)).append(", ")
+            .append(std::to_string(child_offset)).append(")");
+    }
     
 };
 
