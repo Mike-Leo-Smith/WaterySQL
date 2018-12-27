@@ -14,7 +14,7 @@
 
 namespace watery {
 
-struct Predicate {
+struct predicate {
     
     std::shared_ptr<Table> table;
     ColumnOffset column_offset;
