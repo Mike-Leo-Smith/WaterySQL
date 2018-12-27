@@ -92,7 +92,7 @@ void QueryEngine::_insert_record(
             if (field_desc.indexed && !null) {  // if indexed, insert into the index as well
                 (string_buffer = table->name()).append(".").append(field_desc.name.data());
                 auto index = _index_manager.open_index(string_buffer);
-                _index_manager.insert_index_entry(index, p, rid);
+                index->insert_index_entry(p, rid);
                 indexed_column_indices.emplace_back(i);  // save column index for rollbacks
             }
             if (field_desc.constraints.foreign() && !null) {  // update foreign key ref count if not null
@@ -100,7 +100,7 @@ void QueryEngine::_insert_record(
                 string_buffer.append(field_desc.foreign_table_name.data()).append(".")
                              .append(field_desc.foreign_column_name.data());
                 auto foreign_index = _index_manager.open_index(string_buffer);
-                auto foreign_rid = _index_manager.search_unique_index_entry(foreign_index, p);
+                auto foreign_rid = foreign_index->search_unique_index_entry(p);
                 auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
                 auto foreign_null_mapped = foreign_table->descriptor().null_mapped;
                 foreign_table->update_record(foreign_rid, [foreign_null_mapped](Byte *old) {
@@ -122,7 +122,7 @@ void QueryEngine::_insert_record(
             auto &&field_desc = desc.field_descriptors[i];
             (string_buffer = table->name()).append(".").append(field_desc.name.data());
             auto index = _index_manager.open_index(string_buffer);
-            _index_manager.delete_index_entry(index, record + desc.field_offsets[i], rid);
+            index->delete_index_entry(record + desc.field_offsets[i], rid);
         }
         for (auto i = 0; i < foreign_key_column_indices.size(); i++) {  // recover foreign key ref count updates
             auto col = foreign_key_column_indices[i];

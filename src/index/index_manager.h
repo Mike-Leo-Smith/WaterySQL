@@ -27,7 +27,6 @@ private:
 
 protected:
     IndexManager() = default;
-    void _close_index(const std::shared_ptr<Index> &index) noexcept;
 
 public:
     ~IndexManager();

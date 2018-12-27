@@ -44,9 +44,9 @@ int main() {
     try {
         auto index = index_manager.open_index(name);
         
-        index_manager.insert_index_entry(index, "hello, world", {1, 2});
-        Printer::println(std::cout, index_manager.contains(index, "hello, world") ? "true" : "false");
-        index_manager.delete_index_entry(index, "hello, world", {1, 2});
+        index->insert_index_entry("hello, world", {1, 2});
+        Printer::println(std::cout, index->contains("hello, world") ? "true" : "false");
+        index->delete_index_entry("hello, world", {1, 2});
         
         constexpr auto count = 5'000'000;
         std::default_random_engine random{std::random_device{}()};
@@ -77,7 +77,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.insert_index_entry(index, reinterpret_cast<Byte *>(&entry), rid);
+                    index->insert_index_entry(reinterpret_cast<Byte *>(&entry), rid);
                 }
             }).first, "ms");
         }
@@ -87,7 +87,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.search_index_entry(index, reinterpret_cast<Byte *>(&entry));
+                    index->search_index_entry(reinterpret_cast<Byte *>(&entry));
                 }
             }).first, "ms");
         }
@@ -97,7 +97,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index_manager.delete_index_entry(index, reinterpret_cast<Byte *>(&entry), rid);
+                    index->delete_index_entry(reinterpret_cast<Byte *>(&entry), rid);
                 }
             }).first, "ms");
         }
