@@ -46,7 +46,6 @@ set(SOURCE_FILES
     src/utility/memory/memory_mapper.h
     src/record/table_header.h
     src/record/data_page.h
-    src/error/record_manager_error.h
     src/index/index_node.h
     src/index/index.h
     src/index/index_header.h
@@ -106,7 +105,7 @@ set(SOURCE_FILES
     src/query/query_engine.h
     src/error/query_engine_error.h
     src/data/type_tag_helper.h
-    src/action/execute_file_actor.h src/query/predicate_efficiency_estimator.cpp src/query/predicate_efficiency_estimator.h src/query/predicate.h src/record/table.cpp src/error/record_offset_out_of_range.h src/error/record_not_found.h src/error/record_slot_usage_bitmap_corrupt.h src/error/negative_foreign_key_reference_count.h)
+    src/action/execute_file_actor.h src/query/predicate_efficiency_estimator.cpp src/query/predicate_efficiency_estimator.h src/query/predicate.h src/record/table.cpp src/error/record_offset_out_of_range.h src/error/record_not_found.h src/error/record_slot_usage_bitmap_corrupt.h src/error/negative_foreign_key_reference_count.h src/error/record_oversized.h src/error/closing_shared_table.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

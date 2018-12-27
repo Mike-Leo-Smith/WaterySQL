@@ -14,7 +14,6 @@
 #include "table.h"
 #include "record_offset.h"
 #include "data_page.h"
-#include "../error/record_manager_error.h"
 #include "../utility/memory/memory_mapper.h"
 
 namespace watery {

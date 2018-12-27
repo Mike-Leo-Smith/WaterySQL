@@ -133,7 +133,6 @@ Table::~Table() {
     auto table_header_cache = PageManager::instance().access_cache_for_writing(table_header_cache_handle);
     MemoryMapper::map_memory<TableHeader>(table_header_cache) = _header;
     PageManager::instance().close_file(_file_handle);
-    RecordManager::instance().close_table(_name);
 }
 
 const std::string &Table::name() const noexcept {
