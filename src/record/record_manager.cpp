@@ -75,7 +75,7 @@ void RecordManager::close_all_tables() {
 }
 
 RecordManager::~RecordManager() {
-    close_all_tables();
+    _open_tables.clear();
 }
 
 }

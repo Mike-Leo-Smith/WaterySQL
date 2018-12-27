@@ -68,7 +68,7 @@ void IndexManager::close_index(const std::string &name) noexcept {
 }
 
 IndexManager::~IndexManager() {
-    close_all_indices();
+    _open_indices.clear();
 }
 
 void IndexManager::close_all_indices() noexcept {
