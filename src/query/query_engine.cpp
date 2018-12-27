@@ -56,7 +56,7 @@ void QueryEngine::insert_records(
     const std::vector<uint16_t> &field_sizes, const std::vector<uint16_t> &field_counts) {
     auto data_ptr = raw.data();
     auto size_ptr = field_sizes.data();
-    auto table = _record_manager.open_table(table_name).lock();
+    auto table = _record_manager.open_table(table_name);
     auto count = 0u;
     for (auto &&field_count : field_counts) {
         _insert_record(table, data_ptr, size_ptr, field_count);
@@ -101,7 +101,7 @@ void QueryEngine::_insert_record(
                              .append(field_desc.foreign_column_name.data());
                 auto foreign_index = _index_manager.open_index(string_buffer);
                 auto foreign_rid = _index_manager.search_unique_index_entry(foreign_index, p);
-                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data()).lock();
+                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
                 auto foreign_null_mapped = foreign_table->descriptor().null_mapped;
                 foreign_table->update_record(foreign_rid, [foreign_null_mapped](Byte *old) {
                     if (foreign_null_mapped) {
@@ -128,7 +128,7 @@ void QueryEngine::_insert_record(
             auto col = foreign_key_column_indices[i];
             auto foreign_rid = foreign_record_offsets[i];
             auto &field_desc = desc.field_descriptors[col];
-            auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data()).lock();
+            auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
             auto foreign_null_mapped = foreign_table->descriptor().null_mapped;
             foreign_table->update_record(foreign_rid, [foreign_null_mapped](Byte *old) {
                 if (foreign_null_mapped) {
@@ -143,7 +143,7 @@ void QueryEngine::_insert_record(
 
 void QueryEngine::delete_record(const std::string &table_name, std::vector<ColumnPredicate> &predicates) {
     std::string_view empty{""};
-    auto table = _record_manager.open_table(table_name).lock();
+    auto table = _record_manager.open_table(table_name);
     for (auto &&pred : predicates) {
         if (pred.table_name.data() == empty) {
             pred.table_name = table_name;

@@ -31,7 +31,7 @@ public:
     ~RecordManager();
     
     void create_table(const std::string &name, const RecordDescriptor &record_descriptor);
-    std::weak_ptr<Table> open_table(const std::string &name);
+    std::shared_ptr<Table> open_table(const std::string &name);
     void close_table(const std::string &name);
     void close_all_tables();
     void delete_table(std::string name);

@@ -39,7 +39,7 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
     _page_manager.close_file(file_handle);
 }
 
-std::weak_ptr<Table> RecordManager::open_table(const std::string &name) {
+std::shared_ptr<Table> RecordManager::open_table(const std::string &name) {
     if (_open_tables.count(name) == 0) {
         FileHandle file_handle = _page_manager.open_file(name + TABLE_FILE_EXTENSION);
         // load table header

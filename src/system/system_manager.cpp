@@ -121,7 +121,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
                                     "\" which has a foreign key constraint referencing a non-primary key column.")};
                         }
                     });
-                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data()).lock();
+                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
                 foreign_table->add_foreign_key_reference(name);
                 foreign_tables.emplace_back(field_desc.foreign_table_name);
             }
@@ -139,7 +139,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
     } catch (...) {  // assumed that no more exceptions are thrown during rollback
         auto e = std::current_exception();
         for (auto &&ft : foreign_tables) {
-            _record_manager.open_table(ft.data()).lock()->drop_foreign_key_reference(name);
+            _record_manager.open_table(ft.data())->drop_foreign_key_reference(name);
         }
         for (auto &&idx : indices) {
             _index_manager.delete_index(std::string{name}.append(".").append(idx.data()));
@@ -153,7 +153,7 @@ void SystemManager::drop_table(const std::string &name) {
         throw SystemManagerError{
             std::string{"Failed to drop table \""}.append(name).append("\" which does not exists.")};
     }
-    auto table = _record_manager.open_table(name).lock();
+    auto table = _record_manager.open_table(name);
     if (table->foreign_key_reference_count() != 0) {
         throw SystemManagerError{
             std::string{"Failed to drop table \""}.append(name).append("\" which is referenced by other tables.")};
@@ -171,7 +171,7 @@ void SystemManager::drop_table(const std::string &name) {
         }
         if (field_desc.constraints.foreign()) {
             try {
-                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data()).lock();
+                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
                 auto &&ref_count = foreign_table->foreign_key_reference_count();
                 ref_count--;
                 Printer::println(
@@ -244,7 +244,7 @@ SystemManager::SystemManager() {
 }
 
 const RecordDescriptor &SystemManager::describe_table(const std::string &table_name) {
-    return _record_manager.open_table(table_name).lock()->descriptor();
+    return _record_manager.open_table(table_name)->descriptor();
 }
 
 void SystemManager::quit() {
