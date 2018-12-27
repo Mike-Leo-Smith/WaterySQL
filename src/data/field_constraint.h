@@ -19,6 +19,7 @@ public:
     static constexpr Mask NULLABLE_BIT_MASK = 1 << 1;
     static constexpr Mask FOREIGN_BIT_MASK = 1 << 2;
     static constexpr Mask PRIMARY_BIT_MASK = 1 << 3;
+    static constexpr Mask CHECKED_BIT_MASK = 1 << 4;
 
 private:
     Mask _constraints{0};
@@ -31,11 +32,13 @@ public:
     constexpr bool nullable() const noexcept { return _constraints & NULLABLE_BIT_MASK; }
     constexpr bool foreign() const noexcept { return _constraints & FOREIGN_BIT_MASK; }
     constexpr bool primary() const noexcept { return _constraints & PRIMARY_BIT_MASK; }
+    constexpr bool checked() const noexcept { return _constraints & CHECKED_BIT_MASK; }
     
     void set_unique() noexcept { _constraints |= UNIQUE_BIT_MASK; }
     void set_nullable() noexcept { _constraints |= NULLABLE_BIT_MASK; }
     void set_foreign() noexcept { _constraints |= FOREIGN_BIT_MASK; }
     void set_primary() noexcept { _constraints |= PRIMARY_BIT_MASK | UNIQUE_BIT_MASK; }
+    void set_checked() noexcept { _constraints |= CHECKED_BIT_MASK | FOREIGN_BIT_MASK; }
     
 };
 

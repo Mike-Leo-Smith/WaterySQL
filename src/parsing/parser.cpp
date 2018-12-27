@@ -63,7 +63,7 @@ Actor Parser::match() {
             return _parse_update_statement();
         case TokenTag::SELECT:
             return _parse_select_statement();
-        case TokenTag::EXEC:
+        case TokenTag::SOURCE:
             return _parse_execute_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
@@ -304,7 +304,8 @@ void Parser::_parse_foreign_key(CreateTableActor &actor) {
     auto &field = actor.descriptor.field_descriptors[foreign_col_offset];
     if (field.constraints.foreign()) {
         throw ParserError{
-            std::string{"Already set foreign key constraint on column \""}.append(column.raw).append("\""),
+            std::string{"Cannot have multiple check/foreign key constraints on column \""}
+                .append(column.raw).append("\""),
             column.offset};
     }
     field.constraints.set_foreign();
@@ -585,7 +586,7 @@ Actor Parser::_parse_exit_statement() {
 }
 
 Actor Parser::_parse_execute_statement() {
-    _scanner.match_token(TokenTag::EXEC);
+    _scanner.match_token(TokenTag::SOURCE);
     auto file_name = ValueDecoder::decode_char(_parse_string());
     _scanner.match_token(TokenTag::SEMICOLON);
     return ExecuteFileActor{std::string{file_name}};

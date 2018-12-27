@@ -20,8 +20,6 @@ int main() {
     
     using namespace watery;
     
-    std::cout << sizeof(TableHeader) << std::endl;
-    
     std::ostream::sync_with_stdio(false);
     std::istream::sync_with_stdio(false);
     
@@ -29,13 +27,13 @@ int main() {
     
     Parser parser;
     while (true) {
-        Printer::print(std::cout, "\n[IN]\n  ");
+        Printer::print(std::cout, "\n[IN]\n");
         std::string command;
         command.push_back(static_cast<char>(std::cin.get()));
         while (command.back() != EOF && command.back() != ';') {
             command.push_back(static_cast<char>(std::cin.get()));
         }
-        Printer::print(std::cout, "\n[OUT]\n  ");
+        Printer::print(std::cout, "\n[OUT]\n");
         try {
             parser.parse(command).match()();
         } catch (const std::exception &e) {

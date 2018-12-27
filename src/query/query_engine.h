@@ -23,6 +23,8 @@ private:
     
     const Byte *_make_record(const RecordDescriptor &desc, const Byte *raw, const uint16_t *sizes, uint16_t count);
     void _insert_record(const std::shared_ptr<Table> &table, const Byte *raw, const uint16_t *sizes, uint16_t count);
+    
+    uint64_t _estimate_predicate_cost(const ColumnPredicate &predicate);
 
 protected:
     QueryEngine() = default;
@@ -32,7 +34,7 @@ public:
         const std::string &table_name, const std::vector<Byte> &raw,
         const std::vector<uint16_t> &field_sizes, const std::vector<uint16_t> &field_counts);
     
-    void delete_record(const std::string &table_name, const std::vector<ColumnPredicate> &predicates);
+    void delete_record(const std::string &table_name, std::vector<ColumnPredicate> &predicates);
 };
 
 }

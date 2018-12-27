@@ -19,10 +19,9 @@ struct ExecuteFileActor {
     
     void operator()() const {
         
-        Printer::println(std::cout, "EXEC ", file_name);
+        Printer::println(std::cout, "SOURCE ", file_name);
         
         std::string command{FileReader::read_all(file_name)};
-        Printer::println(std::cout, command);
         Parser parser{command};
         
         while (!parser.end()) {

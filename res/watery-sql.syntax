@@ -29,6 +29,7 @@ Field               ->  IDENTIFIER Type SizeHint NullableHint               // d
                     |   FOREIGN KEY '(' IDENTIFIER ')' REFERENCES
                           IDENTIFIER '(' IDENTIFIER ')'                     // done
                     |   UNIQUE '(' IDENTIFIER ')'                           // done
+                    |   CHECK '(' IDENTIFIER IN '(' ValueTuple ')' ')'
 
 Type                ->  INT                                                 // done
                     |   VARCHAR                                             // done

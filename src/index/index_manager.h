@@ -30,8 +30,7 @@ protected:
     
     void _close_index(const std::shared_ptr<Index> &index) noexcept;
     
-    CacheHandle _load_node_page_cache(const std::shared_ptr<Index> &index, PageOffset node_offset) noexcept;
-    CacheHandle _allocate_node_page_cache(const std::shared_ptr<Index> &index) noexcept;
+    IndexNode & _allocate_node(const std::shared_ptr<Index> &index) noexcept;
     
     IndexEntryOffset _search_entry_in(const std::shared_ptr<Index> &index, PageOffset p, const Byte *data) noexcept;
     
@@ -68,6 +67,12 @@ protected:
     
     static bool _index_entry_data_matches(
         const std::shared_ptr<Index> &index, const IndexNode &node, ChildOffset offset, const Byte *data);
+    
+    IndexNode &_load_node_for_writing(FileHandle fh, PageOffset node_offset);
+    const IndexNode &_load_node_for_reading(FileHandle fh, PageOffset node_offset);
+    IndexHeader &_load_index_header_for_writing(FileHandle fh);
+    const IndexHeader &_load_index_header_for_reading(FileHandle fh);
+    IndexHeader &_allocate_index_header(FileHandle fh);
 
 public:
     ~IndexManager();
@@ -80,8 +85,8 @@ public:
     bool is_index_open(const std::string &name) const noexcept;
     
     IndexEntryOffset search_index_entry(std::weak_ptr<Index> index, const Byte *data);
-    IndexEntryOffset next_index_entry(std::weak_ptr<Index> index, IndexEntryOffset offset);
-    IndexEntryOffset prev_index_entry(std::weak_ptr<Index> index, IndexEntryOffset offset);
+    IndexEntryOffset next_index_entry_offset(std::weak_ptr<Index> index, IndexEntryOffset offset);
+    IndexEntryOffset prev_index_entry_offset(std::weak_ptr<Index> index, IndexEntryOffset offset);
     RecordOffset related_record_offset(std::weak_ptr<Index> index, IndexEntryOffset offset);
     
     void insert_index_entry(std::weak_ptr<Index> index, const Byte *data, RecordOffset rid);
@@ -92,6 +97,8 @@ public:
     RecordOffset search_unique_index_entry(std::weak_ptr<Index> index,const Byte *data);
     
     bool contains(std::weak_ptr<Index> index, const Byte *data);
+    bool data_matches(std::weak_ptr<Index> index, IndexEntryOffset entry_offset, const Byte *data);
+    
 };
 
 }

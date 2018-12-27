@@ -14,7 +14,7 @@ struct Printer : NonTrivialConstructible {
     
     template<typename OStream, typename ...Args>
     static void println(OStream &os, Args &&...args) noexcept {
-        print(os, args...);
+        print(os, std::forward<Args>(args)...);
         os << std::endl;
     }
     

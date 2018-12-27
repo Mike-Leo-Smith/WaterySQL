@@ -35,9 +35,7 @@ void IndexManager::create_index(const std::string &name, DataDescriptor data_des
     _page_manager.create_file(file_name);
     auto file_handle = _page_manager.open_file(file_name);
     
-    auto cache_handle = _page_manager.allocate_page({file_handle, 0});
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
-    MemoryMapper::map_memory<IndexHeader>(cache) = {data_desc, unique, kl, dl, 1, static_cast<uint32_t>(cpn), -1};
+    _allocate_index_header(file_handle) = {data_desc, unique, kl, dl, 1, static_cast<uint32_t>(cpn), -1};
     _page_manager.close_file(file_handle);
 }
 
@@ -59,9 +57,7 @@ std::weak_ptr<Index> IndexManager::open_index(const std::string &name) {
         FileHandle file_handle = _page_manager.open_file(name + INDEX_FILE_EXTENSION);
         
         // load table header
-        auto header_page_cache_handle = _page_manager.load_page({file_handle, 0});
-        auto header_page_cache = _page_manager.access_cache_for_reading(header_page_cache_handle);
-        const auto &index_header = MemoryMapper::map_memory<IndexHeader>(header_page_cache);
+        const auto &index_header = _load_index_header_for_reading(file_handle);
         _open_indices.emplace(name, std::make_shared<Index>(name, file_handle, index_header));
     }
     return _open_indices[name];
@@ -77,9 +73,7 @@ void IndexManager::close_index(const std::string &name) noexcept {
 
 void IndexManager::_close_index(const std::shared_ptr<Index> &idx) noexcept {
     // update table header
-    auto header_page_cache_handle = _page_manager.load_page({idx->file_handle, 0});
-    auto header_page_cache = _page_manager.access_cache_for_writing(header_page_cache_handle);
-    MemoryMapper::map_memory<IndexHeader>(header_page_cache) = idx->header;
+    _load_index_header_for_writing(idx->file_handle) = idx->header;
     _page_manager.close_file(idx->file_handle);
 }
 
@@ -87,13 +81,11 @@ bool IndexManager::is_index_open(const std::string &name) const noexcept {
     return _open_indices.count(name) != 0;
 }
 
-CacheHandle IndexManager::_load_node_page_cache(const std::shared_ptr<Index> &index, PageOffset node_offset) noexcept {
-    return _page_manager.load_page({index->file_handle, node_offset});
-}
-
-CacheHandle IndexManager::_allocate_node_page_cache(const std::shared_ptr<Index> &index) noexcept {
+IndexNode &IndexManager::_allocate_node(const std::shared_ptr<Index> &index) noexcept {
     auto page_offset = static_cast<PageOffset>(index->header.page_count++);
-    return _page_manager.allocate_page({index->file_handle, page_offset});
+    auto page_cache_handle = _page_manager.allocate_page({index->file_handle, page_offset});
+    auto page_cache = _page_manager.access_cache_for_writing(page_cache_handle);
+    return MemoryMapper::map_memory<IndexNode>(page_cache);
 }
 
 const Byte *IndexManager::_get_index_entry_key(
@@ -134,9 +126,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
     
     auto key_compact = _make_key_compact(index, data, rid);
     if (index->header.root_offset == -1) {  // empty, create new root
-        auto root_page_cache_handle = _allocate_node_page_cache(index);
-        auto root_page_cache = _page_manager.access_cache_for_writing(root_page_cache_handle);
-        auto &root_node = MemoryMapper::map_memory<IndexNode>(root_page_cache);
+        auto &root_node = _allocate_node(index);
         index->header.root_offset = 1;
         root_node.header.key_count = 1;
         root_node.header.is_leaf = true;
@@ -148,9 +138,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
         path.clear();
         
         for (auto page_offset = index->header.root_offset;;) {
-            auto cache_handle = _load_node_page_cache(index, page_offset);
-            auto cache = _page_manager.access_cache_for_reading(cache_handle);
-            const auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+            const auto &node = _load_node_for_reading(index->file_handle, page_offset);
             auto child_offset = _search_entry_in_node(index, node, key_compact);
             path.emplace_back(page_offset, child_offset);
             if (node.header.is_leaf) {
@@ -178,9 +166,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
             // fetch the associated node.
             auto e = path.back();
             path.pop_back();
-            auto cache_handle = _load_node_page_cache(index, e.page_offset);
-            auto cache = _page_manager.access_cache_for_writing(cache_handle);
-            auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+            auto &node = _load_node_for_writing(index->file_handle, e.page_offset);
             
             // since the child node was split, the pointer changes.
             auto page_offset = node.header.is_leaf ? rid.page_offset :
@@ -201,9 +187,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
             
             // allocate page for split node.
             auto split_node_offset = static_cast<PageOffset>(index->header.page_count);
-            auto split_page_cache_handle = _allocate_node_page_cache(index);
-            auto split_page_cache = _page_manager.access_cache_for_writing(split_page_cache_handle);
-            auto &split_node = MemoryMapper::map_memory<IndexNode>(split_page_cache);
+            auto &split_node = _allocate_node(index);
             split_node.header.is_leaf = node.header.is_leaf;
             
             // split and insert.
@@ -249,9 +233,7 @@ void IndexManager::insert_index_entry(std::weak_ptr<Index> idx, const Byte *data
         
         // reach root, new root should be allocate.
         auto root_node_offset = static_cast<PageOffset>(index->header.page_count);
-        auto root_page_cache_handle = _allocate_node_page_cache(index);
-        auto root_page_cache = _page_manager.access_cache_for_writing(root_page_cache_handle);
-        auto &root = MemoryMapper::map_memory<IndexNode>(root_page_cache);
+        auto &root = _allocate_node(index);
         root.header.key_count = 1;
         _write_index_entry_key(index, root, 0, k);
         _write_index_entry_page_offset(index, root, 0, index->header.root_offset);
@@ -269,9 +251,7 @@ void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, const Byte *data
     }
     auto key_compact = _make_key_compact(index, data, rid);
     auto entry_offset = _search_entry_in(index, index->header.root_offset, key_compact);
-    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
-    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+    auto &node = _load_node_for_writing(index->file_handle, entry_offset.page_offset);
     if (_index_entry_key_matches(index, node, entry_offset.child_offset, key_compact)) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
@@ -283,10 +263,7 @@ void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, const Byte *data
 void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, IndexEntryOffset entry_offset) {
     
     auto index = _try_lock_index_weak_pointer(std::move(idx));
-    
-    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
-    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+    auto &node = _load_node_for_writing(index->file_handle, entry_offset.page_offset);
     if (entry_offset.child_offset < node.header.key_count) {
         _move_trailing_index_entries(index, node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
@@ -299,9 +276,7 @@ void IndexManager::delete_index_entry(std::weak_ptr<Index> idx, IndexEntryOffset
 IndexEntryOffset IndexManager::_search_entry_in(
     const std::shared_ptr<Index> &index, PageOffset p, const Byte *data) noexcept {
     while (true) {
-        auto cache_handle = _load_node_page_cache(index, p);
-        auto cache = _page_manager.access_cache_for_reading(cache_handle);
-        const auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+        const auto &node = _load_node_for_reading(index->file_handle, p);
         auto child_offset = _search_entry_in_node(index, node, data);
         if (node.header.is_leaf) {
             return {p, child_offset};
@@ -398,10 +373,7 @@ bool IndexManager::contains(std::weak_ptr<Index> idx, const Byte *data) {
     }
     auto key_compact = _make_key_compact(index, data, {-1, -1});
     auto entry_offset = _search_entry_in(index, index->header.root_offset, key_compact);
-    
-    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
-    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
+    auto &node = _load_node_for_writing(index->file_handle, entry_offset.page_offset);
     return _index_entry_data_matches(index, node, entry_offset.child_offset, key_compact);
 }
 
@@ -417,12 +389,9 @@ bool IndexManager::_index_entry_data_matches(const std::shared_ptr<Index> &index
                                              const IndexNode &node,
                                              ChildOffset offset,
                                              const Byte *data) {
+    auto d = index->header.key_length - index->header.data_length;
     return offset < node.header.key_count &&
-           (index->header.unique ?
-            memcmp(data, _get_index_entry_key(index, node, offset), index->header.data_length) :
-            memcmp(data + sizeof(RecordOffset),
-                   _get_index_entry_key(index, node, offset) + sizeof(RecordOffset),
-                   index->header.data_length)) == 0;
+           memcmp(data + d, _get_index_entry_key(index, node, offset) + d, index->header.data_length) == 0;
 }
 
 RecordOffset IndexManager::search_unique_index_entry(std::weak_ptr<Index> idx, const Byte *data) {
@@ -437,15 +406,100 @@ RecordOffset IndexManager::search_unique_index_entry(std::weak_ptr<Index> idx, c
     }
     
     auto entry_offset = _search_entry_in(index, index->header.root_offset, data);
-    
-    auto cache_handle = _load_node_page_cache(index, entry_offset.page_offset);
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
-    auto &node = MemoryMapper::map_memory<IndexNode>(cache);
-    
+    IndexNode &node = _load_node_for_writing(index->file_handle, entry_offset.page_offset);
     if (_index_entry_key_matches(index, node, entry_offset.child_offset, data)) {
         return _get_index_entry_record_offset(index, node, entry_offset.child_offset);
     }
     throw IndexManagerError{"No matching index entry with the given unique key found."};
 }
+
+IndexNode &IndexManager::_load_node_for_writing(FileHandle fh, PageOffset node_offset) {
+    auto cache_handle = _page_manager.load_page({fh, node_offset});
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    return MemoryMapper::map_memory<IndexNode>(cache);
+}
+
+const IndexNode &IndexManager::_load_node_for_reading(FileHandle fh, PageOffset node_offset) {
+    auto cache_handle = _page_manager.load_page({fh, node_offset});
+    auto cache = _page_manager.access_cache_for_reading(cache_handle);
+    return MemoryMapper::map_memory<IndexNode>(cache);
+}
+
+IndexHeader &IndexManager::_load_index_header_for_writing(FileHandle fh) {
+    auto cache_handle = _page_manager.load_page({fh, 0});
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    return MemoryMapper::map_memory<IndexHeader>(cache);
+}
+
+const IndexHeader &IndexManager::_load_index_header_for_reading(FileHandle fh) {
+    auto cache_handle = _page_manager.load_page({fh, 0});
+    auto cache = _page_manager.access_cache_for_reading(cache_handle);
+    return MemoryMapper::map_memory<IndexHeader>(cache);
+}
+
+IndexHeader &IndexManager::_allocate_index_header(FileHandle fh) {
+    auto cache_handle = _page_manager.allocate_page({fh, 0});
+    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    return MemoryMapper::map_memory<IndexHeader>(cache);
+}
+
+IndexEntryOffset IndexManager::next_index_entry_offset(std::weak_ptr<Index> idx, IndexEntryOffset offset) {
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    const auto &node = _load_node_for_reading(index->file_handle, offset.page_offset);
+    if (offset.child_offset + 1 < node.header.key_count) {  // not last
+        return {offset.page_offset, offset.child_offset + 1};
+    }
     
+    // find index entry in next nodes.
+    auto next_page = _get_index_node_link(index, node).next;
+    while (next_page != -1) {
+        const auto &next_node = _load_node_for_reading(index->file_handle, next_page);
+        if (next_node.header.key_count != 0) {
+            return {next_page, 0};
+        }
+        next_page = _get_index_node_link(index, next_node).next;
+    }
+    
+    // the last in the index
+    return {-1, -1};
+}
+
+IndexEntryOffset IndexManager::prev_index_entry_offset(std::weak_ptr<Index> idx, IndexEntryOffset offset) {
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    const auto &node = _load_node_for_reading(index->file_handle, offset.page_offset);
+    if (offset.child_offset > 0) {  // not first
+        return {offset.page_offset, offset.child_offset - 1};
+    }
+    
+    // find index entry in prev nodes.
+    auto prev_page = _get_index_node_link(index, node).prev;
+    while (prev_page != -1) {
+        const auto &prev_node = _load_node_for_reading(index->file_handle, prev_page);
+        if (prev_node.header.key_count != 0) {
+            return {prev_page, static_cast<ChildOffset>(prev_node.header.key_count - 1)};
+        }
+        prev_page = _get_index_node_link(index, prev_node).prev;
+    }
+    
+    // the last in the index
+    return {-1, -1};
+}
+
+RecordOffset IndexManager::related_record_offset(std::weak_ptr<Index> idx, IndexEntryOffset offset) {
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    const auto &node = _load_node_for_reading(index->file_handle, offset.page_offset);
+    if (offset.child_offset < node.header.key_count) {
+        return _get_index_entry_record_offset(index, node, offset.child_offset);
+    }
+    throw IndexManagerError{"Given index entry offset is invalid."};
+}
+
+bool IndexManager::data_matches(std::weak_ptr<Index> idx, IndexEntryOffset entry_offset, const Byte *data) {
+    auto index = _try_lock_index_weak_pointer(std::move(idx));
+    const auto &node = _load_node_for_reading(index->file_handle, entry_offset.page_offset);
+    auto stored_data = _get_index_entry_key(index, node, entry_offset.child_offset);
+    auto offset = index->header.key_length - index->header.data_length;
+    return std::memcmp(stored_data + offset, data, index->header.data_length) == 0;
+}
+
 }

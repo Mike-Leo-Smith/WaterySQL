@@ -19,34 +19,37 @@ namespace watery {
 struct DeleteRecordActor {
     
     Identifier table_name{0};
-    std::vector<ColumnPredicate> predicates;
+    mutable std::vector<ColumnPredicate> predicates;
     
     explicit DeleteRecordActor(std::string_view tab) noexcept {
         StringViewCopier::copy(tab, table_name);
     }
     
     void operator()() const {
-        std::cout << "DELETE FROM " << table_name.data();
+        Printer::print(std::cout, "DELETE FROM ", table_name.data());
         if (!predicates.empty()) {
-            std::cout << " WHERE\n  ";
+            Printer::print(std::cout, " WHERE\n  ");
             bool first = true;
             for (auto &&pred : predicates) {
-                if (!first) { std::cout << " AND\n  "; }
+                if (!first) { Printer::print(std::cout, " AND\n  "); }
                 first = false;
                 std::string_view table_name{pred.table_name.data()};
                 if (!table_name.empty()) {
-                    std::cout << table_name << ".";
+                    Printer::print(std::cout, table_name, ".");
                 }
-                std::cout << pred.column_name.data() << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                Printer::print(
+                    std::cout, pred.column_name.data(), " ",
+                    ColumnPredicateHelper::operator_symbol(pred.op));
                 if (!pred.operand.empty()) {
-                    std::cout << " " << std::string_view{pred.operand.data()};
+                    Printer::print(std::cout, " ", std::string_view{pred.operand.data()});
                 }
             }
-            std::cout << "\n";
+            Printer::print(std::cout, "\n");
         } else {
-            std::cout << " ALL\n";
+            Printer::print(std::cout, " ALL\n");
         }
-        std::cout << std::endl;
+        Printer::println(std::cout);
+        QueryEngine::instance().delete_record(table_name.data(), predicates);
     }
     
 };

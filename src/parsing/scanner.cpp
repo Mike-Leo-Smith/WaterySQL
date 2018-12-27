@@ -122,11 +122,11 @@ void Scanner::_read_next_token() {
     }
     
     // read string
-    if (c == '\'') {
+    if (c == '\'' || c == '"') {
         if (_state != State::READING_BLANK && _state != State::READING_OPERATOR) {
             throw ScannerError{"Unexpected quotation.", _curr_offset};
         }
-        while (_peek_char() != '\'') {
+        while (_peek_char() != c) {
             auto x = _read_char();
             if (x == '\\') {  // skip escapes
                 _read_char();

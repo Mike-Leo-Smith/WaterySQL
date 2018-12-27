@@ -36,7 +36,6 @@ protected:
     
     template<typename Visitor>
     void _visit_field_descriptor(const std::string &table_name, const std::string &column_name, Visitor &&visit) {
-        Printer::println(std::cout, "visiting table ", table_name);
         if (_table_list.count(table_name) == 0) {
             throw SystemManagerError{
                 std::string{"Failed to visit table \""}.append(table_name).append("\" which does not exist.")};

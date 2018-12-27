@@ -15,14 +15,20 @@ struct RecordDescriptorPrinter : NonTrivialConstructible {
     
     template<typename Stream>
     static void print(Stream &os, const RecordDescriptor &descriptor) noexcept {
-        Printer::println(os, "  Record of length ", descriptor.length);
+        Printer::println(os, "  Record of length ", descriptor.length, " bytes");
+        if (descriptor.null_mapped) {
+            Printer::println(os, "    [implicit] null_map(", sizeof(NullFieldBitmap), " bytes)");
+        }
+        if (descriptor.reference_counted()) {
+            Printer::println(os, "    [implicit] ref_count(", sizeof(uint32_t), " bytes)");
+        }
         std::for_each(
             descriptor.field_descriptors.begin(),
             descriptor.field_descriptors.begin() + descriptor.field_count,
             [&os](FieldDescriptor fd) {
                 Printer::print(
                     os, "    ", fd.name.data(), ": ", fd.data_descriptor.type,
-                    "(", fd.data_descriptor.length, "B) | ",
+                    "(", fd.data_descriptor.length, " bytes) | ",
                     fd.constraints.nullable() ? "NULL " : "NOT NULL ");
                 if (fd.constraints.foreign()) {
                     Printer::print(
@@ -37,12 +43,6 @@ struct RecordDescriptorPrinter : NonTrivialConstructible {
                 }
                 Printer::print(os, "\n");
             });
-        if (descriptor.null_mapped) {
-            Printer::println(os, "    [implicit] null_map: ", sizeof(NullFieldBitmap));
-        }
-        if (descriptor.reference_counted()) {
-            Printer::println(os, "    [implicit] ref_count: ", sizeof(uint32_t));
-        }
         Printer::println(os);
     }
     

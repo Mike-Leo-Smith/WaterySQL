@@ -35,11 +35,10 @@ const Byte *QueryEngine::_make_record(
     for (auto i = 0; i < count; i++) {
         auto size = sizes[i];
         if (size == 0) {
-            if (desc.field_descriptors[i].constraints.nullable()) {
-                MemoryMapper::map_memory<NullFieldBitmap>(record_buffer.data())[i] = false;
-            } else {
+            if (!desc.field_descriptors[i].constraints.nullable()) {
                 throw QueryEngineError{"Cannot assign NULL to a column that is not nullable."};
             }
+            MemoryMapper::map_memory<NullFieldBitmap>(record_buffer.data())[i] = false;
         } else {
             ValueDecoder::decode(
                 desc.field_descriptors[i].data_descriptor.type,
@@ -65,7 +64,7 @@ void QueryEngine::insert_records(
             data_ptr += size_ptr[i];
         }
         size_ptr += field_count;
-        Printer::println(std::cout, "Inserted ", ++count, "/", field_counts.size(), " rows...");
+        Printer::print(std::cout, "Inserted ", ++count, "/", field_counts.size(), " rows...\n");
     }
 }
 
@@ -89,14 +88,14 @@ void QueryEngine::_insert_record(
         for (auto i = 0; i < desc.field_count; i++) {
             const auto &field_desc = desc.field_descriptors[i];
             auto p = record + desc.field_offsets[i];
-            
-            if (field_desc.indexed) {  // if indexed, insert into the index as well
+            auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(record)[i];
+            if (field_desc.indexed && !null) {  // if indexed, insert into the index as well
                 (string_buffer = table->name).append(".").append(field_desc.name.data());
                 auto index = _index_manager.open_index(string_buffer);
                 _index_manager.insert_index_entry(index, p, rid);
                 indexed_column_indices.emplace_back(i);  // save column index for rollbacks
             }
-            if (field_desc.constraints.foreign()) {  // update foreign key ref count
+            if (field_desc.constraints.foreign() && !null) {  // update foreign key ref count if not null
                 string_buffer.clear();
                 string_buffer.append(field_desc.foreign_table_name.data()).append(".")
                              .append(field_desc.foreign_column_name.data());
@@ -141,8 +140,73 @@ void QueryEngine::_insert_record(
     }
 }
 
-void QueryEngine::delete_record(const std::string &table_name, const std::vector<ColumnPredicate> &predicates) {
+void QueryEngine::delete_record(const std::string &table_name, std::vector<ColumnPredicate> &predicates) {
+    std::string_view empty{""};
+    auto table = _record_manager.open_table(table_name).lock();
+    for (auto &&pred : predicates) {
+        if (pred.table_name.data() == empty) {
+            StringViewCopier::copy(table_name, pred.table_name);
+        }
+    }
+    predicates.erase(std::remove_if(predicates.begin(), predicates.end(), [&table_name](auto &&pred) {
+        return pred.table_name.data() != table_name;
+    }), predicates.end());
+    std::sort(predicates.begin(), predicates.end(), [this](auto &&lhs, auto &&rhs) {
+        return this->_estimate_predicate_cost(lhs) < this->_estimate_predicate_cost(rhs);
+    });
+    
+}
 
+uint64_t QueryEngine::_estimate_predicate_cost(const ColumnPredicate &predicate) {
+    
+    // the efficiency is estimated with respect to the following factors:
+    //   unique, indexed, nullable, record_count, operator, field_length
+    // and the cost are given as follows:
+    //   c_unique = unique ? 1 : 2
+    //   c_indexed = indexed ? 1 : 100
+    //   c_record_count = record_count
+    //   c_operator = case {
+    //     EQUAL    -> 1
+    //     UNEQUAL  -> 5
+    //     LESS     -> 2
+    //
+    //   }
+    
+    auto table = _record_manager.open_table(predicate.table_name.data()).lock();
+    auto col_offset = table->header.record_descriptor.get_column_offset(predicate.column_name.data());
+    const auto &field_desc = table->header.record_descriptor.field_descriptors[col_offset];
+    
+    constexpr auto table_scan_cost_coeff = 10u;
+    constexpr auto index_scan_cost_coeff = 20u;
+    constexpr auto index_search_cost_coeff = 100u;
+    
+    auto rec_len = table->header.record_length;
+    auto rec_count = table->header.record_count;
+    auto unique_cost_coeff = field_desc.constraints.unique() ? 0 : 1;
+    
+    if (field_desc.indexed) {  // probably can utilize the index
+        switch (predicate.op) {
+            case ColumnPredicateOperator::EQUAL:  // index search required
+                return rec_len + index_search_cost_coeff + unique_cost_coeff * index_scan_cost_coeff;
+            case ColumnPredicateOperator::UNEQUAL:  // full table scanning and comparison required
+                return rec_count * (rec_len + table_scan_cost_coeff);
+            case ColumnPredicateOperator::LESS:
+                break;
+            case ColumnPredicateOperator::LESS_EQUAL:
+                break;
+            case ColumnPredicateOperator::GREATER:
+                break;
+            case ColumnPredicateOperator::GREATER_EQUAL:
+                break;
+            case ColumnPredicateOperator::IS_NULL:  // full table scanning required but no comparison needed
+                return table->header.record_count * 10;
+            case ColumnPredicateOperator::NOT_NULL:  // will scan through the index
+                return table->header.record_count * 100;
+        }
+    }
+    
+    // no index for use
+    return table->header.record_count * table->header.record_length;
 }
 
 }

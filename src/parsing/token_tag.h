@@ -25,7 +25,7 @@ enum struct TokenTag : uint32_t {
     WILDCARD,
     
     // system commands
-    EXIT, EXEC
+    EXIT, SOURCE
 };
 
 }
