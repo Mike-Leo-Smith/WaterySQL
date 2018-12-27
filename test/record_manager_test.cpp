@@ -47,7 +47,7 @@ int main() {
         std::cout << table.lock()->header.page_count << std::endl;
         auto &&rd = table.lock()->header.record_descriptor;
         std::for_each(rd.field_descriptors.begin(), rd.field_descriptors.begin() + rd.field_count, [](auto &&fd) {
-            std::cout << fd.name.data() << ", " << fd.data_descriptor.length() << std::endl;
+            std::cout << fd.name.data() << ", " << fd.data_descriptor.length << std::endl;
         });
         
         std::cout << "------- inserting --------" << std::endl;

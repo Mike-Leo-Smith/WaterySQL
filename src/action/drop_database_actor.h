@@ -15,15 +15,14 @@ namespace watery {
 
 struct DropDatabaseActor {
     
-    Identifier name{0};
+    std::string name;
     
-    explicit DropDatabaseActor(std::string_view n) noexcept {
-        StringViewCopier::copy(n, name);
-    }
+    explicit DropDatabaseActor(std::string_view n) noexcept
+        : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "DROP DATABASE ", name.data(), ";");
-        SystemManager::instance().drop_database(name.data());
+        Printer::println(std::cout, "DROP DATABASE ", name, ";");
+        SystemManager::instance().drop_database(name);
     }
     
 };

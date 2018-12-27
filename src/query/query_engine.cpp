@@ -145,7 +145,7 @@ void QueryEngine::delete_record(const std::string &table_name, std::vector<Colum
     auto table = _record_manager.open_table(table_name).lock();
     for (auto &&pred : predicates) {
         if (pred.table_name.data() == empty) {
-            StringViewCopier::copy(table_name, pred.table_name);
+            pred.table_name = table_name;
         }
     }
     predicates.erase(std::remove_if(predicates.begin(), predicates.end(), [&table_name](auto &&pred) {

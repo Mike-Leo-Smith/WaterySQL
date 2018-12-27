@@ -15,23 +15,22 @@ namespace watery {
 
 struct UpdateRecordActor {
     
-    Identifier table_name{0};
-    std::vector<Identifier> columns;
+    std::string table_name;
+    std::vector<std::string> columns;
     std::vector<Byte> values;
     std::vector<uint16_t> lengths;
     std::vector<ColumnPredicate> predicates;
     
-    explicit UpdateRecordActor(std::string_view n) {
-        StringViewCopier::copy(n, table_name);
-    }
+    explicit UpdateRecordActor(std::string_view n)
+        : table_name{n} {}
     
     void operator()() const {
-        std::cout << "UPDATE " << table_name.data() << " SET\n";
+        std::cout << "UPDATE " << table_name << " SET\n";
         auto p = 0ul;
         auto idx = 0;
         for (auto &&col: columns) {
             auto l = lengths[idx++];
-            std::cout << "  " << col.data() << " = "
+            std::cout << "  " << col << " = "
                       << (l == 0 ? "NULL" : values.data() + p)
                       << "\n";
             p += l;
@@ -42,14 +41,12 @@ struct UpdateRecordActor {
             for (auto &&pred : predicates) {
                 if (!first) { std::cout << " AND\n  "; }
                 first = false;
-                std::string_view table_name{pred.table_name.data()};
-                std::string_view column_name{pred.column_name.data()};
                 if (!table_name.empty()) {
                     std::cout << table_name << ".";
                 }
-                std::cout << column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                std::cout << pred.column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
                 if (!pred.operand.empty()) {
-                    std::cout << " " << std::string_view{pred.operand.data()};
+                    std::cout << " " << pred.operand.data();
                 }
             }
             std::cout << "\n";

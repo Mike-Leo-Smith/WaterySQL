@@ -485,14 +485,14 @@ ColumnPredicate Parser::_parse_column_predicate() {
     return predicate;
 }
 
-void Parser::_parse_column(Identifier &table_name, Identifier &column_name) {
+void Parser::_parse_column(std::string &table_name, std::string &column_name) {
     auto name = _scanner.match_token(TokenTag::IDENTIFIER).raw;
     if (_scanner.lookahead() == TokenTag::DOT) {
         _scanner.match_token(TokenTag::DOT);
-        StringViewCopier::copy(name, table_name);
+        table_name = name;
         name = _scanner.match_token(TokenTag::IDENTIFIER).raw;
     }
-    StringViewCopier::copy(name, column_name);
+    column_name = name;
 }
 
 void Parser::_parse_where_clause(std::vector<ColumnPredicate> &predicates) {
@@ -524,17 +524,13 @@ Actor Parser::_parse_update_statement() {
 }
 
 void Parser::_parse_set_clause(UpdateRecordActor &actor) {
-    auto &&encode_identifier = [&actor](std::string_view id) {
-        actor.columns.emplace_back();
-        StringViewCopier::copy(id, actor.columns.back().data());
-    };
     _scanner.match_token(TokenTag::SET);
-    encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+    actor.columns.emplace_back(_scanner.match_token(TokenTag::IDENTIFIER).raw);
     _scanner.match_token(TokenTag::EQUAL);
     actor.lengths.emplace_back(_parse_value(actor.values));
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+        actor.columns.emplace_back(_scanner.match_token(TokenTag::IDENTIFIER).raw);
         _scanner.match_token(TokenTag::EQUAL);
         actor.lengths.emplace_back(_parse_value(actor.values));
     }
@@ -551,7 +547,7 @@ Actor Parser::_parse_select_statement() {
     return actor;
 }
 
-void Parser::_parse_selector(std::vector<Identifier> &sel) {
+void Parser::_parse_selector(std::vector<std::string> &sel) {
     if (_scanner.lookahead() == TokenTag::WILDCARD) {
         _scanner.match_token(TokenTag::WILDCARD);
         return;
@@ -567,15 +563,11 @@ void Parser::_parse_selector(std::vector<Identifier> &sel) {
     }
 }
 
-void Parser::_parse_selection_table_list(std::vector<Identifier> &tables) {
-    auto &&encode_identifier = [&tables](std::string_view id) {
-        tables.emplace_back();
-        StringViewCopier::copy(id, tables.back().data());
-    };
-    encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+void Parser::_parse_selection_table_list(std::vector<std::string> &tables) {
+    tables.emplace_back(_scanner.match_token(TokenTag::IDENTIFIER).raw);
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        encode_identifier(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+        tables.emplace_back(_scanner.match_token(TokenTag::IDENTIFIER).raw);
     }
 }
 

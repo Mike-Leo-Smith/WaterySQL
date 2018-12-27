@@ -13,6 +13,7 @@
 namespace watery {
 
 struct Table {
+    
     std::string name;
     FileHandle file_handle{-1};
     TableHeader header;
@@ -20,7 +21,8 @@ struct Table {
     Table(std::string name, FileHandle fh, TableHeader th)
         : name{std::move(name)}, file_handle{fh}, header{th} {}
     
-    Table() = default;
+    
+    
 };
 
 }

@@ -18,30 +18,29 @@ namespace watery {
 
 struct DeleteRecordActor {
     
-    Identifier table_name{0};
+    std::string table_name;
     mutable std::vector<ColumnPredicate> predicates;
     
-    explicit DeleteRecordActor(std::string_view tab) noexcept {
-        StringViewCopier::copy(tab, table_name);
-    }
+    explicit DeleteRecordActor(std::string_view tab) noexcept
+        : table_name{tab} {}
     
     void operator()() const {
-        Printer::print(std::cout, "DELETE FROM ", table_name.data());
+        Printer::print(std::cout, "DELETE FROM ", table_name);
         if (!predicates.empty()) {
             Printer::print(std::cout, " WHERE\n  ");
             bool first = true;
             for (auto &&pred : predicates) {
                 if (!first) { Printer::print(std::cout, " AND\n  "); }
                 first = false;
-                std::string_view table_name{pred.table_name.data()};
+                std::string_view table_name{pred.table_name};
                 if (!table_name.empty()) {
                     Printer::print(std::cout, table_name, ".");
                 }
                 Printer::print(
-                    std::cout, pred.column_name.data(), " ",
+                    std::cout, pred.column_name, " ",
                     ColumnPredicateHelper::operator_symbol(pred.op));
                 if (!pred.operand.empty()) {
-                    Printer::print(std::cout, " ", std::string_view{pred.operand.data()});
+                    Printer::print(std::cout, " ", pred.operand.data());
                 }
             }
             Printer::print(std::cout, "\n");
@@ -49,7 +48,7 @@ struct DeleteRecordActor {
             Printer::print(std::cout, " ALL\n");
         }
         Printer::println(std::cout);
-        QueryEngine::instance().delete_record(table_name.data(), predicates);
+        QueryEngine::instance().delete_record(table_name, predicates);
     }
     
 };

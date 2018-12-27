@@ -6,6 +6,7 @@
 #define WATERYSQL_COLUMN_PREDICATE_H
 
 #include <vector>
+#include <string>
 
 #include "../config/config.h"
 #include "column_predicate_operator.h"
@@ -14,8 +15,8 @@ namespace watery {
 
 struct ColumnPredicate {
     
-    Identifier table_name{0};
-    Identifier column_name{0};
+    std::string table_name;
+    std::string column_name;
     
     ColumnPredicateOperator op;
     std::vector<Byte> operand;

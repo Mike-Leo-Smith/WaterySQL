@@ -14,17 +14,15 @@ namespace watery {
 
 struct CreateIndexActor {
     
-    Identifier table_name{0};
-    Identifier column_name{0};
+    std::string table_name;
+    std::string column_name;
     
-    CreateIndexActor(std::string_view tab, std::string_view col) noexcept {
-        StringViewCopier::copy(tab, table_name);
-        StringViewCopier::copy(col, column_name);
-    }
+    CreateIndexActor(std::string_view tab, std::string_view col) noexcept
+        : table_name{tab}, column_name{col} {}
     
     void operator()() const {
-        Printer::println(std::cout, "CREATE INDEX ", table_name.data(), "(", column_name.data(), ");");
-        SystemManager::instance().create_index(table_name.data(), column_name.data());
+        Printer::println(std::cout, "CREATE INDEX ", table_name, "(", column_name, ");");
+        SystemManager::instance().create_index(table_name, column_name);
     }
     
 };

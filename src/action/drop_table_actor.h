@@ -15,15 +15,14 @@ namespace watery {
 
 struct DropTableActor {
     
-    Identifier name{0};
+    std::string name;
     
-    explicit DropTableActor(std::string_view n) noexcept {
-        StringViewCopier::copy(n, name);
-    }
+    explicit DropTableActor(std::string_view n) noexcept
+        : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "DROP TABLE ", name.data(), ";");
-        SystemManager::instance().drop_table(name.data());
+        Printer::println(std::cout, "DROP TABLE ", name, ";");
+        SystemManager::instance().drop_table(name);
     }
     
 };

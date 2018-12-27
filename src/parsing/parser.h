@@ -49,11 +49,11 @@ protected:
     void _parse_column_predicate_operator(ColumnPredicate &predicate);
     ColumnPredicateOperator _parse_column_predicate_null_operator();
     ColumnPredicate _parse_column_predicate();
-    void _parse_column(Identifier &table_name, Identifier &column_name);
+    void _parse_column(std::string &table_name, std::string &column_name);
     void _parse_where_clause(std::vector<ColumnPredicate> &predicates);
     void _parse_set_clause(UpdateRecordActor &actor);
-    void _parse_selector(std::vector<Identifier> &sel);
-    void _parse_selection_table_list(std::vector<Identifier> &tables);
+    void _parse_selector(std::vector<std::string> &sel);
+    void _parse_selection_table_list(std::vector<std::string> &tables);
     
 public:
     explicit Parser(std::string_view program = "");

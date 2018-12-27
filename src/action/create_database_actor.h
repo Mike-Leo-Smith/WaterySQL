@@ -14,15 +14,14 @@ namespace watery {
 
 struct CreateDatabaseActor {
     
-    Identifier name{0};
+    std::string name;
     
-    explicit CreateDatabaseActor(std::string_view n) noexcept {
-        StringViewCopier::copy(n, name);
-    }
+    explicit CreateDatabaseActor(std::string_view n) noexcept
+        : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "CREATE DATABASE ", name.data(), ";");
-        SystemManager::instance().create_database(name.data());
+        Printer::println(std::cout, "CREATE DATABASE ", name, ";");
+        SystemManager::instance().create_database(name);
     }
 };
 

@@ -17,18 +17,17 @@ namespace watery {
 
 struct InsertRecordActor {
     
-    Identifier table_name{0};
+    std::string table_name;
     
     std::vector<Byte> buffer;
     std::vector<uint16_t> field_sizes;
     std::vector<uint16_t> field_counts;
     
-    explicit InsertRecordActor(std::string_view t) noexcept {
-        StringViewCopier::copy(t, table_name);
-    }
+    explicit InsertRecordActor(std::string_view t) noexcept
+        : table_name{t} {}
     
     void operator()() const {
-        Printer::println(std::cout, "INSERT INTO ", table_name.data(), " VALUES(", field_counts.size(), ")");
+        Printer::println(std::cout, "INSERT INTO ", table_name, " VALUES(", field_counts.size(), ")");
         auto field_pos = 0ul;
         auto field_index = 0ul;
         bool first_row = true;
@@ -47,7 +46,7 @@ struct InsertRecordActor {
         }
         Printer::println(std::cout);
         Printer::println(std::cout, "Inserting...");
-        QueryEngine::instance().insert_records(table_name.data(), buffer, field_sizes, field_counts);
+        QueryEngine::instance().insert_records(table_name, buffer, field_sizes, field_counts);
         Printer::println(std::cout, "Done.");
     }
     

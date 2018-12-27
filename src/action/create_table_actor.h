@@ -15,17 +15,16 @@ namespace watery {
 
 struct CreateTableActor {
     
-    Identifier name{0};
+    std::string name;
     RecordDescriptor descriptor{};
     
-    explicit CreateTableActor(std::string_view n) noexcept {
-        StringViewCopier::copy(n, name);
-    }
+    explicit CreateTableActor(std::string_view n) noexcept
+        : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "CREATE TABLE ", name.data());
+        Printer::println(std::cout, "CREATE TABLE ", name);
         RecordDescriptorPrinter::print(std::cout, descriptor);
-        SystemManager::instance().create_table(name.data(), descriptor);
+        SystemManager::instance().create_table(name, descriptor);
     }
     
 };

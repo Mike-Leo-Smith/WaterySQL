@@ -15,8 +15,8 @@ namespace watery {
 
 struct SelectRecordActor {
 
-    std::vector<Identifier> selections;
-    std::vector<Identifier> tables;
+    std::vector<std::string> selections;
+    std::vector<std::string> tables;
     std::vector<ColumnPredicate> predicates;
     
     void operator()() const {
@@ -25,17 +25,17 @@ struct SelectRecordActor {
         for (auto i = 0; i < selections.size(); i += 2) {
             if (!first) { std::cout << ",\n  "; }
             first = false;
-            if (std::string_view s{selections[i].data()}; !s.empty()) {
-                std::cout << s << ".";
+            if (!selections[i].empty()) {
+                std::cout << selections[i] << ".";
             }
-            std::cout << selections[i + 1].data();
+            std::cout << selections[i + 1];
         }
         std::cout << "\nFROM\n  ";
         first = true;
         for (auto &&t: tables) {
             if (!first) { std::cout << ",\n  "; }
             first = false;
-            std::cout << t.data();
+            std::cout << t;
         }
         std::cout << "\n";
         if (!predicates.empty()) {
@@ -44,14 +44,12 @@ struct SelectRecordActor {
             for (auto &&pred : predicates) {
                 if (!first) { std::cout << " AND\n  "; }
                 first = false;
-                std::string_view table_name{pred.table_name.data()};
-                std::string_view column_name{pred.column_name.data()};
-                if (!table_name.empty()) {
-                    std::cout << table_name << ".";
+                if (!pred.table_name.empty()) {
+                    std::cout << pred.table_name << ".";
                 }
-                std::cout << column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                std::cout << pred.column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
                 if (!pred.operand.empty()) {
-                    std::cout << " " << std::string_view{pred.operand.data()};
+                    std::cout << " " << pred.operand.data();
                 }
             }
             std::cout << "\n";
