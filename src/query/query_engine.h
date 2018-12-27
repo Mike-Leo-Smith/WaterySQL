@@ -11,7 +11,7 @@
 #include "../record/table.h"
 #include "../index/index_manager.h"
 #include "../record/record_manager.h"
-#include "column_predicate.h"
+#include "../action/column_predicate.h"
 
 namespace watery {
 

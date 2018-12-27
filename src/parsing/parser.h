@@ -11,7 +11,7 @@
 #include "../data/field_descriptor.h"
 #include "../action/create_table_actor.h"
 #include "../action/insert_record_actor.h"
-#include "../query/column_predicate.h"
+#include "../action/column_predicate.h"
 #include "../action/update_record_actor.h"
 
 namespace watery {

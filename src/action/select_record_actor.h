@@ -9,7 +9,7 @@
 #include <array>
 
 #include "../config/config.h"
-#include "../query/column_predicate.h"
+#include "column_predicate.h"
 
 namespace watery {
 

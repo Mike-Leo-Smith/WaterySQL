@@ -6,7 +6,7 @@
 #define WATERYSQL_PREDICATE_EFFICIENCY_ESTIMATOR_H
 
 #include "../record/record_manager.h"
-#include "column_predicate.h"
+#include "../action/column_predicate.h"
 
 namespace watery {
 

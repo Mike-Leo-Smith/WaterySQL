@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "../config/config.h"
-#include "../query/column_predicate.h"
-#include "../query/column_predicate_helper.h"
+#include "column_predicate.h"
+#include "column_predicate_helper.h"
 #include "../utility/memory/string_view_copier.h"
 
 namespace watery {

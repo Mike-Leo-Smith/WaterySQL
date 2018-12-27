@@ -92,10 +92,10 @@ set(SOURCE_FILES
     src/utility/memory/value_decoder.h
     src/error/value_decoder_error.h
     src/utility/time/date_validator.h
-    src/query/column_predicate.h
+    src/action/column_predicate.h
     src/action/delete_record_actor.h
-    src/query/column_predicate_operator.h
-    src/query/column_predicate_helper.h
+    src/action/column_predicate_operator.h
+    src/action/column_predicate_helper.h
     src/action/update_record_actor.h
     src/action/select_record_actor.h
     src/utility/memory/identifier_comparison.h
@@ -106,7 +106,7 @@ set(SOURCE_FILES
     src/query/query_engine.h
     src/error/query_engine_error.h
     src/data/type_tag_helper.h
-    src/action/execute_file_actor.h src/query/predicate_efficiency_estimator.cpp src/query/predicate_efficiency_estimator.h)
+    src/action/execute_file_actor.h src/query/predicate_efficiency_estimator.cpp src/query/predicate_efficiency_estimator.h src/query/Predicate.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
