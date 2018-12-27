@@ -114,7 +114,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
                 _visit_field_descriptor(  // check if the foreign column exists and is primary key
                     field_desc.foreign_table_name.data(),
                     field_desc.foreign_column_name.data(),
-                    [&name](FieldDescriptor &fd) {
+                    [&name](const FieldDescriptor &fd) {
                         if (!fd.constraints.primary()) {
                             throw SystemManagerError{
                                 std::string{"Failed to create table \""}.append(name).append(
@@ -122,7 +122,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
                         }
                     });
                 auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data()).lock();
-                foreign_table->header.foreign_key_reference_count++;
+                foreign_table->add_foreign_key_reference(name);
                 foreign_tables.emplace_back(field_desc.foreign_table_name);
             }
             if (field_desc.constraints.unique()) {
@@ -139,7 +139,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
     } catch (...) {  // assumed that no more exceptions are thrown during rollback
         auto e = std::current_exception();
         for (auto &&ft : foreign_tables) {
-            _record_manager.open_table(ft.data()).lock()->header.foreign_key_reference_count--;
+            _record_manager.open_table(ft.data()).lock()->drop_foreign_key_reference(name);
         }
         for (auto &&idx : indices) {
             _index_manager.delete_index(std::string{name}.append(".").append(idx.data()));
@@ -153,13 +153,13 @@ void SystemManager::drop_table(const std::string &name) {
         throw SystemManagerError{
             std::string{"Failed to drop table \""}.append(name).append("\" which does not exists.")};
     }
-    auto &&table_header = _record_manager.open_table(name).lock()->header;
-    if (table_header.foreign_key_reference_count != 0) {
+    auto table = _record_manager.open_table(name).lock();
+    if (table->foreign_key_reference_count() != 0) {
         throw SystemManagerError{
             std::string{"Failed to drop table \""}.append(name).append("\" which is referenced by other tables.")};
     }
     
-    auto &&record_desc = table_header.record_descriptor;
+    auto &&record_desc = table->descriptor();
     for (auto i = 0; i < record_desc.field_count; i++) {
         auto &&field_desc = record_desc.field_descriptors[i];
         if (field_desc.indexed) {
@@ -172,10 +172,10 @@ void SystemManager::drop_table(const std::string &name) {
         if (field_desc.constraints.foreign()) {
             try {
                 auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data()).lock();
-                auto &&ref_count = foreign_table->header.foreign_key_reference_count;
+                auto &&ref_count = foreign_table->foreign_key_reference_count();
                 ref_count--;
                 Printer::println(
-                    std::cout, "  dropped foreign key ref to ", foreign_table->name.data(),
+                    std::cout, "  dropped foreign key ref to ", foreign_table->name(),
                     ", whose new ref count is now ", ref_count);
             } catch (const std::exception &e) {
                 print_error(std::cerr, e);
@@ -244,7 +244,7 @@ SystemManager::SystemManager() {
 }
 
 const RecordDescriptor &SystemManager::describe_table(const std::string &table_name) {
-    return _record_manager.open_table(table_name).lock()->header.record_descriptor;
+    return _record_manager.open_table(table_name).lock()->descriptor();
 }
 
 void SystemManager::quit() {

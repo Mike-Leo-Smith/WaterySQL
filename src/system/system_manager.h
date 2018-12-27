@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <iostream>
 #include <unordered_set>
+#include <string>
 #include <set>
 
 #include "../error/system_manager_error.h"
@@ -40,7 +41,7 @@ protected:
             throw SystemManagerError{
                 std::string{"Failed to visit table \""}.append(table_name).append("\" which does not exist.")};
         }
-        auto &&record_desc = _record_manager.open_table(table_name).lock()->header.record_descriptor;
+        auto &&record_desc = _record_manager.open_table(table_name).lock()->descriptor();
         for (auto i = 0; i < record_desc.field_count; i++) {
             auto &&field_desc = record_desc.field_descriptors[i];
             Printer::println(std::cout, "  visiting column ", field_desc.name.data());

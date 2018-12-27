@@ -10,17 +10,25 @@
 namespace watery {
 
 struct RecordOffset {
+    
     PageOffset page_offset;
     SlotOffset slot_offset;
+    
+    constexpr bool operator==(const RecordOffset &rhs) noexcept {
+        return page_offset == rhs.page_offset && slot_offset == rhs.slot_offset;
+    }
+    
+    constexpr bool operator!=(const RecordOffset &rhs) noexcept {
+        return page_offset != rhs.page_offset || slot_offset != rhs.slot_offset;
+    }
+    
+    std::string to_string() const {
+        return std::string{"("}
+            .append(std::to_string(page_offset)).append(", ")
+            .append(std::to_string(slot_offset)).append(")");
+    }
+    
 };
-
-static constexpr bool operator==(const RecordOffset &lhs, const RecordOffset &rhs) noexcept {
-    return lhs.page_offset == rhs.page_offset && lhs.slot_offset == rhs.slot_offset;
-}
-
-static constexpr bool operator!=(const RecordOffset &lhs, const RecordOffset &rhs) noexcept {
-    return lhs.page_offset != rhs.page_offset || lhs.slot_offset != rhs.slot_offset;
-}
 
 }
 
