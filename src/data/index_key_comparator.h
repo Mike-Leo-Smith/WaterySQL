@@ -13,7 +13,7 @@ namespace watery {
 class IndexKeyComparator {
 
 private:
-    bool _unique;
+    bool _unique{false};
     DataComparator _data_cmp;
 
 public:

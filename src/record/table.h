@@ -35,6 +35,7 @@ public:
     const RecordDescriptor &descriptor() const noexcept;
     ColumnOffset column_offset(const std::string &column_name) const;
     uint32_t record_count() const noexcept;
+    bool empty() const noexcept;
     
     const Byte *get_record(RecordOffset record_offset) const;
     RecordOffset insert_record(const Byte *data);
@@ -57,7 +58,9 @@ public:
         update(&data_page.data[_header.record_length * record_offset.slot_offset]);
     }
     
+    RecordOffset record_offset_begin() const;
     RecordOffset next_record_offset(RecordOffset rid) const;
+    bool is_record_offset_end(RecordOffset rid) const;
     
     void add_foreign_key_reference(const std::string &referrer_table) noexcept;
     void drop_foreign_key_reference(const std::string &referrer_table);

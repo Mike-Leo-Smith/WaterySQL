@@ -10,19 +10,20 @@
 #include "../utility/io/printer.h"
 #include "../error/too_many_columns_to_insert.h"
 #include "../error/invalid_null_field.h"
+#include "../error/negative_record_reference_count.h"
+#include "../error/deleting_referenced_record.h"
 
 namespace watery {
 
 const Byte *QueryEngine::_make_record(
     const std::shared_ptr<Table> &table, const Byte *raw, const uint16_t *sizes, uint16_t count) {
     
-    thread_local static std::vector<Byte> record_buffer;
-    
     const auto &desc = table->descriptor();
     if (desc.field_count < count) {
         throw TooManyColumnsToInsert{table->name(), count};
     }
     
+    thread_local static std::vector<Byte> record_buffer;
     if (record_buffer.size() < desc.length) {
         record_buffer.resize(desc.length);
     }
@@ -30,7 +31,6 @@ const Byte *QueryEngine::_make_record(
     if (desc.null_mapped) {  // reset null field bitmap if any
         MemoryMapper::map_memory<NullFieldBitmap>(record_buffer.data()).set();
     }
-    
     if (desc.reference_counted) {  // reset ref count if any
         MemoryMapper::map_memory<uint32_t>(record_buffer.data() + sizeof(NullFieldBitmap)) = 0;
     }
@@ -77,12 +77,10 @@ void QueryEngine::_insert_record(
     
     auto record = _make_record(table, raw, sizes, count);
     
-    thread_local static std::vector<int32_t> indexed_column_indices;
-    thread_local static std::vector<int32_t> foreign_key_column_indices;
-    thread_local static std::vector<RecordOffset> foreign_record_offsets;
-    thread_local static std::string string_buffer;
-    indexed_column_indices.clear();
-    foreign_key_column_indices.clear();
+    std::vector<int32_t> indexed_column_indices;
+    std::vector<int32_t> foreign_key_column_indices;
+    std::vector<RecordOffset> foreign_record_offsets;
+    std::string string_buffer;
     const auto &desc = table->descriptor();
     RecordOffset rid{-1, -1};
     try {
@@ -92,7 +90,7 @@ void QueryEngine::_insert_record(
             const auto &field_desc = desc.field_descriptors[i];
             auto p = record + desc.field_offsets[i];
             auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(record)[i];
-            if (field_desc.indexed && !null) {  // if indexed, insert into the index as well
+            if (field_desc.indexed && !null) {  // if indexed and not null, insert into the index as well
                 (string_buffer = table->name()).append(".").append(field_desc.name.data());
                 auto index = IndexManager::instance().open_index(string_buffer);
                 index->insert_index_entry(p, rid);
@@ -144,7 +142,7 @@ void QueryEngine::_insert_record(
     }
 }
 
-void QueryEngine::delete_record(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds) {
+void QueryEngine::delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds) {
     
     std::vector<QueryPredicate> predicates;
     auto table = RecordManager::instance().open_table(table_name);
@@ -156,9 +154,22 @@ void QueryEngine::delete_record(const std::string &table_name, const std::vector
                 _estimate_predicate_cost(table, cid, raw_pred.op));
         }
     }
-    std::sort(predicates.begin(), predicates.end());
     
-    
+    if (predicates.empty()) {  // empty predicates, delete all records
+        auto count = 0;
+        auto total = table->record_count();
+        if (!table->empty()) {
+            auto rid = table->record_offset_begin();
+            while (!table->is_record_offset_end(rid)) {
+                Printer::println(std::cout, "Deleting ", ++count, "/", total, ": ", rid.to_string());
+                _delete_record(table, rid);
+                rid = table->next_record_offset(rid);
+            }
+        }
+    } else {  // predicates should be taken into consideration
+        std::sort(predicates.begin(), predicates.end());
+        
+    }
     
 }
 
@@ -200,18 +211,105 @@ uint64_t QueryEngine::_estimate_predicate_cost(
     
 }
 
-void QueryEngine::_delete_record(const std::shared_ptr<Table> &table, RecordOffset rid) {
-
+void QueryEngine::_delete_record(const std::shared_ptr<Table> &table, RecordOffset rid, const Byte *rec) {
+    
+    if (rec == nullptr) {
+        rec = table->get_record(rid);
+    }
+    
+    const auto &rec_desc = table->descriptor();
+    
+    // check primary key constraint
+    if (rec_desc.reference_counted &&
+        MemoryMapper::map_memory<uint32_t>(rec_desc.null_mapped ? rec + sizeof(NullFieldBitmap) : rec) != 0) {
+        throw DeletingReferencedRecord{table->name()};
+    }
+    
+    for (auto i = 0; i < rec_desc.field_count; i++) {
+        auto &field_desc = rec_desc.field_descriptors[i];
+        auto field = rec + rec_desc.field_offsets[i];
+        
+        // skip if null
+        if (field_desc.constraints.nullable() &&
+            MemoryMapper::map_memory<NullFieldBitmap>(rec)[i]) {
+            continue;
+        }
+        
+        // remove from index
+        if (field_desc.indexed) {
+            auto index_name = std::string{table->name()}.append(".").append(field_desc.name.data());
+            auto index = IndexManager::instance().open_index(index_name);
+            index->delete_index_entry(field, rid);
+        }
+        
+        // drop foreign record ref count
+        if (field_desc.constraints.foreign()) {
+            std::string name{field_desc.foreign_table_name.data()};
+            auto foreign_table = RecordManager::instance().open_table(name);
+            name.append(".").append(field_desc.foreign_column_name.data());
+            auto foreign_index = IndexManager::instance().open_index(name);
+            auto foreign_rid = foreign_index->search_unique_index_entry(field);
+            foreign_table->update_record(
+                foreign_rid, [foreign_table](Byte *foreign_rec) {
+                    if (foreign_table->descriptor().null_mapped) {
+                        foreign_rec += sizeof(NullFieldBitmap);
+                    }
+                    auto &ref_count = MemoryMapper::map_memory<uint32_t>(foreign_rec);
+                    if (ref_count == 0) {
+                        throw NegativeRecordReferenceCount{foreign_table->name()};
+                    }
+                    ref_count--;
+                });
+        }
+    }
+    
+    table->delete_record(rid);
 }
 
-bool QueryEngine::_predicates_satisfied(
-    const std::shared_ptr<Table> &table,
-    const std::vector<QueryPredicate> &preds,
-    const Byte *rec) {
+bool QueryEngine::_record_satisfies_predicates(
+    const std::shared_ptr<Table> &table, const Byte *rec,
+    const std::vector<QueryPredicate> &preds) {
     
+    for (auto &&pred : preds) {
+        auto &&field_desc = table->descriptor().field_descriptors[pred.column_offset];
+        auto &&data_desc = field_desc.data_descriptor;
+        auto &&field = rec + table->descriptor().field_offsets[pred.column_offset];
+        DataComparator cmp{data_desc};
+        switch (pred.op) {
+            case PredicateOperator::EQUAL:
+                if (cmp.unequal(field, pred.operand.data())) { return false; }
+                break;
+            case PredicateOperator::UNEQUAL:
+                if (cmp.equal(field, pred.operand.data())) { return false; }
+                break;
+            case PredicateOperator::LESS:
+                if (cmp.greater_equal(field, pred.operand.data())) { return false; }
+                break;
+            case PredicateOperator::LESS_EQUAL:
+                if (cmp.greater(field, pred.operand.data())) { return false; }
+                break;
+            case PredicateOperator::GREATER:
+                if (cmp.less_equal(field, pred.operand.data())) { return false; }
+                break;
+            case PredicateOperator::GREATER_EQUAL:
+                if (cmp.less(field, pred.operand.data())) { return false; }
+                break;
+            case PredicateOperator::IS_NULL:
+                if (!field_desc.constraints.nullable() ||
+                    !MemoryMapper::map_memory<NullFieldBitmap>(rec)[pred.column_offset]) {
+                    return false;
+                }
+                break;
+            case PredicateOperator::NOT_NULL:
+                if (field_desc.constraints.nullable() &&
+                    MemoryMapper::map_memory<NullFieldBitmap>(rec)[pred.column_offset]) {
+                    return false;
+                }
+                break;
+        }
+    }
     
-    
-    return false;
+    return true;
 }
 
 }

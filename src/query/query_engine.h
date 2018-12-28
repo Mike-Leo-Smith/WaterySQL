@@ -29,10 +29,11 @@ private:
         const std::shared_ptr<Table> &t, ColumnOffset cid,
         PredicateOperator op) noexcept;
     
-    void _delete_record(const std::shared_ptr<Table> &table, RecordOffset rid);
+    void _delete_record(const std::shared_ptr<Table> &table, RecordOffset rid, const Byte *rec = nullptr);
     
-    bool _predicates_satisfied(
-        const std::shared_ptr<Table> &table, const std::vector<QueryPredicate> &preds, const Byte *rec);
+    bool _record_satisfies_predicates(
+        const std::shared_ptr<Table> &table, const Byte *rec,
+        const std::vector<QueryPredicate> &preds);
 
 protected:
     QueryEngine() = default;
@@ -42,7 +43,7 @@ public:
         const std::string &table_name, const std::vector<Byte> &raw,
         const std::vector<uint16_t> &field_sizes, const std::vector<uint16_t> &field_counts);
     
-    void delete_record(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds);
+    void delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds);
 };
 
 }

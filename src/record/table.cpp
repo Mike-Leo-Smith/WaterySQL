@@ -181,5 +181,17 @@ ColumnOffset Table::column_offset(const std::string &column_name) const {
 uint32_t Table::record_count() const noexcept {
     return _header.record_count;
 }
+
+bool Table::empty() const noexcept {
+    return _header.record_count == 0;
+}
+
+RecordOffset Table::record_offset_begin() const {
+    return next_record_offset({1, -1});
+}
+
+bool Table::is_record_offset_end(RecordOffset rid) const {
+    return rid == RecordOffset{-1, -1};
+}
     
 }

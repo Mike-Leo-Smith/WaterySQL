@@ -332,6 +332,9 @@ void Parser::_parse_primary_key(CreateTableActor &actor) {
         throw ParserError{"Primary key constraint cannot be set on multiple columns in one table.", column.offset};
     }
     auto primary_col_offset = actor.descriptor.get_column_offset(column.raw);
+    if (actor.descriptor.field_descriptors[primary_col_offset].constraints.nullable()) {
+        throw ParserError{"Cannot add primary key constraint on a nullable column.", column.offset};
+    }
     actor.descriptor.reference_counted = true;
     actor.descriptor.field_descriptors[primary_col_offset].constraints.set_primary();
     actor.descriptor.primary_key_column_offset = primary_col_offset;

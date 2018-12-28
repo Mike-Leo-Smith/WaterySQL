@@ -118,7 +118,7 @@ set(SOURCE_FILES
     src/error/unique_search_in_non_unique_index.h
     src/error/conflict_index_entry_insertion.h
     src/error/closing_shared_index.h
-    src/error/index_entry_oversized.h src/error/too_many_columns_to_insert.h src/error/invalid_null_field.h src/error/field_not_found.h)
+    src/error/index_entry_oversized.h src/error/too_many_columns_to_insert.h src/error/invalid_null_field.h src/error/field_not_found.h src/error/negative_record_reference_count.h src/error/deleting_referenced_record.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
