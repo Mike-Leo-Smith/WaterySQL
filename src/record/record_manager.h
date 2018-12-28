@@ -21,7 +21,6 @@ namespace watery {
 class RecordManager : public Singleton<RecordManager> {
 
 private:
-    PageManager &_page_manager = PageManager::instance();
     std::map<std::string, std::shared_ptr<Table>> _open_tables;
 
 protected:

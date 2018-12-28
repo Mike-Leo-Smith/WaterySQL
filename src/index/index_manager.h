@@ -22,7 +22,6 @@ namespace watery {
 class IndexManager : public Singleton<IndexManager> {
 
 private:
-    PageManager &_page_manager{PageManager::instance()};
     std::map<std::string, std::shared_ptr<Index>> _open_indices;
 
 protected:

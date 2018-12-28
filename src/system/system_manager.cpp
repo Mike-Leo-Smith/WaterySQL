@@ -34,8 +34,8 @@ void SystemManager::create_database(const std::string &name) {
 void SystemManager::drop_database(const std::string &name) {
     
     if (name == _current_database) {
-        _record_manager.close_all_tables();
-        _index_manager.close_all_indices();
+        RecordManager::instance().close_all_tables();
+        IndexManager::instance().close_all_indices();
         _table_list.clear();
         _current_database = "";
     }
@@ -78,8 +78,8 @@ void SystemManager::use_database(const std::string &name) {
         throw SystemManagerError{std::string{"Failed to use database \""}.append(name).append("\".")};
     }
     
-    _record_manager.close_all_tables();
-    _index_manager.close_all_indices();
+    RecordManager::instance().close_all_tables();
+    IndexManager::instance().close_all_indices();
     _scan_tables();
 }
 
@@ -121,12 +121,12 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
                                     "\" which has a foreign key constraint referencing a non-primary key column.")};
                         }
                     });
-                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
+                auto foreign_table = RecordManager::instance().open_table(field_desc.foreign_table_name.data());
                 foreign_table->add_foreign_key_reference(name);
                 foreign_tables.emplace_back(field_desc.foreign_table_name);
             }
             if (field_desc.constraints.unique()) {
-                _index_manager.create_index(
+                IndexManager::instance().create_index(
                     std::string{name}.append(".").append(field_desc.name.data()),
                     field_desc.data_descriptor, true);
                 field_desc.indexed = true;
@@ -134,15 +134,15 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
             }
         }
         // now actually able to create the table
-        _record_manager.create_table(name, descriptor);
+        RecordManager::instance().create_table(name, descriptor);
         _table_list.emplace(name);
     } catch (...) {  // assumed that no more exceptions are thrown during rollback
         auto e = std::current_exception();
         for (auto &&ft : foreign_tables) {
-            _record_manager.open_table(ft.data())->drop_foreign_key_reference(name);
+            RecordManager::instance().open_table(ft.data())->drop_foreign_key_reference(name);
         }
         for (auto &&idx : indices) {
-            _index_manager.delete_index(std::string{name}.append(".").append(idx.data()));
+            IndexManager::instance().delete_index(std::string{name}.append(".").append(idx.data()));
         }
         std::rethrow_exception(e);  // rethrow
     }
@@ -153,7 +153,7 @@ void SystemManager::drop_table(const std::string &name) {
         throw SystemManagerError{
             std::string{"Failed to drop table \""}.append(name).append("\" which does not exists.")};
     }
-    auto table = _record_manager.open_table(name);
+    auto table = RecordManager::instance().open_table(name);
     if (table->foreign_key_reference_count() != 0) {
         throw SystemManagerError{
             std::string{"Failed to drop table \""}.append(name).append("\" which is referenced by other tables.")};
@@ -164,14 +164,14 @@ void SystemManager::drop_table(const std::string &name) {
         auto &&field_desc = record_desc.field_descriptors[i];
         if (field_desc.indexed) {
             try {
-                _index_manager.delete_index(std::string{name}.append(".").append(field_desc.name.data()));
+                IndexManager::instance().delete_index(std::string{name}.append(".").append(field_desc.name.data()));
             } catch (const std::exception &e) {
                 print_error(std::cerr, e);
             }
         }
         if (field_desc.constraints.foreign()) {
             try {
-                auto foreign_table = _record_manager.open_table(field_desc.foreign_table_name.data());
+                auto foreign_table = RecordManager::instance().open_table(field_desc.foreign_table_name.data());
                 auto &&ref_count = foreign_table->foreign_key_reference_count();
                 ref_count--;
                 Printer::println(
@@ -182,13 +182,13 @@ void SystemManager::drop_table(const std::string &name) {
             }
         }
     }
-    _record_manager.delete_table(name);
+    RecordManager::instance().delete_table(name);
     _table_list.erase(name);
 }
 
 void SystemManager::create_index(const std::string &table_name, const std::string &column_name) {
     _visit_field_descriptor(
-        table_name, column_name, [&tn = table_name, &cn = column_name, &im = _index_manager](FieldDescriptor &fd) {
+        table_name, column_name, [&tn = table_name, &cn = column_name, &im = IndexManager::instance()](FieldDescriptor &fd) {
             if (fd.indexed) {
                 throw SystemManagerError{
                     std::string{"Failed to create index for column \""}
@@ -201,7 +201,7 @@ void SystemManager::create_index(const std::string &table_name, const std::strin
 
 void SystemManager::drop_index(const std::string &table_name, const std::string &column_name) {
     _visit_field_descriptor(
-        table_name, column_name, [&tn = table_name, &cn = column_name, &im = _index_manager](FieldDescriptor &fd) {
+        table_name, column_name, [&tn = table_name, &cn = column_name, &im = IndexManager::instance()](FieldDescriptor &fd) {
             if (fd.constraints.unique()) {
                 throw SystemManagerError{
                     std::string{"Failed to drop index for column \""}
@@ -244,12 +244,12 @@ SystemManager::SystemManager() {
 }
 
 const RecordDescriptor &SystemManager::describe_table(const std::string &table_name) {
-    return _record_manager.open_table(table_name)->descriptor();
+    return RecordManager::instance().open_table(table_name)->descriptor();
 }
 
 void SystemManager::quit() {
-    _index_manager.close_all_indices();
-    _record_manager.close_all_tables();
+    IndexManager::instance().close_all_indices();
+    RecordManager::instance().close_all_tables();
     std::exit(0);
 }
 

@@ -31,23 +31,23 @@ void IndexManager::create_index(const std::string &name, DataDescriptor data_des
     }
     
     auto file_name = name + INDEX_FILE_EXTENSION;
-    _page_manager.create_file(file_name);
-    auto file_handle = _page_manager.open_file(file_name);
+    PageManager::instance().create_file(file_name);
+    auto file_handle = PageManager::instance().open_file(file_name);
     
-    auto cache_handle = _page_manager.allocate_page({file_handle, 0});
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto cache_handle = PageManager::instance().allocate_page({file_handle, 0});
+    auto cache = PageManager::instance().access_cache_for_writing(cache_handle);
     MemoryMapper::map_memory<IndexHeader>(cache) = {data_desc, unique, kl, dl, 1, static_cast<uint32_t>(cpn), -1};
-    _page_manager.close_file(file_handle);
+    PageManager::instance().close_file(file_handle);
 }
 
 void IndexManager::delete_index(std::string name) {
     close_index(name);
-    _page_manager.delete_file(name.append(INDEX_FILE_EXTENSION));
+    PageManager::instance().delete_file(name.append(INDEX_FILE_EXTENSION));
 }
 
 std::shared_ptr<Index> IndexManager::open_index(const std::string &name) {
     if (_open_indices.count(name) == 0) {
-        FileHandle file_handle = _page_manager.open_file(name + INDEX_FILE_EXTENSION);
+        FileHandle file_handle = PageManager::instance().open_file(name + INDEX_FILE_EXTENSION);
         auto cache_handle = PageManager::instance().load_page({file_handle, 0});
         auto cache = PageManager::instance().access_cache_for_reading(cache_handle);
         const auto &index_header = MemoryMapper::map_memory<IndexHeader>(cache);

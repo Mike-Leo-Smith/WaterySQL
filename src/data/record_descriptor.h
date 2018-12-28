@@ -24,6 +24,8 @@ struct RecordDescriptor final {
     std::array<uint32_t, MAX_FIELD_COUNT> field_offsets{};
     ColumnOffset primary_key_column_offset{-1};
     bool null_mapped{false};
+    bool reference_counted{false};
+    bool foreign_referencing{false};
     
     RecordDescriptor(uint32_t fc, const std::array<FieldDescriptor, MAX_FIELD_COUNT> &fds)
         : field_count{fc},
@@ -38,10 +40,6 @@ struct RecordDescriptor final {
     RecordDescriptor(std::initializer_list<FieldDescriptor> fds)
         : field_count{static_cast<uint32_t>(fds.size())} {
         std::copy(fds.begin(), fds.end(), field_descriptors.begin());
-    }
-    
-    constexpr bool reference_counted() const {
-        return primary_key_column_offset != -1;
     }
     
     ColumnOffset get_column_offset(std::string_view col_name) const {

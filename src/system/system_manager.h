@@ -22,8 +22,6 @@ namespace watery {
 class SystemManager : public Singleton<SystemManager> {
 
 private:
-    RecordManager &_record_manager = RecordManager::instance();
-    IndexManager &_index_manager = IndexManager::instance();
     std::filesystem::path _base_path{std::filesystem::current_path() / DATABASE_BASE_PATH};
     std::string _current_database;
     std::set<std::string> _database_list;
@@ -41,7 +39,7 @@ protected:
             throw SystemManagerError{
                 std::string{"Failed to visit table \""}.append(table_name).append("\" which does not exist.")};
         }
-        auto &&record_desc = _record_manager.open_table(table_name)->descriptor();
+        auto &&record_desc = RecordManager::instance().open_table(table_name)->descriptor();
         for (auto i = 0; i < record_desc.field_count; i++) {
             auto &&field_desc = record_desc.field_descriptors[i];
             Printer::println(std::cout, "  visiting column ", field_desc.name.data());

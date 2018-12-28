@@ -30,21 +30,21 @@ void RecordManager::create_table(const std::string &name, const RecordDescriptor
     
     auto file_name = name + TABLE_FILE_EXTENSION;
     
-    _page_manager.create_file(file_name);
-    auto file_handle = _page_manager.open_file(file_name);
+    PageManager::instance().create_file(file_name);
+    auto file_handle = PageManager::instance().open_file(file_name);
     
-    auto cache_handle = _page_manager.allocate_page({file_handle, 0});
-    auto cache = _page_manager.access_cache_for_writing(cache_handle);
+    auto cache_handle = PageManager::instance().allocate_page({file_handle, 0});
+    auto cache = PageManager::instance().access_cache_for_writing(cache_handle);
     MemoryMapper::map_memory<TableHeader>(cache) = {record_descriptor, 1, 0, rl, spp, -1};
-    _page_manager.close_file(file_handle);
+    PageManager::instance().close_file(file_handle);
 }
 
 std::shared_ptr<Table> RecordManager::open_table(const std::string &name) {
     if (_open_tables.count(name) == 0) {
-        FileHandle file_handle = _page_manager.open_file(name + TABLE_FILE_EXTENSION);
+        FileHandle file_handle = PageManager::instance().open_file(name + TABLE_FILE_EXTENSION);
         // load table header
-        auto cache_handle = _page_manager.load_page({file_handle, 0});
-        auto cache = _page_manager.access_cache_for_reading(cache_handle);
+        auto cache_handle = PageManager::instance().load_page({file_handle, 0});
+        auto cache = PageManager::instance().access_cache_for_reading(cache_handle);
         const auto &table_header = MemoryMapper::map_memory<TableHeader>(cache);
         _open_tables.emplace(name, std::make_shared<Table>(name, file_handle, table_header));
     }
@@ -62,7 +62,7 @@ void RecordManager::close_table(const std::string &name) {
 
 void RecordManager::delete_table(std::string name) {
     close_table(name);
-    _page_manager.delete_file(name.append(TABLE_FILE_EXTENSION));
+    PageManager::instance().delete_file(name.append(TABLE_FILE_EXTENSION));
 }
 
 void RecordManager::close_all_tables() {

@@ -47,7 +47,7 @@ protected:
     uint16_t _parse_value(std::vector<Byte> &buffer);
     std::string_view _parse_string();
     void _parse_column_predicate_operator(ColumnPredicate &predicate);
-    ColumnPredicateOperator _parse_column_predicate_null_operator();
+    PredicateOperator _parse_column_predicate_null_operator();
     ColumnPredicate _parse_column_predicate();
     void _parse_column(std::string &table_name, std::string &column_name);
     void _parse_where_clause(std::vector<ColumnPredicate> &predicates);

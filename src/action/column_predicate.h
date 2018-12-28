@@ -9,7 +9,7 @@
 #include <string>
 
 #include "../config/config.h"
-#include "column_predicate_operator.h"
+#include "predicate_operator.h"
 
 namespace watery {
 
@@ -18,7 +18,7 @@ struct ColumnPredicate {
     std::string table_name;
     std::string column_name;
     
-    ColumnPredicateOperator op;
+    PredicateOperator op;
     std::vector<Byte> operand;
     
 };

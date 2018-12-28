@@ -8,7 +8,7 @@
 #include "../config/config.h"
 #include "column_predicate.h"
 #include "../utility/memory/string_view_copier.h"
-#include "column_predicate_helper.h"
+#include "predicate_operator_helper.h"
 #include "../utility/io/printer.h"
 
 namespace watery {
@@ -44,7 +44,7 @@ struct UpdateRecordActor {
                 if (!table_name.empty()) {
                     std::cout << table_name << ".";
                 }
-                std::cout << pred.column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                std::cout << pred.column_name << " " << PredicateOperatorHelper::operator_symbol(pred.op);
                 if (!pred.operand.empty()) {
                     std::cout << " " << pred.operand.data();
                 }

@@ -24,6 +24,7 @@ private:
     std::string _name;
     FileHandle _file_handle{-1};
     TableHeader _header;
+    std::map<std::string, ColumnOffset> _column_offsets;
 
 public:
     Table(std::string name, FileHandle fh, TableHeader th);
@@ -32,6 +33,8 @@ public:
     const std::string &name() const noexcept;
     RecordDescriptor &descriptor() noexcept;
     const RecordDescriptor &descriptor() const noexcept;
+    ColumnOffset column_offset(const std::string &column_name) const;
+    uint32_t record_count() const noexcept;
     
     const Byte *get_record(RecordOffset record_offset) const;
     RecordOffset insert_record(const Byte *data);

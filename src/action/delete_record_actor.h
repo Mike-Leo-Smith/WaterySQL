@@ -11,7 +11,7 @@
 
 #include "../config/config.h"
 #include "column_predicate.h"
-#include "column_predicate_helper.h"
+#include "predicate_operator_helper.h"
 #include "../utility/memory/string_view_copier.h"
 
 namespace watery {
@@ -19,7 +19,7 @@ namespace watery {
 struct DeleteRecordActor {
     
     std::string table_name;
-    mutable std::vector<ColumnPredicate> predicates;
+    std::vector<ColumnPredicate> predicates;
     
     explicit DeleteRecordActor(std::string_view tab) noexcept
         : table_name{tab} {}
@@ -38,7 +38,7 @@ struct DeleteRecordActor {
                 }
                 Printer::print(
                     std::cout, pred.column_name, " ",
-                    ColumnPredicateHelper::operator_symbol(pred.op));
+                    PredicateOperatorHelper::operator_symbol(pred.op));
                 if (!pred.operand.empty()) {
                     Printer::print(std::cout, " ", pred.operand.data());
                 }

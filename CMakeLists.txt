@@ -26,14 +26,14 @@ set(SOURCE_FILES
     src/data/field_descriptor.h
     src/data/type_tag.h
     src/data/data_descriptor.h
-    src/utility/type/non_copyable.h
+    src/error/page_manager_error.h
     src/index/index_manager.cpp
     src/index/index_manager.h
     src/page/page_manager.cpp
     src/page/page_manager.h
-    src/utility/type/singleton.h
+    src/utility/type/non_copyable.h
     src/utility/type/non_movable.h
-    src/error/page_manager_error.h
+    src/utility/type/singleton.h
     src/utility/io/error_printer.h
     src/utility/io/printer.h
     src/error/error.h
@@ -92,8 +92,8 @@ set(SOURCE_FILES
     src/utility/time/date_validator.h
     src/action/column_predicate.h
     src/action/delete_record_actor.h
-    src/action/column_predicate_operator.h
-    src/action/column_predicate_helper.h
+    src/action/predicate_operator.h
+    src/action/predicate_operator_helper.h
     src/action/update_record_actor.h
     src/action/select_record_actor.h
     src/utility/memory/identifier_comparison.h
@@ -102,12 +102,9 @@ set(SOURCE_FILES
     src/utility/io/record_descriptor_printer.h
     src/query/query_engine.cpp
     src/query/query_engine.h
-    src/error/query_engine_error.h
     src/data/type_tag_helper.h
     src/action/execute_file_actor.h
-    src/query/predicate_efficiency_estimator.cpp
-    src/query/predicate_efficiency_estimator.h
-    src/query/predicate.h src/record/table.cpp
+    src/query/query_predicate.h src/record/table.cpp
     src/error/record_offset_out_of_range.h
     src/error/record_not_found.h
     src/error/record_slot_usage_bitmap_corrupt.h
@@ -120,7 +117,8 @@ set(SOURCE_FILES
     src/error/index_entry_not_found.h
     src/error/unique_search_in_non_unique_index.h
     src/error/conflict_index_entry_insertion.h
-    src/error/closing_shared_index.h src/error/index_entry_oversized.h)
+    src/error/closing_shared_index.h
+    src/error/index_entry_oversized.h src/error/too_many_columns_to_insert.h src/error/invalid_null_field.h src/error/field_not_found.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

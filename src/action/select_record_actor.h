@@ -47,7 +47,7 @@ struct SelectRecordActor {
                 if (!pred.table_name.empty()) {
                     std::cout << pred.table_name << ".";
                 }
-                std::cout << pred.column_name << " " << ColumnPredicateHelper::operator_symbol(pred.op);
+                std::cout << pred.column_name << " " << PredicateOperatorHelper::operator_symbol(pred.op);
                 if (!pred.operand.empty()) {
                     std::cout << " " << pred.operand.data();
                 }

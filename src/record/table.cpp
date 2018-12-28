@@ -11,6 +11,7 @@
 #include "../error/record_not_found.h"
 #include "../error/record_slot_usage_bitmap_corrupt.h"
 #include "../error/negative_foreign_key_reference_count.h"
+#include "../error/field_not_found.h"
 
 namespace watery {
 
@@ -164,6 +165,21 @@ RecordDescriptor &Table::descriptor() noexcept {
 }
 
 Table::Table(std::string name, FileHandle fh, TableHeader th)
-    : _name{std::move(name)}, _file_handle{fh}, _header{th} {}
+    : _name{std::move(name)}, _file_handle{fh}, _header{th} {
+    for (auto i = 0; i < _header.record_descriptor.field_count; i++) {
+        _column_offsets.emplace(th.record_descriptor.field_descriptors[i].name.data(), i);
+    }
+}
+
+ColumnOffset Table::column_offset(const std::string &column_name) const {
+    if (auto it = _column_offsets.find(column_name); it != _column_offsets.end()) {
+        return it->second;
+    }
+    throw FieldNotFound{_name, column_name};
+}
+
+uint32_t Table::record_count() const noexcept {
+    return _header.record_count;
+}
     
 }

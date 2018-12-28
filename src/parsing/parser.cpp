@@ -239,7 +239,7 @@ void Parser::_parse_field_list(CreateTableActor &actor) {
     if (actor.descriptor.null_mapped) {
         actor.descriptor.length += sizeof(NullFieldBitmap);
     }
-    if (actor.descriptor.reference_counted()) {
+    if (actor.descriptor.reference_counted) {
         actor.descriptor.length += sizeof(uint32_t);
     }
     for (auto i = 0; i < actor.descriptor.field_count; i++) {
@@ -295,7 +295,14 @@ void Parser::_parse_foreign_key(CreateTableActor &actor) {
     auto column = _scanner.match_token(TokenTag::IDENTIFIER);
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
     _scanner.match_token(TokenTag::REFERENCES);
-    auto foreign_table = _scanner.match_token(TokenTag::IDENTIFIER).raw;
+    auto foreign_table = _scanner.match_token(TokenTag::IDENTIFIER);
+    
+    if (foreign_table.raw == actor.name) {
+        throw ParserError{
+            std::string{"Foregin keys cannot refer to table \""}.append(actor.name).append("\" itself."),
+            foreign_table.offset};
+    }
+    
     _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
     auto foreign_column = _scanner.match_token(TokenTag::IDENTIFIER).raw;
     _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
@@ -309,7 +316,8 @@ void Parser::_parse_foreign_key(CreateTableActor &actor) {
             column.offset};
     }
     field.constraints.set_foreign();
-    StringViewCopier::copy(foreign_table, field.foreign_table_name);
+    actor.descriptor.foreign_referencing = true;
+    StringViewCopier::copy(foreign_table.raw, field.foreign_table_name);
     StringViewCopier::copy(foreign_column, field.foreign_column_name);
 }
 
@@ -324,6 +332,7 @@ void Parser::_parse_primary_key(CreateTableActor &actor) {
         throw ParserError{"Primary key constraint cannot be set on multiple columns in one table.", column.offset};
     }
     auto primary_col_offset = actor.descriptor.get_column_offset(column.raw);
+    actor.descriptor.reference_counted = true;
     actor.descriptor.field_descriptors[primary_col_offset].constraints.set_primary();
     actor.descriptor.primary_key_column_offset = primary_col_offset;
 }
@@ -429,32 +438,32 @@ void Parser::_parse_column_predicate_operator(ColumnPredicate &predicate) {
     switch (_scanner.lookahead()) {
         case TokenTag::EQUAL:
             _scanner.match_token(TokenTag::EQUAL);
-            predicate.op = ColumnPredicateOperator::EQUAL;
+            predicate.op = PredicateOperator::EQUAL;
             _parse_value(predicate.operand);
             break;
         case TokenTag::UNEQUAL:
             _scanner.match_token(TokenTag::UNEQUAL);
-            predicate.op = ColumnPredicateOperator::UNEQUAL;
+            predicate.op = PredicateOperator::UNEQUAL;
             _parse_value(predicate.operand);
             break;
         case TokenTag::LESS:
             _scanner.match_token(TokenTag::LESS);
-            predicate.op = ColumnPredicateOperator::LESS;
+            predicate.op = PredicateOperator::LESS;
             _parse_value(predicate.operand);
             break;
         case TokenTag::LESS_EQUAL:
             _scanner.match_token(TokenTag::LESS_EQUAL);
-            predicate.op = ColumnPredicateOperator::LESS_EQUAL;
+            predicate.op = PredicateOperator::LESS_EQUAL;
             _parse_value(predicate.operand);
             break;
         case TokenTag::GREATER:
             _scanner.match_token(TokenTag::GREATER);
-            predicate.op = ColumnPredicateOperator::GREATER;
+            predicate.op = PredicateOperator::GREATER;
             _parse_value(predicate.operand);
             break;
         case TokenTag::GREATER_EQUAL:
             _scanner.match_token(TokenTag::GREATER_EQUAL);
-            predicate.op = ColumnPredicateOperator::GREATER_EQUAL;
+            predicate.op = PredicateOperator::GREATER_EQUAL;
             _parse_value(predicate.operand);
             break;
         case TokenTag::IS:
@@ -468,14 +477,14 @@ void Parser::_parse_column_predicate_operator(ColumnPredicate &predicate) {
     }
 }
 
-ColumnPredicateOperator Parser::_parse_column_predicate_null_operator() {
+PredicateOperator Parser::_parse_column_predicate_null_operator() {
     if (_scanner.lookahead() == TokenTag::NUL) {
         _scanner.match_token(TokenTag::NUL);
-        return ColumnPredicateOperator::IS_NULL;
+        return PredicateOperator::IS_NULL;
     }
     _scanner.match_token(TokenTag::NOT);
     _scanner.match_token(TokenTag::NUL);
-    return ColumnPredicateOperator::NOT_NULL;
+    return PredicateOperator::NOT_NULL;
 }
 
 ColumnPredicate Parser::_parse_column_predicate() {
