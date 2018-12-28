@@ -10,12 +10,12 @@
 
 #include "index_manager.h"
 #include "index_entry_offset.h"
-#include "../error/index_manager_error.h"
 #include "../error/page_manager_error.h"
 #include "../utility/io/error_printer.h"
 #include "../utility/memory/memory_mapper.h"
 #include "../utility/mathematics/sgn.h"
 #include "../error/closing_shared_index.h"
+#include "../error/index_entry_oversized.h"
 
 namespace watery {
 
@@ -27,9 +27,7 @@ void IndexManager::create_index(const std::string &name, DataDescriptor data_des
     auto cpn = (PAGE_SIZE - sizeof(IndexNodeHeader) - 8 /* for alignment */) / (kl + pl) / 2 * 2;  // rounded to even
     
     if (cpn == 0) {
-        throw IndexManagerError{
-            std::string{"Failed to create index because the keys are too long ("}
-                .append(std::to_string(kl)).append(" bytes).")};
+        throw IndexEntryOversized{name, kl};
     }
     
     auto file_name = name + INDEX_FILE_EXTENSION;
@@ -58,7 +56,7 @@ std::shared_ptr<Index> IndexManager::open_index(const std::string &name) {
     return _open_indices[name];
 }
 
-void IndexManager::close_index(const std::string &name) noexcept {
+void IndexManager::close_index(const std::string &name) {
     if (auto it = _open_indices.find(name); it != _open_indices.end()) {
         if (!it->second.unique()) {
             throw ClosingSharedIndex{name};
@@ -71,7 +69,7 @@ IndexManager::~IndexManager() {
     _open_indices.clear();
 }
 
-void IndexManager::close_all_indices() noexcept {
+void IndexManager::close_all_indices() {
     for (auto &&entry : _open_indices) {
         if (!entry.second.unique()) {
             throw ClosingSharedIndex{entry.first};

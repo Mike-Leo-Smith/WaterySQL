@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <array>
-#include <queue>
+#include <stack>
 
 #include "page_handle.h"
 #include "../utility/type/singleton.h"
@@ -33,11 +33,11 @@ private:
     std::unordered_map<PageHandle, CacheHandle, PageHandle::Hash> _cached_pages;
     std::vector<CacheDescriptor> _cache_descriptors;
     std::vector<std::array<Byte, PAGE_SIZE>> _cache;
-    std::queue<CacheHandle> _available_cache_handles;
+    std::stack<CacheHandle> _available_cache_handles;
     
     std::vector<std::fstream> _open_files;
     std::vector<std::set<CacheHandle>> _file_associated_cache_sets;
-    std::queue<FileHandle> _available_file_handles;
+    std::stack<FileHandle> _available_file_handles;
     
     CacheHandle _assign_cache_handle(PageHandle page_handle);
     TimeStamp _assign_time_stamp() noexcept;

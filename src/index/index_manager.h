@@ -34,8 +34,8 @@ public:
     void create_index(const std::string &name, DataDescriptor data_desc, bool unique);
     void delete_index(std::string name);
     std::shared_ptr<Index> open_index(const std::string &name);
-    void close_index(const std::string &name) noexcept;
-    void close_all_indices() noexcept;
+    void close_index(const std::string &name);
+    void close_all_indices();
 };
 
 }

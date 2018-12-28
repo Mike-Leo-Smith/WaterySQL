@@ -16,7 +16,7 @@ struct RecordOversized : public Error {
         "RecordOversized",
         std::string{"Records of table \""}
             .append(table_name).append("\" with size ")
-            .append(std::to_string(len)).append(" are too long to fit into a data page.")} {}
+            .append(std::to_string(len)).append(" bytes are too long to fit into a page.")} {}
     
 };
 

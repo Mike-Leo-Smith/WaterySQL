@@ -52,7 +52,6 @@ set(SOURCE_FILES
     src/index/index_node_header.h
     src/index/index_entry_offset.h
     src/index/index_node_link.h
-    src/error/index_manager_error.h
     src/error/data_error.h
     src/utility/mathematics/sgn.h
     src/utility/time/elapsed_time.h
@@ -115,7 +114,13 @@ set(SOURCE_FILES
     src/error/negative_foreign_key_reference_count.h
     src/error/record_oversized.h
     src/error/closing_shared_table.h
-    src/index/index.cpp src/error/empty_index_tree.h src/error/index_entry_offset_out_of_range.h src/error/index_entry_not_found.h src/error/unique_search_in_non_unique_index.h src/error/conflict_index_entry_insertion.h src/error/closing_shared_index.h)
+    src/index/index.cpp
+    src/error/empty_index_tree.h
+    src/error/index_entry_offset_out_of_range.h
+    src/error/index_entry_not_found.h
+    src/error/unique_search_in_non_unique_index.h
+    src/error/conflict_index_entry_insertion.h
+    src/error/closing_shared_index.h src/error/index_entry_oversized.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
