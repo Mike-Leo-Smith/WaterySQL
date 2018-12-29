@@ -27,27 +27,32 @@ struct InsertRecordActor {
         : table_name{t} {}
     
     void operator()() const {
-        Printer::println(std::cout, "INSERT INTO ", table_name, " VALUES(", field_counts.size(), ")");
+        Printer::print(std::cout, "INSERT INTO ", table_name, " VALUES\n");
         auto field_pos = 0ul;
         auto field_index = 0ul;
         bool first_row = true;
+        auto count = 0;
         for (auto &&c : field_counts) {
+            if (++count > 10) {
+                Printer::print(std::cout, "    ... (", field_counts.size(), " rows totally)\n");
+                break;
+            }
             Printer::print(std::cout, "  (");
             bool first = true;
             for (auto i = field_index; i < field_index + c; i++) {
                 if (!first) { Printer::print(std::cout, ", "); }
                 first = false;
                 auto l = field_sizes[i];
-                Printer::print(std::cout, (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}),  ":", l);
+                Printer::print(
+                    std::cout, (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}),
+                    "[", l, " bytes]");
                 field_pos += l;
             }
             field_index += c;
             Printer::print(std::cout, ")\n");
         }
-        Printer::println(std::cout);
-        Printer::println(std::cout, "Inserting...");
         QueryEngine::instance().insert_records(table_name, buffer, field_sizes, field_counts);
-        Printer::println(std::cout, "Done.");
+        Printer::println(std::cout, "Done.\n");
     }
     
 };

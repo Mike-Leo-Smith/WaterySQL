@@ -15,9 +15,9 @@ struct ShowDatabasesActor {
     void operator()() const {
         Printer::println(std::cout, "SHOW DATABASES");
         for (auto &&db : SystemManager::instance().database_list()) {
-            Printer::print(std::cout, "    ", db, "\n");
+            Printer::print(std::cout, "  ", db, "\n");
         }
-        Printer::println(std::cout, "Done.");
+        Printer::println(std::cout, "Done.\n");
     }
     
 };

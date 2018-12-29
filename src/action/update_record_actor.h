@@ -44,7 +44,8 @@ struct UpdateRecordActor {
         } else {
             Printer::print(std::cout, "ALL\n");
         }
-        Printer::println(std::cout);
+        QueryEngine::instance().update_records(table_name, columns, values, lengths, predicates);
+        Printer::println(std::cout, "Done.\n");
     }
     
 };

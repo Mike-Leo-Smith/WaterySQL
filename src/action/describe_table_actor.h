@@ -23,7 +23,7 @@ struct DescribeTableActor {
     void operator()() const {
         Printer::println(std::cout, "DESCRIBE TABLE ", name);
         RecordDescriptorPrinter::print(std::cout, SystemManager::instance().describe_table(name));
-        Printer::println(std::cout, "Done.");
+        Printer::println(std::cout, "Done.\n");
     }
     
 };

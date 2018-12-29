@@ -19,9 +19,9 @@ namespace watery {
 class QueryEngine : public Singleton<QueryEngine> {
 
 private:
-    static const Byte *_make_record(
+    static const Byte * _make_record(
         const std::shared_ptr<Table> &table, const Byte *raw,
-        const uint16_t *sizes, uint16_t count);
+        const uint16_t *sizes, const std::vector<ColumnOffset> &cols);
     
     static void _insert_record(
         const std::shared_ptr<Table> &table, const Byte *raw,

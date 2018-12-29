@@ -27,16 +27,16 @@ struct DeleteRecordActor {
     void operator()() const {
         Printer::print(std::cout, "DELETE FROM ", table_name);
         if (!predicates.empty()) {
-            Printer::print(std::cout, "WHERE\n");
+            Printer::print(std::cout, " WHERE\n");
             for (auto &&pred : predicates) {
                 ColumnPredicatePrinter::print(std::cout, pred);
             }
         } else {
-            Printer::print(std::cout, "ALL\n");
+            Printer::print(std::cout, " ALL\n");
         }
         Printer::println(std::cout);
         QueryEngine::instance().delete_records(table_name, predicates);
-        Printer::println(std::cout, "Done.");
+        Printer::println(std::cout, "Done.\n");
     }
     
 };

@@ -9,6 +9,7 @@
 #include "system_manager.h"
 #include "../error/system_manager_error.h"
 #include "../utility/io/error_printer.h"
+#include "../query/query_engine.h"
 
 namespace watery {
 
@@ -172,6 +173,31 @@ void SystemManager::drop_table(const std::string &name) {
         }
         
         auto &&record_desc = table->descriptor();
+        if (record_desc.foreign_referencing) {  // drop foreign record ref counts
+            for (auto rid = table->record_offset_begin();
+                 !table->is_record_offset_end(rid);
+                 rid = table->next_record_offset(rid)) {
+                for (auto i = 0; i < record_desc.field_count; i++) {
+                    auto &&field_desc = record_desc.field_descriptors[i];
+                    if (!field_desc.constraints.foreign()) {
+                        continue;
+                    }
+                    auto rec = table->get_record(rid);
+                    if (field_desc.constraints.nullable() &&
+                        MemoryMapper::map_memory<NullFieldBitmap>(rec)[i]) {
+                        continue;
+                    }
+                    std::string foreign_name{field_desc.foreign_table_name.data()};
+                    auto field = rec + record_desc.field_offsets[i];
+                    auto foreign_table = RecordManager::instance().open_table(foreign_name);
+                    foreign_name.append(".").append(field_desc.foreign_column_name.data());
+                    auto foreign_index = IndexManager::instance().open_index(foreign_name);
+                    auto foreign_rid = foreign_index->search_unique_index_entry(field);
+                    foreign_table->drop_record_reference_count(foreign_rid);
+                }
+            }
+        }
+        
         for (auto i = 0; i < record_desc.field_count; i++) {
             auto &&field_desc = record_desc.field_descriptors[i];
             if (field_desc.indexed) {
@@ -179,11 +205,7 @@ void SystemManager::drop_table(const std::string &name) {
             }
             if (field_desc.constraints.foreign()) {
                 auto foreign_table = RecordManager::instance().open_table(field_desc.foreign_table_name.data());
-                auto &&ref_count = foreign_table->foreign_key_reference_count();
-                ref_count--;
-                Printer::println(
-                    std::cout, "  dropped foreign key ref to ", foreign_table->name(),
-                    ", whose new ref count is now ", ref_count);
+                foreign_table->drop_foreign_key_reference(table->name());
             }
         }
     }

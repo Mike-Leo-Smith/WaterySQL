@@ -42,7 +42,6 @@ protected:
         auto &&record_desc = RecordManager::instance().open_table(table_name)->descriptor();
         for (auto i = 0; i < record_desc.field_count; i++) {
             auto &&field_desc = record_desc.field_descriptors[i];
-            Printer::println(std::cout, "  visiting column ", field_desc.name.data());
             if (field_desc.name.data() == column_name) {
                 visit(field_desc);
                 return;

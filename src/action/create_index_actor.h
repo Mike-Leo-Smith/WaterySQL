@@ -23,7 +23,7 @@ struct CreateIndexActor {
     void operator()() const {
         Printer::println(std::cout, "CREATE INDEX ", table_name, "(", column_name, ")");
         SystemManager::instance().create_index(table_name, column_name);
-        Printer::println(std::cout, "Done.");
+        Printer::println(std::cout, "Done.\n");
     }
     
 };

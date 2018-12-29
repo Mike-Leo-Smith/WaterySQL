@@ -25,10 +25,10 @@ struct SelectRecordActor {
     void operator()() const {
         Printer::print(std::cout, "SELECT\n");
         if (wildcard) {
-            Printer::print(std::cout, "    *\n");
+            Printer::print(std::cout, "  *\n");
         } else {
             for (auto i = 0; i < selected_tables.size(); i++) {
-                Printer::print(std::cout, "    ");
+                Printer::print(std::cout, "  ");
                 if (!selected_tables[i].empty()) {
                     Printer::print(std::cout, selected_tables[i], ".");
                 }
@@ -37,7 +37,7 @@ struct SelectRecordActor {
         }
         Printer::print(std::cout, "FROM\n");
         for (auto &&t: tables) {
-            Printer::print(std::cout, "    ", t, "\n");
+            Printer::print(std::cout, "  ", t, "\n");
         }
         if (!predicates.empty()) {
             Printer::print(std::cout, "WHERE\n");

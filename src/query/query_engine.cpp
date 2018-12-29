@@ -18,18 +18,17 @@
 
 namespace watery {
 
-const Byte *QueryEngine::_make_record(
-    const std::shared_ptr<Table> &table, const Byte *raw, const uint16_t *sizes, uint16_t count) {
+const Byte * QueryEngine::_make_record(
+    const std::shared_ptr<Table> &table, const Byte *raw,
+    const uint16_t *sizes, const std::vector<ColumnOffset> &cols) {
     
     const auto &desc = table->descriptor();
-    if (desc.field_count < count) {
-        throw TooManyColumnsToInsert{table->name(), count};
+    if (desc.field_count < cols.size()) {
+        throw TooManyColumnsToInsert{table->name(), static_cast<uint32_t>(cols.size())};
     }
     
     thread_local static std::vector<Byte> record_buffer;
-    if (record_buffer.size() < desc.length) {
-        record_buffer.resize(desc.length);
-    }
+    record_buffer.resize(desc.length);
     
     if (desc.null_mapped) {  // reset null field bitmap if any
         MemoryMapper::map_memory<NullFieldBitmap>(record_buffer.data()).set();
@@ -38,20 +37,23 @@ const Byte *QueryEngine::_make_record(
         MemoryMapper::map_memory<uint32_t>(record_buffer.data() + sizeof(NullFieldBitmap)) = 0;
     }
     
-    for (auto i = 0; i < count; i++) {
+    for (auto i = 0; i < cols.size(); i++) {
         auto size = sizes[i];
-        if (size == 0) {
-            if (!desc.field_descriptors[i].constraints.nullable()) {
-                throw InvalidNullField{table->name(), desc.field_descriptors[i].name.data()};
+        auto col = cols[i];
+        auto &field_desc = desc.field_descriptors[col];
+        if (size == 0) {  // null
+            if (!field_desc.constraints.nullable()) {
+                throw InvalidNullField{table->name(), field_desc.name.data()};
             }
-            MemoryMapper::map_memory<NullFieldBitmap>(record_buffer.data())[i] = false;
-        } else {
+        } else {  // not null
+            auto data_desc = field_desc.data_descriptor;
             ValueDecoder::decode(
-                desc.field_descriptors[i].data_descriptor.type,
+                data_desc.type,
                 std::string_view{raw, size},
-                record_buffer.data() + desc.field_offsets[i],
-                desc.field_descriptors[i].data_descriptor.length);
+                record_buffer.data() + desc.field_offsets[col],
+                data_desc.length);
             raw += size;
+            MemoryMapper::map_memory<NullFieldBitmap>(record_buffer.data())[col] = false;
         }
     }
     
@@ -71,7 +73,6 @@ void QueryEngine::insert_records(
             data_ptr += size_ptr[i];
         }
         size_ptr += field_count;
-        Printer::print(std::cout, "Inserted ", ++count, "/", field_counts.size(), " rows...\n");
     }
 }
 
@@ -79,7 +80,13 @@ void QueryEngine::_insert_record(
     const std::shared_ptr<Table> &table, const Byte *raw,
     const uint16_t *sizes, uint16_t count) {
     
-    auto record = _make_record(table, raw, sizes, count);
+    thread_local static std::vector<ColumnOffset> columns;
+    columns.clear();
+    
+    for (auto i = 0; i < count; i++) {
+        columns.emplace_back(i);
+    }
+    auto record = _make_record(table, raw, sizes, columns);
     
     std::vector<int32_t> indexed_column_indices;
     std::vector<int32_t> foreign_key_column_indices;
@@ -321,13 +328,8 @@ void QueryEngine::update_records(
     auto table = RecordManager::instance().open_table(table_name);
     auto &desc = table->descriptor();
     
-    std::vector<ColumnOffset> update_cols;
-    std::vector<Byte> update_rec;
-    
-    update_rec.resize(table->descriptor().length);
-    if (desc.null_mapped) {
-        MemoryMapper::map_memory<NullFieldBitmap>(update_rec.data()).reset();
-    }
+    thread_local static std::vector<ColumnOffset> update_cols;
+    update_cols.clear();
     
     auto p = values.data();
     for (auto i = 0; i < columns.size(); i++) {
@@ -340,28 +342,15 @@ void QueryEngine::update_records(
             throw ConflictRecordFieldUpdate{table_name, columns[i]};
         }
         update_cols.emplace_back(cid);
-        if (sizes[i] == 0) {  // null
-            if (!field_desc.constraints.nullable()) {
-                throw InvalidNullField{table_name, columns[i]};
-            }
-            MemoryMapper::map_memory<NullFieldBitmap>(update_rec.data())[i] = true;
-        } else {  // not null
-            auto &data_desc = field_desc.data_descriptor;
-            ValueDecoder::decode(
-                data_desc.type,
-                std::string_view{p, sizes[i]},
-                update_rec.data() + desc.field_offsets[i],
-                data_desc.length);
-        }
     }
     
+    auto update_rec = _make_record(table, values.data(), sizes.data(), update_cols);
     auto predicates = _simplify_single_table_column_predicates(table, preds);
-    
     for (auto rid = table->record_offset_begin();
          !table->is_record_offset_end(rid);
          rid = table->next_record_offset(rid)) {
         if (_record_satisfies_predicates(table, table->get_record(rid), predicates)) {
-            _update_record(table, rid, update_cols, update_rec.data());
+            _update_record(table, rid, update_cols, update_rec);
         }
     }
     
@@ -380,24 +369,31 @@ void QueryEngine::_update_record(
             auto old_field = old + offset;
             auto new_field = r + offset;
             if (cmp.equal(old_field, new_field)) { return; }
-            if (field_desc.constraints.nullable()) {
-                MemoryMapper::map_memory<NullFieldBitmap>(old)[c] = MemoryMapper::map_memory<NullFieldBitmap>(r)[c];
+            auto nullable = field_desc.constraints.nullable();
+            auto old_null = nullable && MemoryMapper::map_memory<NullFieldBitmap>(old)[c];
+            auto new_null = nullable && MemoryMapper::map_memory<NullFieldBitmap>(r)[c];
+            if (nullable) {
+                MemoryMapper::map_memory<NullFieldBitmap>(old)[c] = new_null;
             }
-            if (field_desc.indexed) {
-                auto index_name = (t->name() + ".").append(field_desc.name.data());
-                auto index = IndexManager::instance().open_index(index_name);
-                index->delete_index_entry(old_field, rid);
-                index->insert_index_entry(new_field, rid);
-            }
-            if(field_desc.constraints.foreign()) {
-                std::string name{field_desc.foreign_table_name.data()};
-                auto foreign_table = RecordManager::instance().open_table(name);
-                name.append(".").append(field_desc.foreign_column_name.data());
-                auto foreign_index = IndexManager::instance().open_index(name);
-                auto old_foreign_rid = foreign_index->search_unique_index_entry(old_field);
-                foreign_table->drop_record_reference_count(old_foreign_rid);
-                auto new_foreign_rid = foreign_index->search_unique_index_entry(new_field);
-                foreign_table->add_record_reference_count(new_foreign_rid);
+            if (!old_null || !new_null) {
+                if (field_desc.indexed) {
+                    auto index_name = (t->name() + ".").append(field_desc.name.data());
+                    auto index = IndexManager::instance().open_index(index_name);
+                    if (!old_null) { index->delete_index_entry(old_field, rid); }
+                    if (!new_null) { index->insert_index_entry(new_field, rid); }
+                }
+                if (field_desc.constraints.foreign()) {
+                    std::string name{field_desc.foreign_table_name.data()};
+                    auto foreign_table = RecordManager::instance().open_table(name);
+                    name.append(".").append(field_desc.foreign_column_name.data());
+                    auto foreign_index = IndexManager::instance().open_index(name);
+                    if (!old_null) {
+                        foreign_table->drop_record_reference_count(foreign_index->search_unique_index_entry(old_field));
+                    }
+                    if (!new_null) {
+                        foreign_table->add_record_reference_count(foreign_index->search_unique_index_entry(new_field));
+                    }
+                }
             }
             std::memmove(old_field, new_field, data_desc.length);
         });

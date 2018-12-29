@@ -23,7 +23,7 @@ struct DropTableActor {
     void operator()() const {
         Printer::println(std::cout, "DROP TABLE ", name);
         SystemManager::instance().drop_table(name);
-        Printer::println(std::cout, "Done.");
+        Printer::println(std::cout, "Done.\n");
     }
     
 };
