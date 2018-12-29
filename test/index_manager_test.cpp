@@ -87,7 +87,7 @@ int main() {
             std::shuffle(data_set.begin(), data_set.end(), random);
             Printer::println(std::cout, "elapsed time: ", timed_run([&] {
                 for (auto &&entry: data_set) {
-                    index->search_index_entry(reinterpret_cast<Byte *>(&entry));
+                    index->search_index_entry(reinterpret_cast<Byte *>(&entry), RecordOffset());
                 }
             }).first, "ms");
         }

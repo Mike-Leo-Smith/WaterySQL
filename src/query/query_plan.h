@@ -1,0 +1,20 @@
+//
+// Created by Mike Smith on 2018-12-30.
+//
+
+#ifndef WATERYSQL_QUERY_PLAN_H
+#define WATERYSQL_QUERY_PLAN_H
+
+namespace watery {
+
+enum struct QueryPlan {
+    CONSTANT_EMPTY_RESULT,
+    FULL_TABLE_SCAN_AND_COMPARE,
+    FULL_TABLE_SCAN_AND_NULL_CHECK,
+    INDEX_SEARCH_AND_COMPARE,
+    PARTIAL_INDEX_SCAN_AND_COMPARE,
+};
+
+}
+
+#endif  // WATERYSQL_QUERY_PLAN_H

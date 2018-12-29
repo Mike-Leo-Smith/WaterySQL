@@ -34,7 +34,6 @@ struct DeleteRecordActor {
         } else {
             Printer::print(std::cout, " ALL\n");
         }
-        Printer::println(std::cout);
         QueryEngine::instance().delete_records(table_name, predicates);
         Printer::println(std::cout, "Done.\n");
     }

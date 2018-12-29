@@ -50,15 +50,16 @@ private:
     IndexNode &_allocate_index_node();
     static IndexNode &_load_node_for_writing(FileHandle fh, PageOffset node_offset);
     static const IndexNode &_load_node_for_reading(FileHandle fh, PageOffset node_offset);
-    static IndexHeader &_allocate_index_header(FileHandle fh);
 
 public:
     Index(std::string name, FileHandle fh, IndexHeader h);
     ~Index();
     
-    IndexEntryOffset search_index_entry(const Byte *data) const;
+    IndexEntryOffset search_index_entry(const Byte *data, RecordOffset rid = {-1, -1}) const;
     IndexEntryOffset next_index_entry_offset(IndexEntryOffset offset) const;
     IndexEntryOffset prev_index_entry_offset(IndexEntryOffset offset) const;
+    IndexEntryOffset index_entry_offset_begin() const;
+    bool is_index_entry_offset_end(IndexEntryOffset offset) const;
     RecordOffset related_record_offset(IndexEntryOffset offset) const;
     
     void insert_index_entry(const Byte *data, RecordOffset rid);

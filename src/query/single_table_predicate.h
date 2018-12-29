@@ -12,6 +12,7 @@
 #include "../action/predicate_operator.h"
 #include "../record/table.h"
 #include "../utility/memory/value_decoder.h"
+#include "query_plan.h"
 
 namespace watery {
 
@@ -23,10 +24,13 @@ struct SingleTablePredicate {
     PredicateOperator op;
     std::vector<Byte> operand;
     
+    QueryPlan query_plan;
     uint64_t estimated_cost;
     
-    SingleTablePredicate(std::shared_ptr<Table> t, ColumnOffset cid, PredicateOperator op, std::vector<Byte> opr, uint64_t c)
-        : table{std::move(t)}, column_offset{cid}, op{op}, estimated_cost{c} {
+    SingleTablePredicate(
+        std::shared_ptr<Table> t, ColumnOffset cid, PredicateOperator op,
+        std::vector<Byte> opr, QueryPlan qp, uint64_t c)
+        : table{std::move(t)}, column_offset{cid}, op{op}, query_plan{qp}, estimated_cost{c} {
         if (op != PredicateOperator::IS_NULL && op != PredicateOperator::NOT_NULL) {
             auto &&data_desc = table->descriptor().field_descriptors[column_offset].data_descriptor;
             operand.resize(data_desc.length);

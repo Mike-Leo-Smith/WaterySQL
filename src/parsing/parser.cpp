@@ -518,27 +518,41 @@ void Parser::_parse_where_clause(std::vector<ColumnPredicate> &predicates) {
 }
 
 Actor Parser::_parse_delete_statement() {
-    _scanner.match_token(TokenTag::DELETE);
+    auto cmd = _scanner.match_token(TokenTag::DELETE);
     _scanner.match_token(TokenTag::FROM);
     DeleteRecordActor actor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
     _parse_where_clause(actor.predicates);
+    _scanner.match_token(TokenTag::SEMICOLON);
     for (auto &&pred : actor.predicates) {
         if (pred.cross_table) {
-            throw ParserError{"Cross-table predicates are not allowed in DELETE commands.", _scanner.current_offset()};
+            throw ParserError{"Cross-table predicates are not allowed in DELETE commands.", cmd.offset};
+        }
+        if (pred.table_name.empty()) {
+            pred.table_name = actor.table_name;
+        } else if (pred.table_name != actor.table_name) {
+            throw ParserError{
+                std::string{"Irrelevant table \""}.append(pred.table_name).append("\" in column predicate."),
+                cmd.offset};
         }
     }
-    _scanner.match_token(TokenTag::SEMICOLON);
     return actor;
 }
 
 Actor Parser::_parse_update_statement() {
-    _scanner.match_token(TokenTag::UPDATE);
+    auto cmd = _scanner.match_token(TokenTag::UPDATE);
     UpdateRecordActor actor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
     _parse_set_clause(actor);
     _parse_where_clause(actor.predicates);
     for (auto &&pred : actor.predicates) {
         if (pred.cross_table) {
-            throw ParserError{"Cross-table predicates are not allowed in UPDATE commands.", _scanner.current_offset()};
+            throw ParserError{"Cross-table predicates are not allowed in UPDATE commands.", cmd.offset};
+        }
+        if (pred.table_name.empty()) {
+            pred.table_name = actor.table_name;
+        } else if (pred.table_name != actor.table_name) {
+            throw ParserError{
+                std::string{"Irrelevant table \""}.append(pred.table_name).append("\" in column predicate."),
+                cmd.offset};
         }
     }
     _scanner.match_token(TokenTag::SEMICOLON);
@@ -559,13 +573,40 @@ void Parser::_parse_set_clause(UpdateRecordActor &actor) {
 }
 
 Actor Parser::_parse_select_statement() {
-    _scanner.match_token(TokenTag::SELECT);
+    auto cmd = _scanner.match_token(TokenTag::SELECT);
     SelectRecordActor actor;
     _parse_selector(actor);
     _scanner.match_token(TokenTag::FROM);
     _parse_selection_table_list(actor.tables);
     _parse_where_clause(actor.predicates);
     _scanner.match_token(TokenTag::SEMICOLON);
+    
+    if (!actor.wildcard) {
+        for (auto &&t : actor.selected_tables) {
+            if (t.empty()) {
+                if (actor.tables.size() == 1) {
+                    t = actor.tables[0];
+                } else {
+                    throw ParserError{"Unspecific table name in multi-table query selector.", cmd.offset};
+                }
+            } else if (std::find(actor.tables.cbegin(), actor.tables.cend(), t) == actor.tables.cend()) {
+                throw ParserError{std::string{"Irrelevant table \""}.append(t).append("\" in selector."), cmd.offset};
+            }
+        }
+    }
+    for (auto &&pred : actor.predicates) {
+        auto &&t = pred.table_name;
+        if (t.empty()) {
+            if (actor.tables.size() == 1) {
+                t = actor.tables[0];
+            } else {
+                throw ParserError{"Unspecific table name in multi-table query predicate.", cmd.offset};
+            }
+        } else if (std::find(actor.tables.cbegin(), actor.tables.cend(), t) == actor.tables.cend()) {
+            throw ParserError{std::string{"Irrelevant table \""}.append(t).append("\" in predicate."), cmd.offset};
+        }
+    }
+    
     return actor;
 }
 

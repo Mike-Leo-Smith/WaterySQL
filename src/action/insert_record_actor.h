@@ -45,7 +45,7 @@ struct InsertRecordActor {
                 auto l = field_sizes[i];
                 Printer::print(
                     std::cout, (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}),
-                    "[", l, " bytes]");
+                    " [", l, " bytes]");
                 field_pos += l;
             }
             field_index += c;

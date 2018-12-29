@@ -19,6 +19,14 @@ struct IndexEntryOffset {
     IndexEntryOffset(PageOffset p, ChildOffset c)
         : page_offset{p}, child_offset{c} {}
     
+    bool operator==(IndexEntryOffset rhs) const noexcept {
+        return page_offset == rhs.page_offset && child_offset == rhs.child_offset;
+    }
+    
+    bool operator!=(IndexEntryOffset rhs) const noexcept {
+        return page_offset != rhs.page_offset || child_offset != rhs.child_offset;
+    }
+    
     std::string to_string() const noexcept {
         return std::string{"("}
             .append(std::to_string(page_offset)).append(", ")

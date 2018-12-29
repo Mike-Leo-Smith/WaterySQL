@@ -140,12 +140,14 @@ const IndexNode &Index::_load_node_for_reading(FileHandle fh, PageOffset node_of
     return MemoryMapper::map_memory<IndexNode>(cache);
 }
 
-IndexEntryOffset Index::search_index_entry(const Byte *data) const {
+IndexEntryOffset Index::search_index_entry(const Byte *data, RecordOffset rid) const {
     if (_header.root_offset == -1) {  // searching in empty tree.
-        throw EmptyIndexTree{_name};
+        return {-1, -1};
     }
-    auto key_compact = _make_key_compact(data, {-1, -1});
-    return _search_entry_in(_header.root_offset, key_compact);
+    auto key_compact = _make_key_compact(data, rid);
+    auto result = _search_entry_in(_header.root_offset, key_compact);
+    auto &node = _load_node_for_reading(_file_handle, result.page_offset);
+    return result.child_offset < node.header.key_count ? result : IndexEntryOffset{-1, -1};
 }
 
 IndexEntryOffset Index::next_index_entry_offset(IndexEntryOffset offset) const {
@@ -191,11 +193,12 @@ IndexEntryOffset Index::prev_index_entry_offset(IndexEntryOffset offset) const {
 }
 
 RecordOffset Index::related_record_offset(IndexEntryOffset offset) const {
+    if (offset.page_offset < 0 || offset.child_offset < 0) { return {-1, -1}; }
     const auto &node = _load_node_for_reading(_file_handle, offset.page_offset);
     if (offset.child_offset < node.header.key_count) {
         return _get_index_entry_record_offset(node, offset.child_offset);
     }
-    throw IndexEntryOffsetOutOfRange{_name, offset};
+    return {-1, -1};
 }
 
 void Index::insert_index_entry(const Byte *data, RecordOffset rid) {
@@ -376,6 +379,25 @@ bool Index::data_matches(IndexEntryOffset entry_offset, const Byte *data) const 
     auto stored_data = _get_index_entry_key(node, entry_offset.child_offset);
     auto offset = _header.key_length - _header.data_length;
     return std::memcmp(stored_data + offset, data, _header.data_length) == 0;
+}
+
+IndexEntryOffset Index::index_entry_offset_begin() const {
+    
+    auto p = _header.root_offset;
+    if (p == -1) {  // searching in empty tree.
+        return {-1, -1};
+    }
+    while (true) {
+        auto &node = _load_node_for_reading(_file_handle, p);
+        if (node.header.is_leaf) {
+            return next_index_entry_offset({p, -1});
+        }
+        p = _get_index_entry_page_offset(node, 0);
+    }
+}
+
+bool Index::is_index_entry_offset_end(IndexEntryOffset offset) const {
+    return offset == IndexEntryOffset{-1, -1};
 }
     
 }

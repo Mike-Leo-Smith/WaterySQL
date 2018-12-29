@@ -18,7 +18,7 @@
 
 namespace watery {
 
-const Byte * QueryEngine::_make_record(
+const Byte *QueryEngine::_make_record(
     const std::shared_ptr<Table> &table, const Byte *raw,
     const uint16_t *sizes, const std::vector<ColumnOffset> &cols) {
     
@@ -144,22 +144,19 @@ void QueryEngine::_insert_record(
 void QueryEngine::delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds) {
     
     auto table = RecordManager::instance().open_table(table_name);
-    auto predicates = _simplify_single_table_column_predicates(table, raw_preds);
+    auto predicates = _extract_single_table_column_predicates(table, raw_preds);
+    auto rids = _gather_valid_record_offsets(table, predicates);
     
     // brute force is ok
-    for (auto rid = table->record_offset_begin();
-         !table->is_record_offset_end(rid);
-         rid = table->next_record_offset(rid)) {
-        auto rec = table->get_record(rid);
-        if (_record_satisfies_predicates(table, rec, predicates)) {
-            _delete_record(table, rid, rec);
-        }
+    for (auto &&rid : rids) {
+        _delete_record(table, rid, table->get_record(rid));
     }
     
 }
 
 uint64_t QueryEngine::_estimate_predicate_cost(
-    const std::shared_ptr<Table> &t, ColumnOffset cid, PredicateOperator op) noexcept {
+    const std::shared_ptr<Table> &t, ColumnOffset cid,
+    PredicateOperator op, QueryPlan plan) noexcept {
     
     // hyper-parameters
     constexpr auto table_scan_coeff = 3ull;
@@ -172,32 +169,19 @@ uint64_t QueryEngine::_estimate_predicate_cost(
     auto len = field_desc.data_descriptor.length;
     auto count = t->record_count();
     
-    switch (op) {
-        case PredicateOperator::EQUAL:
-            // index search * compare if indexed, otherwise full table scan * compare
-            return field_desc.indexed ? index_search_coeff * len : table_scan_coeff * count * len;
-        case PredicateOperator::UNEQUAL:
-            // full table scan * compare
-            return table_scan_coeff * len * count;
-        case PredicateOperator::LESS:
-        case PredicateOperator::LESS_EQUAL:
-        case PredicateOperator::GREATER:
-        case PredicateOperator::GREATER_EQUAL:
-            // (index search + partial index scan) * compare if indexed, otherwise full table scan * compare
-            return field_desc.indexed ?
-                   (index_search_coeff + partial_index_scan_coeff * count) * len :
-                   table_scan_coeff * len * count;
-        case PredicateOperator::IS_NULL:
-            // full table scan * null check if nullable, otherwise empty result
-            return field_desc.constraints.nullable() ?
-                   table_scan_coeff * count * null_check_coeff :
-                   empty_result_coeff;
-        case PredicateOperator::NOT_NULL:
-            // full table scan * null check
-            return table_scan_coeff * count * null_check_coeff;
+    switch (plan) {
+        case QueryPlan::CONSTANT_EMPTY_RESULT:
+            return empty_result_coeff;
+        case QueryPlan::FULL_TABLE_SCAN_AND_COMPARE:
+            return table_scan_coeff * count * len;
+        case QueryPlan::FULL_TABLE_SCAN_AND_NULL_CHECK:
+            return table_scan_coeff * null_check_coeff * count;
+        case QueryPlan::INDEX_SEARCH_AND_COMPARE:
+            return index_search_coeff * len;
+        case QueryPlan::PARTIAL_INDEX_SCAN_AND_COMPARE:
+            return (index_search_coeff + partial_index_scan_coeff * count) * len;
         default:
-            // should not occur
-            return std::numeric_limits<uint64_t>::max();
+            return table_scan_coeff * count * len;
     }
     
 }
@@ -254,44 +238,36 @@ bool QueryEngine::_record_satisfies_predicates(
     
     for (auto &&pred : preds) {
         
-        if (pred.table->name() != table->name()) {
-            continue;
-        }
-        
-        auto &&field_desc = table->descriptor().field_descriptors[pred.column_offset];
+        auto cid = pred.column_offset;
+        auto &&field_desc = table->descriptor().field_descriptors[cid];
         auto &&data_desc = field_desc.data_descriptor;
-        auto &&field = rec + table->descriptor().field_offsets[pred.column_offset];
+        auto &&field = rec + table->descriptor().field_offsets[cid];
+        auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[cid];
         DataComparator cmp{data_desc};
         switch (pred.op) {
             case PredicateOperator::EQUAL:
-                if (cmp.unequal(field, pred.operand.data())) { return false; }
+                if (null || cmp.unequal(field, pred.operand.data())) { return false; }
                 break;
             case PredicateOperator::UNEQUAL:
-                if (cmp.equal(field, pred.operand.data())) { return false; }
+                if (null || cmp.equal(field, pred.operand.data())) { return false; }
                 break;
             case PredicateOperator::LESS:
-                if (cmp.greater_equal(field, pred.operand.data())) { return false; }
+                if (null || cmp.greater_equal(field, pred.operand.data())) { return false; }
                 break;
             case PredicateOperator::LESS_EQUAL:
-                if (cmp.greater(field, pred.operand.data())) { return false; }
+                if (null || cmp.greater(field, pred.operand.data())) { return false; }
                 break;
             case PredicateOperator::GREATER:
-                if (cmp.less_equal(field, pred.operand.data())) { return false; }
+                if (null || cmp.less_equal(field, pred.operand.data())) { return false; }
                 break;
             case PredicateOperator::GREATER_EQUAL:
-                if (cmp.less(field, pred.operand.data())) { return false; }
+                if (null || cmp.less(field, pred.operand.data())) { return false; }
                 break;
             case PredicateOperator::IS_NULL:
-                if (!field_desc.constraints.nullable() ||
-                    !MemoryMapper::map_memory<NullFieldBitmap>(rec)[pred.column_offset]) {
-                    return false;
-                }
+                if (!null) { return false; }
                 break;
             case PredicateOperator::NOT_NULL:
-                if (field_desc.constraints.nullable() &&
-                    MemoryMapper::map_memory<NullFieldBitmap>(rec)[pred.column_offset]) {
-                    return false;
-                }
+                if (null) { return false; }
                 break;
         }
     }
@@ -299,17 +275,17 @@ bool QueryEngine::_record_satisfies_predicates(
     return true;
 }
 
-std::vector<SingleTablePredicate> QueryEngine::_simplify_single_table_column_predicates(
+std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_column_predicates(
     const std::shared_ptr<Table> &table,
     const std::vector<ColumnPredicate> &preds) {
     
     std::vector<SingleTablePredicate> predicates;
     for (auto &&raw_pred : preds) {
-        if (!raw_pred.cross_table && (raw_pred.table_name.empty() || raw_pred.table_name == table->name())) {
+        if (!raw_pred.cross_table && raw_pred.table_name == table->name()) {
             auto cid = table->column_offset(raw_pred.column_name);
-            predicates.emplace_back(
-                table, cid, raw_pred.op, raw_pred.operand,
-                _estimate_predicate_cost(table, cid, raw_pred.op));
+            auto plan = _choose_column_query_plan(table, cid, raw_pred.op);
+            auto cost = _estimate_predicate_cost(table, cid, raw_pred.op, plan);
+            predicates.emplace_back(table, cid, raw_pred.op, raw_pred.operand, plan, cost);
         }
     }
     std::sort(predicates.begin(), predicates.end());
@@ -345,13 +321,10 @@ void QueryEngine::update_records(
     }
     
     auto update_rec = _make_record(table, values.data(), sizes.data(), update_cols);
-    auto predicates = _simplify_single_table_column_predicates(table, preds);
-    for (auto rid = table->record_offset_begin();
-         !table->is_record_offset_end(rid);
-         rid = table->next_record_offset(rid)) {
-        if (_record_satisfies_predicates(table, table->get_record(rid), predicates)) {
-            _update_record(table, rid, update_cols, update_rec);
-        }
+    auto predicates = _extract_single_table_column_predicates(table, preds);
+    auto rids = _gather_valid_record_offsets(table, predicates);
+    for (auto &&rid : rids) {
+        _update_record(table, rid, update_cols, update_rec);
     }
     
 }
@@ -398,6 +371,109 @@ void QueryEngine::_update_record(
             std::memmove(old_field, new_field, data_desc.length);
         });
     }
+    
+}
+
+QueryPlan QueryEngine::_choose_column_query_plan(
+    const std::shared_ptr<Table> &t, ColumnOffset cid, PredicateOperator op) noexcept {
+    
+    const auto &field_desc = t->descriptor().field_descriptors[cid];
+    auto len = field_desc.data_descriptor.length;
+    auto count = t->record_count();
+    
+    switch (op) {
+        case PredicateOperator::EQUAL:
+            // index search * compare if indexed, otherwise full table scan * compare
+            return field_desc.indexed ? QueryPlan::INDEX_SEARCH_AND_COMPARE : QueryPlan::FULL_TABLE_SCAN_AND_COMPARE;
+        case PredicateOperator::UNEQUAL:
+            // full table scan * compare
+            return QueryPlan::FULL_TABLE_SCAN_AND_COMPARE;
+        case PredicateOperator::LESS:
+        case PredicateOperator::LESS_EQUAL:
+        case PredicateOperator::GREATER:
+        case PredicateOperator::GREATER_EQUAL:
+            // (index search + partial index scan) * compare if indexed, otherwise full table scan * compare
+            return field_desc.indexed ?
+                   QueryPlan::PARTIAL_INDEX_SCAN_AND_COMPARE :
+                   QueryPlan::FULL_TABLE_SCAN_AND_COMPARE;
+        case PredicateOperator::IS_NULL:
+            // full table scan * null check if nullable, otherwise empty result
+            return field_desc.constraints.nullable() ?
+                   QueryPlan::FULL_TABLE_SCAN_AND_NULL_CHECK :
+                   QueryPlan::CONSTANT_EMPTY_RESULT;
+        case PredicateOperator::NOT_NULL:
+            // full table scan * null check
+            return QueryPlan::FULL_TABLE_SCAN_AND_NULL_CHECK;
+        default:
+            // should not occur
+            return QueryPlan::FULL_TABLE_SCAN_AND_COMPARE;
+    }
+}
+
+std::vector<RecordOffset> QueryEngine::_gather_valid_record_offsets(
+    const std::shared_ptr<Table> &table,
+    const std::vector<SingleTablePredicate> &preds) {
+    
+    std::vector<RecordOffset> rids;
+    if (preds.empty()) {  // all
+        for (auto rid = table->record_offset_begin();
+             !table->is_record_offset_end(rid);
+             rid = table->next_record_offset(rid)) {
+            rids.emplace_back(rid);
+        }
+    } else {
+        auto &&field_desc = table->descriptor().field_descriptors[preds[0].column_offset];
+        auto data = preds[0].operand.data();
+        auto max = std::numeric_limits<PageOffset>::max();
+        switch (preds[0].query_plan) {
+            case QueryPlan::CONSTANT_EMPTY_RESULT:
+                break;
+            case QueryPlan::FULL_TABLE_SCAN_AND_COMPARE:
+            case QueryPlan::FULL_TABLE_SCAN_AND_NULL_CHECK:
+                for (auto rid = table->record_offset_begin();
+                     !table->is_record_offset_end(rid);
+                     rid = table->next_record_offset(rid)) {
+                    if (auto rec = table->get_record(rid); _record_satisfies_predicates(table, rec, preds)) {
+                        rids.emplace_back(rid);
+                    }
+                }
+                break;
+            case QueryPlan::INDEX_SEARCH_AND_COMPARE: {  // only in equal
+                auto index_name = (table->name() + ".").append(field_desc.name.data());
+                auto index = IndexManager::instance().open_index(index_name);
+                auto begin = index->search_index_entry(data, {-1, -1});
+                auto end = index->next_index_entry_offset(index->search_index_entry(data, {max, max}));
+                for (auto it = begin; it != end; it = index->next_index_entry_offset(it)) {
+                    auto rid = index->related_record_offset(it);
+                    auto rec = table->get_record(rid);
+                    if (_record_satisfies_predicates(table, rec, preds)) { rids.emplace_back(rid); }
+                }
+                break;
+            }
+            case QueryPlan::PARTIAL_INDEX_SCAN_AND_COMPARE: {
+                auto index_name = (table->name() + ".").append(field_desc.name.data());
+                auto index = IndexManager::instance().open_index(index_name);
+                IndexEntryOffset begin{-1, -1};
+                IndexEntryOffset end{-1, -1};
+                if (preds[0].op == PredicateOperator::GREATER || preds[0].op == PredicateOperator::GREATER_EQUAL) {
+                    begin = index->search_index_entry(data, {-1, -1});
+                } else if (preds[0].op == PredicateOperator::LESS || preds[0].op == PredicateOperator::LESS_EQUAL) {
+                    begin = index->index_entry_offset_begin();
+                    end = index->next_index_entry_offset(index->search_index_entry(data, {max, max}));
+                }
+                for (auto it = begin; it != end; it = index->next_index_entry_offset(it)) {
+                    auto rid = index->related_record_offset(it);
+                    auto rec = table->get_record(rid);
+                    if (_record_satisfies_predicates(table, rec, preds)) { rids.emplace_back(rid); }
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    
+    return rids;
     
 }
     
