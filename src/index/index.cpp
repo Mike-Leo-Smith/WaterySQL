@@ -152,6 +152,10 @@ IndexEntryOffset Index::search_index_entry(const Byte *data, RecordOffset rid) c
 
 IndexEntryOffset Index::next_index_entry_offset(IndexEntryOffset offset) const {
     
+    if (offset.page_offset == -1) {  // already end
+        return {-1, -1};
+    }
+    
     const auto &node = _load_node_for_reading(_file_handle, offset.page_offset);
     if (offset.child_offset + 1 < node.header.key_count) {  // not last
         return {offset.page_offset, offset.child_offset + 1};

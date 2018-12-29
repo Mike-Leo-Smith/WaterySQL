@@ -22,8 +22,8 @@ struct DropTableActor {
     
     void operator()() const {
         Printer::println(std::cout, "DROP TABLE ", name);
-        SystemManager::instance().drop_table(name);
-        Printer::println(std::cout, "Done.\n");
+        auto ms = timed_run([name = name] { SystemManager::instance().drop_table(name); }).first;
+        Printer::println(std::cout, "Done in ", ms, "ms.\n");
     }
     
 };

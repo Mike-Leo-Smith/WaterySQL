@@ -27,7 +27,7 @@ struct ColumnPredicatePrinter : NonTrivialConstructible {
                 }
                 Printer::print(os, pred.rhs_column_name);
             } else {
-                Printer::print(os, pred.operand.data());
+                Printer::print(os, std::string_view{pred.operand.data(), pred.operand.size()});
             }
         }
         Printer::print(os, "\n");

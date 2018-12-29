@@ -9,6 +9,7 @@
 #include <string_view>
 #include "../system/system_manager.h"
 #include "../utility/io/printer.h"
+#include "../utility/time/elapsed_time.h"
 
 namespace watery {
 
@@ -21,8 +22,8 @@ struct CreateDatabaseActor {
     
     void operator()() const {
         Printer::println(std::cout, "CREATE DATABASE ", name);
-        SystemManager::instance().create_database(name);
-        Printer::println(std::cout, "Done.\n");
+        auto ms = timed_run([name = name] { SystemManager::instance().create_database(name); }).first;
+        Printer::println(std::cout, "Done in ", ms, "ms.\n");
     }
 };
 

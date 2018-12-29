@@ -20,8 +20,8 @@ struct UseDatabaseActor {
     
     void operator()() const {
         Printer::println(std::cout, "USE DATABASE ", name);
-        SystemManager::instance().use_database(name);
-        Printer::println(std::cout, "Done.\n");
+        auto ms = timed_run([name = name] { SystemManager::instance().use_database(name); }).first;
+        Printer::println(std::cout, "Done in ", ms, "ms.\n");
     }
     
 };

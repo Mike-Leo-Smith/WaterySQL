@@ -18,7 +18,7 @@
 
 namespace watery {
 
-const Byte *QueryEngine::_make_record(
+const Byte *QueryEngine::_assemble_record(
     const std::shared_ptr<Table> &table, const Byte *raw,
     const uint16_t *sizes, const std::vector<ColumnOffset> &cols) {
     
@@ -60,13 +60,12 @@ const Byte *QueryEngine::_make_record(
     return record_buffer.data();
 }
 
-void QueryEngine::insert_records(
+size_t QueryEngine::insert_records(
     const std::string &table_name, const std::vector<Byte> &raw,
     const std::vector<uint16_t> &field_sizes, const std::vector<uint16_t> &field_counts) {
     auto data_ptr = raw.data();
     auto size_ptr = field_sizes.data();
     auto table = RecordManager::instance().open_table(table_name);
-    auto count = 0u;
     for (auto &&field_count : field_counts) {
         _insert_record(table, data_ptr, size_ptr, field_count);
         for (auto i = 0; i < field_count; i++) {
@@ -74,6 +73,7 @@ void QueryEngine::insert_records(
         }
         size_ptr += field_count;
     }
+    return field_counts.size();
 }
 
 void QueryEngine::_insert_record(
@@ -86,7 +86,7 @@ void QueryEngine::_insert_record(
     for (auto i = 0; i < count; i++) {
         columns.emplace_back(i);
     }
-    auto record = _make_record(table, raw, sizes, columns);
+    auto record = _assemble_record(table, raw, sizes, columns);
     
     std::vector<int32_t> indexed_column_indices;
     std::vector<int32_t> foreign_key_column_indices;
@@ -141,20 +141,21 @@ void QueryEngine::_insert_record(
     }
 }
 
-void QueryEngine::delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds) {
+size_t QueryEngine::delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds) {
     
     auto table = RecordManager::instance().open_table(table_name);
     auto predicates = _extract_single_table_column_predicates(table, raw_preds);
-    auto rids = _gather_valid_record_offsets(table, predicates);
+    auto rids = _gather_valid_single_table_record_offsets(table, predicates);
     
-    // brute force is ok
-    for (auto &&rid : rids) {
-        _delete_record(table, rid, table->get_record(rid));
+    // delete in a reversed order to reduce data copy
+    for (auto it = rids.crbegin(); it != rids.crend(); it++) {
+        _delete_record(table, *it, table->get_record(*it));
     }
     
+    return rids.size();
 }
 
-uint64_t QueryEngine::_estimate_predicate_cost(
+uint64_t QueryEngine::_estimate_single_column_predicate_cost(
     const std::shared_ptr<Table> &t, ColumnOffset cid,
     PredicateOperator op, QueryPlan plan) noexcept {
     
@@ -284,7 +285,7 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_column_pred
         if (!raw_pred.cross_table && raw_pred.table_name == table->name()) {
             auto cid = table->column_offset(raw_pred.column_name);
             auto plan = _choose_column_query_plan(table, cid, raw_pred.op);
-            auto cost = _estimate_predicate_cost(table, cid, raw_pred.op, plan);
+            auto cost = _estimate_single_column_predicate_cost(table, cid, raw_pred.op, plan);
             predicates.emplace_back(table, cid, raw_pred.op, raw_pred.operand, plan, cost);
         }
     }
@@ -294,7 +295,7 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_column_pred
     
 }
 
-void QueryEngine::update_records(
+size_t QueryEngine::update_records(
     const std::string &table_name,
     const std::vector<std::string> &columns,
     const std::vector<Byte> &values,
@@ -307,7 +308,6 @@ void QueryEngine::update_records(
     thread_local static std::vector<ColumnOffset> update_cols;
     update_cols.clear();
     
-    auto p = values.data();
     for (auto i = 0; i < columns.size(); i++) {
         auto &field_desc = desc.field_descriptors[i];
         auto cid = table->column_offset(columns[i]);
@@ -320,12 +320,14 @@ void QueryEngine::update_records(
         update_cols.emplace_back(cid);
     }
     
-    auto update_rec = _make_record(table, values.data(), sizes.data(), update_cols);
+    auto update_rec = _assemble_record(table, values.data(), sizes.data(), update_cols);
     auto predicates = _extract_single_table_column_predicates(table, preds);
-    auto rids = _gather_valid_record_offsets(table, predicates);
+    auto rids = _gather_valid_single_table_record_offsets(table, predicates);
     for (auto &&rid : rids) {
         _update_record(table, rid, update_cols, update_rec);
     }
+    
+    return rids.size();
     
 }
 
@@ -378,8 +380,6 @@ QueryPlan QueryEngine::_choose_column_query_plan(
     const std::shared_ptr<Table> &t, ColumnOffset cid, PredicateOperator op) noexcept {
     
     const auto &field_desc = t->descriptor().field_descriptors[cid];
-    auto len = field_desc.data_descriptor.length;
-    auto count = t->record_count();
     
     switch (op) {
         case PredicateOperator::EQUAL:
@@ -410,9 +410,8 @@ QueryPlan QueryEngine::_choose_column_query_plan(
     }
 }
 
-std::vector<RecordOffset> QueryEngine::_gather_valid_record_offsets(
-    const std::shared_ptr<Table> &table,
-    const std::vector<SingleTablePredicate> &preds) {
+std::vector<RecordOffset> QueryEngine::_gather_valid_single_table_record_offsets(
+    const std::shared_ptr<Table> &table, const std::vector<SingleTablePredicate> &preds) {
     
     std::vector<RecordOffset> rids;
     if (preds.empty()) {  // all
@@ -455,11 +454,13 @@ std::vector<RecordOffset> QueryEngine::_gather_valid_record_offsets(
                 auto index = IndexManager::instance().open_index(index_name);
                 IndexEntryOffset begin{-1, -1};
                 IndexEntryOffset end{-1, -1};
+                IndexEntryOffset tmp{-1, -1};
                 if (preds[0].op == PredicateOperator::GREATER || preds[0].op == PredicateOperator::GREATER_EQUAL) {
                     begin = index->search_index_entry(data, {-1, -1});
                 } else if (preds[0].op == PredicateOperator::LESS || preds[0].op == PredicateOperator::LESS_EQUAL) {
                     begin = index->index_entry_offset_begin();
-                    end = index->next_index_entry_offset(index->search_index_entry(data, {max, max}));
+                    tmp = index->search_index_entry(data, {max, max});
+                    end = index->next_index_entry_offset(tmp);
                 }
                 for (auto it = begin; it != end; it = index->next_index_entry_offset(it)) {
                     auto rid = index->related_record_offset(it);
@@ -468,7 +469,7 @@ std::vector<RecordOffset> QueryEngine::_gather_valid_record_offsets(
                 }
                 break;
             }
-            default:
+            default:  // should not occur
                 break;
         }
     }

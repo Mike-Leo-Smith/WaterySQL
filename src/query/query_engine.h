@@ -19,7 +19,7 @@ namespace watery {
 class QueryEngine : public Singleton<QueryEngine> {
 
 private:
-    static const Byte *_make_record(
+    static const Byte *_assemble_record(
         const std::shared_ptr<Table> &table, const Byte *raw,
         const uint16_t *sizes, const std::vector<ColumnOffset> &cols);
     
@@ -27,10 +27,10 @@ private:
         const std::shared_ptr<Table> &table, const Byte *raw,
         const uint16_t *sizes, uint16_t count);
     
-    static uint64_t _estimate_predicate_cost(const std::shared_ptr<Table> &t,
-                                             ColumnOffset cid,
-                                             PredicateOperator op,
-                                             QueryPlan plan) noexcept;
+    static uint64_t _estimate_single_column_predicate_cost(const std::shared_ptr<Table> &t,
+                                                           ColumnOffset cid,
+                                                           PredicateOperator op,
+                                                           QueryPlan plan) noexcept;
     
     static QueryPlan _choose_column_query_plan(
         const std::shared_ptr<Table> &t, ColumnOffset cid, PredicateOperator op) noexcept;
@@ -49,7 +49,7 @@ private:
         const std::shared_ptr<Table> &table, RecordOffset rid,
         const std::vector<ColumnOffset> &cols, const Byte *rec);
     
-    static std::vector<RecordOffset> _gather_valid_record_offsets(
+    static std::vector<RecordOffset> _gather_valid_single_table_record_offsets(
         const std::shared_ptr<Table> &table,
         const std::vector<SingleTablePredicate> &preds);
 
@@ -57,18 +57,16 @@ protected:
     QueryEngine() = default;
 
 public:
-    void insert_records(
+    size_t insert_records(
         const std::string &table_name, const std::vector<Byte> &raw,
         const std::vector<uint16_t> &field_sizes, const std::vector<uint16_t> &field_counts);
     
-    void delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds);
+    size_t delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds);
     
-    void update_records(
-        const std::string &table_name,
-        const std::vector<std::string> &columns,
-        const std::vector<Byte> &values,
-        const std::vector<uint16_t> &sizes,
-        const std::vector<ColumnPredicate> &preds);
+    size_t update_records(
+        const std::string &table_name, const std::vector<std::string> &columns, const std::vector<Byte> &values,
+        const std::vector<uint16_t> &sizes, const std::vector<ColumnPredicate> &preds);
+        
 };
 
 }

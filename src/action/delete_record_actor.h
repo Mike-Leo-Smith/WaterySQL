@@ -34,8 +34,10 @@ struct DeleteRecordActor {
         } else {
             Printer::print(std::cout, " ALL\n");
         }
-        QueryEngine::instance().delete_records(table_name, predicates);
-        Printer::println(std::cout, "Done.\n");
+        auto[ms, n] = timed_run([tn = table_name, &preds = predicates] {
+            return QueryEngine::instance().delete_records(tn, preds);
+        });
+        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " deleted.\n");
     }
     
 };

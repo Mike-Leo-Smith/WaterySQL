@@ -25,6 +25,8 @@ int main() {
     
     Printer::println(std::cout);
     
+    PageManager::instance();  // force initialization...
+    
     Parser parser;
     while (true) {
         Printer::print(std::cout, "\n[IN]\n");

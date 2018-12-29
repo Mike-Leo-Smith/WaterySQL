@@ -44,8 +44,11 @@ struct UpdateRecordActor {
         } else {
             Printer::print(std::cout, "ALL\n");
         }
-        QueryEngine::instance().update_records(table_name, columns, values, lengths, predicates);
-        Printer::println(std::cout, "Done.\n");
+        auto[ms, n] = timed_run([t = table_name, &c = columns, &v = values, &l = lengths, &p = predicates] {
+            return QueryEngine::instance().update_records(t, c, v, l, p);
+        });
+        
+        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " updated.\n");
     }
     
 };

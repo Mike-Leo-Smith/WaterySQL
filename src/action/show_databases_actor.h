@@ -14,10 +14,13 @@ struct ShowDatabasesActor {
     
     void operator()() const {
         Printer::println(std::cout, "SHOW DATABASES");
-        for (auto &&db : SystemManager::instance().database_list()) {
+        auto [ms, list] = timed_run([]{
+            return SystemManager::instance().database_list();
+        });
+        for (auto &&db : list) {
             Printer::print(std::cout, "  ", db, "\n");
         }
-        Printer::println(std::cout, "Done.\n");
+        Printer::println(std::cout, "Done in ", ms, "ms.\n");
     }
     
 };

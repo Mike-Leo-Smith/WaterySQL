@@ -51,8 +51,10 @@ struct InsertRecordActor {
             field_index += c;
             Printer::print(std::cout, ")\n");
         }
-        QueryEngine::instance().insert_records(table_name, buffer, field_sizes, field_counts);
-        Printer::println(std::cout, "Done.\n");
+        auto[ms, n] = timed_run([tn = table_name, &buf = buffer, &fs = field_sizes, &fc = field_counts] {
+            return QueryEngine::instance().insert_records(tn, buf, fs, fc);
+        });
+        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " inserted.\n");
     }
     
 };

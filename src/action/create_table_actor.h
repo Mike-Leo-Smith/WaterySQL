@@ -10,6 +10,7 @@
 #include "../data/record_descriptor.h"
 #include "../system/system_manager.h"
 #include "../utility/io/record_descriptor_printer.h"
+#include "../utility/time/elapsed_time.h"
 
 namespace watery {
 
@@ -24,8 +25,10 @@ struct CreateTableActor {
     void operator()() const {
         Printer::println(std::cout, "CREATE TABLE ", name);
         RecordDescriptorPrinter::print(std::cout, descriptor);
-        SystemManager::instance().create_table(name, descriptor);
-        Printer::println(std::cout, "Done.\n");
+        auto ms = timed_run([name = name, &desc = descriptor] {
+            SystemManager::instance().create_table(name, desc);
+        }).first;
+        Printer::println(std::cout, "Done in ", ms, "ms.\n");
     }
     
 };
