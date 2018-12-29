@@ -15,6 +15,7 @@
 #include "../error/deleting_referenced_record.h"
 #include "../error/conflict_record_field_update.h"
 #include "../error/invalid_primary_key_update.h"
+#include "../data/data_view.h"
 
 namespace watery {
 
@@ -476,6 +477,55 @@ std::vector<RecordOffset> QueryEngine::_gather_valid_single_table_record_offsets
     
     return rids;
     
+}
+
+size_t QueryEngine::select_records(
+    const std::vector<std::string> &selected_tables,
+    const std::vector<std::string> &selected_columns,
+    const std::vector<std::string> &from_tables,
+    const std::vector<ColumnPredicate> &predicates,
+    std::function<void(const std::vector<std::string> &row)> receiver) {
+    
+    // single table selection
+    if (from_tables.size() == 1) {
+        auto table = RecordManager::instance().open_table(from_tables[0]);
+        auto &desc = table->descriptor();
+        std::vector<ColumnOffset> cols;
+        cols.reserve(std::max(static_cast<size_t>(MAX_FIELD_COUNT), selected_columns.size()));
+        
+        if (selected_columns.empty()) {
+            for (auto i = 0; i < desc.field_count; i++) {
+                cols.emplace_back(i);
+            }
+        } else {
+            for (auto &&c : selected_columns) {
+                cols.emplace_back(table->column_offset(c));
+            }
+        }
+        auto preds = _extract_single_table_column_predicates(table, predicates);
+        auto rids = _gather_valid_single_table_record_offsets(table, preds);
+        std::vector<std::string> row;
+        for (auto &&rid : rids) {
+            row.clear();
+            auto rec = table->get_record(rid);
+            for (auto &&col : cols) {
+                auto field_desc = desc.field_descriptors[col];
+                auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
+                if (null) {
+                    row.emplace_back("NULL");
+                } else {
+                    row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
+                }
+            }
+            receiver(row);
+        }
+        return rids.size();
+    }
+    
+    // multi-table selection
+    
+    
+    return 0;
 }
     
 }

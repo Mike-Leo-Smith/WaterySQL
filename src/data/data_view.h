@@ -23,7 +23,7 @@ struct DataView {
     DataDescriptor descriptor;
     std::variant<int32_t, float, std::string_view> holder;
     
-    DataView(DataDescriptor desc, Byte *buf) : descriptor{desc} {
+    DataView(DataDescriptor desc, const Byte *buf) : descriptor{desc} {
         switch (descriptor.type) {
             case TypeTag::INTEGER:
             case TypeTag::DATE:
@@ -39,36 +39,48 @@ struct DataView {
                 throw DataError{"Unknown type tag."};
         }
     }
+
+//    DataView(DataDescriptor desc, std::string_view raw) : descriptor{desc} {
+//        switch (descriptor.type) {
+//            case TypeTag::INTEGER:
+//            case TypeTag::DATE:
+//                holder = ValueDecoder::decode_integer(raw);
+//                break;
+//            case TypeTag::FLOAT:
+//                holder = ValueDecoder::decode_float(raw);
+//                break;
+//            case TypeTag::CHAR:
+//                holder = raw;
+//                break;
+//            default:
+//                throw DataError{"Unknown type tag."};
+//        }
+//    }
     
-    DataView(DataDescriptor desc, std::string_view raw) : descriptor{desc} {
+    std::string to_string() const noexcept {
         switch (descriptor.type) {
+            case TypeTag::DATE: {
+                std::string result = "0000-00-00";
+                auto date = std::get<int32_t>(holder);
+                auto year = date >> 16;
+                auto month = (date >> 8) & 0xff;
+                auto day = date & 0xff;
+                result[0] = year / 1000 + '0';
+                result[1] = year / 100 % 10 + '0';
+                result[2] = year / 10 % 10 + '0';
+                result[3] = year % 10 + '0';
+                result[5] = month / 10 + '0';
+                result[6] = month % 10 + '0';
+                result[8] = day / 10 + '0';
+                result[9] = day % 10 + '0';
+                return result;
+            }
             case TypeTag::INTEGER:
-            case TypeTag::DATE:
-                holder = ValueDecoder::decode_integer(raw);
-                break;
+                return std::to_string(std::get<int32_t>(holder));
             case TypeTag::FLOAT:
-                holder = ValueDecoder::decode_float(raw);
-                break;
+                return std::to_string(std::get<float>(holder));
             case TypeTag::CHAR:
-                holder = raw;
-                break;
-            default:
-                throw DataError{"Unknown type tag."};
-        }
-    }
-    
-    void encode(Byte *buffer) const noexcept {
-        switch (descriptor.type) {
-            case TypeTag::DATE:
-            case TypeTag::INTEGER:
-                MemoryMapper::map_memory<int32_t>(buffer) = std::get<int32_t>(holder);
-                break;
-            case TypeTag::FLOAT:
-                MemoryMapper::map_memory<float>(buffer) = std::get<int32_t>(holder);
-                break;
-            case TypeTag::CHAR:
-                StringViewCopier::copy(std::get<std::string_view>(holder), buffer);
-                break;
+                return std::string{std::get<std::string_view>(holder)};
             default:
                 throw DataError{"Unknown type tag."};
         }

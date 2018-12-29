@@ -29,25 +29,31 @@ struct SelectRecordActor {
         } else {
             for (auto i = 0; i < selected_tables.size(); i++) {
                 Printer::print(std::cout, "  ");
-                if (!selected_tables[i].empty()) {
-                    Printer::print(std::cout, selected_tables[i], ".");
-                }
+                if (!selected_tables[i].empty()) { Printer::print(std::cout, selected_tables[i], "."); }
                 Printer::print(std::cout, selected_columns[i], "\n");
             }
         }
         Printer::print(std::cout, "FROM\n");
-        for (auto &&t: tables) {
-            Printer::print(std::cout, "  ", t, "\n");
-        }
+        for (auto &&t: tables) { Printer::print(std::cout, "  ", t, "\n"); }
         if (!predicates.empty()) {
             Printer::print(std::cout, "WHERE\n");
-            for (auto &&pred : predicates) {
-                ColumnPredicatePrinter::print(std::cout, pred);
-            }
+            for (auto &&pred : predicates) { ColumnPredicatePrinter::print(std::cout, pred); }
         } else {
             Printer::print(std::cout, "ALL\n");
         }
         Printer::println(std::cout);
+        
+        auto[ms, n] = timed_run([&st = selected_tables, &sc = selected_columns, &t = tables, &p = predicates] {
+            return QueryEngine::instance().select_records(st, sc, t, p, [](const std::vector<std::string> &row) {
+                Printer::print(std::cout, "  | ");
+                for (auto &&s : row) {
+                    Printer::print(std::cout, s, " | ");
+                }
+                Printer::print(std::cout, "\n");
+            });
+        });
+        
+        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " rows selected.\n");
     }
     
 };

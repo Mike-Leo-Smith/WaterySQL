@@ -67,6 +67,12 @@ public:
         const std::string &table_name, const std::vector<std::string> &columns, const std::vector<Byte> &values,
         const std::vector<uint16_t> &sizes, const std::vector<ColumnPredicate> &preds);
         
+    size_t select_records(
+        const std::vector<std::string> &selected_tables,
+        const std::vector<std::string> &selected_columns,
+        const std::vector<std::string> &from_tables,
+        const std::vector<ColumnPredicate> &predicates,
+        std::function<void(const std::vector<std::string> &row)> receiver);
 };
 
 }
