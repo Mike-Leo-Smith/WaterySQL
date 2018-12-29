@@ -442,32 +442,32 @@ void Parser::_parse_column_predicate_operator(ColumnPredicate &predicate) {
         case TokenTag::EQUAL:
             _scanner.match_token(TokenTag::EQUAL);
             predicate.op = PredicateOperator::EQUAL;
-            _parse_value(predicate.operand);
+            _parse_column_predicate_operand(predicate);
             break;
         case TokenTag::UNEQUAL:
             _scanner.match_token(TokenTag::UNEQUAL);
             predicate.op = PredicateOperator::UNEQUAL;
-            _parse_value(predicate.operand);
+            _parse_column_predicate_operand(predicate);
             break;
         case TokenTag::LESS:
             _scanner.match_token(TokenTag::LESS);
             predicate.op = PredicateOperator::LESS;
-            _parse_value(predicate.operand);
+            _parse_column_predicate_operand(predicate);
             break;
         case TokenTag::LESS_EQUAL:
             _scanner.match_token(TokenTag::LESS_EQUAL);
             predicate.op = PredicateOperator::LESS_EQUAL;
-            _parse_value(predicate.operand);
+            _parse_column_predicate_operand(predicate);
             break;
         case TokenTag::GREATER:
             _scanner.match_token(TokenTag::GREATER);
             predicate.op = PredicateOperator::GREATER;
-            _parse_value(predicate.operand);
+            _parse_column_predicate_operand(predicate);
             break;
         case TokenTag::GREATER_EQUAL:
             _scanner.match_token(TokenTag::GREATER_EQUAL);
             predicate.op = PredicateOperator::GREATER_EQUAL;
-            _parse_value(predicate.operand);
+            _parse_column_predicate_operand(predicate);
             break;
         case TokenTag::IS:
             _scanner.match_token(TokenTag::IS);
@@ -551,7 +551,7 @@ void Parser::_parse_set_clause(UpdateRecordActor &actor) {
 Actor Parser::_parse_select_statement() {
     _scanner.match_token(TokenTag::SELECT);
     SelectRecordActor actor;
-    _parse_selector(actor.selections);
+    _parse_selector(actor);
     _scanner.match_token(TokenTag::FROM);
     _parse_selection_table_list(actor.tables);
     _parse_where_clause(actor.predicates);
@@ -559,19 +559,25 @@ Actor Parser::_parse_select_statement() {
     return actor;
 }
 
-void Parser::_parse_selector(std::vector<std::string> &sel) {
+void Parser::_parse_selector(SelectRecordActor &actor) {
+    
+    if (actor.wildcard) {
+        throw ParserError{"Multiple selectors conflict with wildcard.", _scanner.current_offset()};
+    }
+    
     if (_scanner.lookahead() == TokenTag::WILDCARD) {
         _scanner.match_token(TokenTag::WILDCARD);
+        actor.wildcard = true;
         return;
     }
-    sel.emplace_back();
-    sel.emplace_back();
-    _parse_column(sel[sel.size() - 2], sel[sel.size() - 1]);
+    actor.selected_tables.emplace_back();
+    actor.selected_columns.emplace_back();
+    _parse_column(actor.selected_tables.back(), actor.selected_columns.back());
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        sel.emplace_back();
-        sel.emplace_back();
-        _parse_column(sel[sel.size() - 2], sel[sel.size() - 1]);
+        actor.selected_tables.emplace_back();
+        actor.selected_columns.emplace_back();
+        _parse_column(actor.selected_tables.back(), actor.selected_columns.back());
     }
 }
 
@@ -594,6 +600,15 @@ Actor Parser::_parse_execute_statement() {
     auto file_name = ValueDecoder::decode_char(_parse_string());
     _scanner.match_token(TokenTag::SEMICOLON);
     return ExecuteFileActor{std::string{file_name}};
+}
+
+void Parser::_parse_column_predicate_operand(ColumnPredicate &pred) {
+    if (_scanner.lookahead() == TokenTag::IDENTIFIER) {
+        _parse_column(pred.rhs_table_name, pred.rhs_column_name);
+        pred.cross_table = true;
+    } else {
+        _parse_value(pred.operand);
+    }
 }
 
 }

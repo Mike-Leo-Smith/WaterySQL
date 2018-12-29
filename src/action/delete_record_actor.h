@@ -27,25 +27,12 @@ struct DeleteRecordActor {
     void operator()() const {
         Printer::print(std::cout, "DELETE FROM ", table_name);
         if (!predicates.empty()) {
-            Printer::print(std::cout, " WHERE\n  ");
-            bool first = true;
+            Printer::print(std::cout, "WHERE\n");
             for (auto &&pred : predicates) {
-                if (!first) { Printer::print(std::cout, " AND\n  "); }
-                first = false;
-                std::string_view table_name{pred.table_name};
-                if (!table_name.empty()) {
-                    Printer::print(std::cout, table_name, ".");
-                }
-                Printer::print(
-                    std::cout, pred.column_name, " ",
-                    PredicateOperatorHelper::operator_symbol(pred.op));
-                if (!pred.operand.empty()) {
-                    Printer::print(std::cout, " ", pred.operand.data());
-                }
+                ColumnPredicatePrinter::print(std::cout, pred);
             }
-            Printer::print(std::cout, "\n");
         } else {
-            Printer::print(std::cout, " ALL\n");
+            Printer::print(std::cout, "ALL\n");
         }
         Printer::println(std::cout);
         QueryEngine::instance().delete_records(table_name, predicates);

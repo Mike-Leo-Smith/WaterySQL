@@ -126,7 +126,7 @@ set(SOURCE_FILES
     src/error/deleting_referenced_record.h
     src/error/conflict_record_field_update.h
     src/error/invalid_primary_key_update.h
-    src/error/record_reference_not_counted.h)
+    src/error/record_reference_not_counted.h src/utility/io/column_predicate_printer.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)

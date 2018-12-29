@@ -13,7 +13,7 @@ namespace watery {
 
 struct PredicateOperatorHelper {
     
-    static std::string_view operator_symbol(PredicateOperator op) noexcept {
+    static std::string_view symbol(PredicateOperator op) noexcept {
         switch (op) {
             case PredicateOperator::EQUAL:
                 return "=";

@@ -298,7 +298,7 @@ std::vector<SingleTablePredicate> QueryEngine::_simplify_single_table_column_pre
     
     std::vector<SingleTablePredicate> predicates;
     for (auto &&raw_pred : preds) {
-        if (raw_pred.table_name.empty() || raw_pred.table_name == table->name()) {
+        if (!raw_pred.cross_table && (raw_pred.table_name.empty() || raw_pred.table_name == table->name())) {
             auto cid = table->column_offset(raw_pred.column_name);
             predicates.emplace_back(
                 table, cid, raw_pred.op, raw_pred.operand,

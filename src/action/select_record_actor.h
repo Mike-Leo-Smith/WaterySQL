@@ -10,52 +10,44 @@
 
 #include "../config/config.h"
 #include "column_predicate.h"
+#include "../utility/io/column_predicate_printer.h"
 
 namespace watery {
 
 struct SelectRecordActor {
-
-    std::vector<std::string> selections;
+    
+    std::vector<std::string> selected_tables;
+    std::vector<std::string> selected_columns;
     std::vector<std::string> tables;
     std::vector<ColumnPredicate> predicates;
+    bool wildcard{false};
     
     void operator()() const {
-        std::cout << "SELECT\n  ";
-        auto first = true;
-        for (auto i = 0; i < selections.size(); i += 2) {
-            if (!first) { std::cout << ",\n  "; }
-            first = false;
-            if (!selections[i].empty()) {
-                std::cout << selections[i] << ".";
-            }
-            std::cout << selections[i + 1];
-        }
-        std::cout << "\nFROM\n  ";
-        first = true;
-        for (auto &&t: tables) {
-            if (!first) { std::cout << ",\n  "; }
-            first = false;
-            std::cout << t;
-        }
-        std::cout << "\n";
-        if (!predicates.empty()) {
-            std::cout << "WHERE\n  ";
-            first = true;
-            for (auto &&pred : predicates) {
-                if (!first) { std::cout << " AND\n  "; }
-                first = false;
-                if (!pred.table_name.empty()) {
-                    std::cout << pred.table_name << ".";
-                }
-                std::cout << pred.column_name << " " << PredicateOperatorHelper::operator_symbol(pred.op);
-                if (!pred.operand.empty()) {
-                    std::cout << " " << pred.operand.data();
-                }
-            }
-            std::cout << "\n";
+        Printer::print(std::cout, "SELECT\n");
+        if (wildcard) {
+            Printer::print(std::cout, "    *\n");
         } else {
-            std::cout << " ALL\n";
+            for (auto i = 0; i < selected_tables.size(); i++) {
+                Printer::print(std::cout, "    ");
+                if (!selected_tables[i].empty()) {
+                    Printer::print(std::cout, selected_tables[i], ".");
+                }
+                Printer::print(std::cout, selected_columns[i], "\n");
+            }
         }
+        Printer::print(std::cout, "FROM\n");
+        for (auto &&t: tables) {
+            Printer::print(std::cout, "    ", t, "\n");
+        }
+        if (!predicates.empty()) {
+            Printer::print(std::cout, "WHERE\n");
+            for (auto &&pred : predicates) {
+                ColumnPredicatePrinter::print(std::cout, pred);
+            }
+        } else {
+            Printer::print(std::cout, "ALL\n");
+        }
+        Printer::println(std::cout);
     }
     
 };

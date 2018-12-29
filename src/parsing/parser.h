@@ -13,6 +13,7 @@
 #include "../action/insert_record_actor.h"
 #include "../action/column_predicate.h"
 #include "../action/update_record_actor.h"
+#include "../action/select_record_actor.h"
 
 namespace watery {
 
@@ -47,12 +48,13 @@ protected:
     uint16_t _parse_value(std::vector<Byte> &buffer);
     std::string_view _parse_string();
     void _parse_column_predicate_operator(ColumnPredicate &predicate);
+    void _parse_column_predicate_operand(ColumnPredicate &pred);
     PredicateOperator _parse_column_predicate_null_operator();
     ColumnPredicate _parse_column_predicate();
     void _parse_column(std::string &table_name, std::string &column_name);
     void _parse_where_clause(std::vector<ColumnPredicate> &predicates);
     void _parse_set_clause(UpdateRecordActor &actor);
-    void _parse_selector(std::vector<std::string> &sel);
+    void _parse_selector(watery::SelectRecordActor &actor);
     void _parse_selection_table_list(std::vector<std::string> &tables);
     
 public:
