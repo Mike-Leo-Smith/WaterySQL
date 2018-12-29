@@ -63,7 +63,7 @@ struct ValueDecoder : NonTrivialConstructible {
         return raw.substr(1, raw.size() - 2);  // remove quotation marks.
     }
     
-    static void decode(TypeTag type, std::string_view raw, Byte *result) {
+    static void decode(TypeTag type, std::string_view raw, Byte *result, uint32_t max_size = 0) {
         switch (type) {
             case TypeTag::INTEGER:
                 MemoryMapper::map_memory<int32_t>(result) = ValueDecoder::decode_integer(raw);
@@ -72,13 +72,16 @@ struct ValueDecoder : NonTrivialConstructible {
                 MemoryMapper::map_memory<float>(result) = ValueDecoder::decode_float(raw);
                 break;
             case TypeTag::CHAR:
+                if (max_size > 0 && raw.size() - 2 > max_size) {
+                    throw ValueDecoderError{raw, "CHAR", "it is too long."};
+                }
                 StringViewCopier::copy(ValueDecoder::decode_char(raw), result);
                 break;
             case TypeTag::DATE:
                 MemoryMapper::map_memory<int32_t>(result) = ValueDecoder::decode_date(raw);
                 break;
             default:
-                throw ValueDecoderError{raw, TypeTagHelper::name(type), "because of unknown type tag."};
+                throw ValueDecoderError{raw, TypeTagHelper::name(type), "of unknown type tag."};
         }
     }
     

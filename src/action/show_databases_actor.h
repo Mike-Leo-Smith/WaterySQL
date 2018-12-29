@@ -13,10 +13,11 @@ namespace watery {
 struct ShowDatabasesActor {
     
     void operator()() const {
-        Printer::println(std::cout, "SHOW DATABASES;");
+        Printer::println(std::cout, "SHOW DATABASES");
         for (auto &&db : SystemManager::instance().database_list()) {
-            std::cout << db << std::endl;
+            Printer::print(std::cout, "    ", db, "\n");
         }
+        Printer::println(std::cout, "Done.");
     }
     
 };

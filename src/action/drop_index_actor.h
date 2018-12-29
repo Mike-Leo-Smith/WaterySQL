@@ -22,8 +22,9 @@ struct DropIndexActor {
         : table_name{tab}, column_name{tab} {}
     
     void operator()() const {
-        Printer::println(std::cout, "DROP INDEX ", table_name, "(", column_name, ");");
+        Printer::println(std::cout, "DROP INDEX ", table_name, "(", column_name, ")");
         SystemManager::instance().drop_index(table_name, column_name);
+        Printer::println(std::cout, "Done.");
     }
     
 };

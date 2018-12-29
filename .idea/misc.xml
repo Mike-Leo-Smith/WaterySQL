@@ -12,6 +12,9 @@
   <component name="PreferredVcsStorage">
     <preferredVcsName>ApexVCS</preferredVcsName>
   </component>
+  <component name="PythonCompatibilityInspectionAdvertiser">
+    <option name="version" value="3" />
+  </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="/usr/local/bin" />
   </component>

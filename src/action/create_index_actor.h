@@ -21,8 +21,9 @@ struct CreateIndexActor {
         : table_name{tab}, column_name{col} {}
     
     void operator()() const {
-        Printer::println(std::cout, "CREATE INDEX ", table_name, "(", column_name, ");");
+        Printer::println(std::cout, "CREATE INDEX ", table_name, "(", column_name, ")");
         SystemManager::instance().create_index(table_name, column_name);
+        Printer::println(std::cout, "Done.");
     }
     
 };

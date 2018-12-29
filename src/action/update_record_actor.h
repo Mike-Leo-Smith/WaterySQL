@@ -25,35 +25,35 @@ struct UpdateRecordActor {
         : table_name{n} {}
     
     void operator()() const {
-        std::cout << "UPDATE " << table_name << " SET\n";
+        Printer::print(std::cout, "UPDATE ", table_name, " SET\n");
         auto p = 0ul;
         auto idx = 0;
         for (auto &&col: columns) {
             auto l = lengths[idx++];
-            std::cout << "  " << col << " = "
-                      << (l == 0 ? "NULL" : values.data() + p)
-                      << "\n";
+            Printer::print(
+                std::cout, "  ", col, " = ",
+                (l == 0 ? "NULL" : std::string_view{values.data() + p, l}), "\n");
             p += l;
         }
         if (!predicates.empty()) {
-            std::cout << "WHERE\n  ";
+            Printer::print(std::cout, "WHERE\n  ");
             bool first = true;
             for (auto &&pred : predicates) {
-                if (!first) { std::cout << " AND\n  "; }
+                if (!first) { Printer::print(std::cout, " AND\n  "); }
                 first = false;
                 if (!table_name.empty()) {
-                    std::cout << table_name << ".";
+                    Printer::print(std::cout, table_name, ".");
                 }
-                std::cout << pred.column_name << " " << PredicateOperatorHelper::operator_symbol(pred.op);
+                Printer::print(std::cout, pred.column_name, " ", PredicateOperatorHelper::operator_symbol(pred.op));
                 if (!pred.operand.empty()) {
-                    std::cout << " " << pred.operand.data();
+                    Printer::print(std::cout, " ", pred.operand.data());
                 }
             }
-            std::cout << "\n";
+            Printer::print(std::cout, "\n");
         } else {
-            std::cout << " ALL\n";
+            Printer::print(std::cout, " ALL\n");
         }
-        std::cout << std::endl;
+        Printer::println(std::cout);
     }
     
 };

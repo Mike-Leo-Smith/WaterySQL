@@ -32,6 +32,8 @@ struct ExecuteFileActor {
             }
         }
         
+        Printer::println(std::cout, "Done.");
+        
     }
     
 };

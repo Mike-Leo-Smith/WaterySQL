@@ -25,6 +25,7 @@ struct CreateTableActor {
         Printer::println(std::cout, "CREATE TABLE ", name);
         RecordDescriptorPrinter::print(std::cout, descriptor);
         SystemManager::instance().create_table(name, descriptor);
+        Printer::println(std::cout, "Done.");
     }
     
 };

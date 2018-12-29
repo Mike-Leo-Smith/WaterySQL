@@ -2,8 +2,8 @@
 // Created by Mike Smith on 2018-12-27.
 //
 
-#ifndef WATERYSQL_QUERY_PREDICATE_H
-#define WATERYSQL_QUERY_PREDICATE_H
+#ifndef WATERYSQL_SINGLE_TABLE_PREDICATE_H
+#define WATERYSQL_SINGLE_TABLE_PREDICATE_H
 
 #include <string>
 #include <memory>
@@ -15,7 +15,7 @@
 
 namespace watery {
 
-struct QueryPredicate {
+struct SingleTablePredicate {
     
     std::shared_ptr<Table> table;
     ColumnOffset column_offset;
@@ -25,7 +25,7 @@ struct QueryPredicate {
     
     uint64_t estimated_cost;
     
-    QueryPredicate(std::shared_ptr<Table> t, ColumnOffset cid, PredicateOperator op, std::vector<Byte> opr, uint64_t c)
+    SingleTablePredicate(std::shared_ptr<Table> t, ColumnOffset cid, PredicateOperator op, std::vector<Byte> opr, uint64_t c)
         : table{std::move(t)}, column_offset{cid}, op{op}, estimated_cost{c} {
         if (op != PredicateOperator::IS_NULL && op != PredicateOperator::NOT_NULL) {
             auto &&data_desc = table->descriptor().field_descriptors[column_offset].data_descriptor;
@@ -34,7 +34,7 @@ struct QueryPredicate {
         }
     }
     
-    bool operator<(const QueryPredicate &rhs) const noexcept {
+    bool operator<(const SingleTablePredicate &rhs) const noexcept {
         return estimated_cost < rhs.estimated_cost;
     }
     
@@ -42,4 +42,4 @@ struct QueryPredicate {
 
 }
 
-#endif  // WATERYSQL_QUERY_PREDICATE_H
+#endif  // WATERYSQL_SINGLE_TABLE_PREDICATE_H

@@ -12,6 +12,8 @@
 #include "../error/record_slot_usage_bitmap_corrupt.h"
 #include "../error/negative_foreign_key_reference_count.h"
 #include "../error/field_not_found.h"
+#include "../error/record_reference_not_counted.h"
+#include "../error/negative_record_reference_count.h"
 
 namespace watery {
 
@@ -192,6 +194,45 @@ RecordOffset Table::record_offset_begin() const {
 
 bool Table::is_record_offset_end(RecordOffset rid) const {
     return rid == RecordOffset{-1, -1};
+}
+
+uint32_t Table::record_reference_count(RecordOffset rid) const {
+    if (!_header.record_descriptor.reference_counted) {
+        throw RecordReferenceNotCounted{_name};
+    }
+    auto rec = get_record(rid);
+    if (_header.record_descriptor.null_mapped) {
+        rec += sizeof(NullFieldBitmap);
+    }
+    return MemoryMapper::map_memory<uint32_t>(rec);
+}
+
+void Table::add_record_reference_count(RecordOffset rid) {
+    if (!_header.record_descriptor.reference_counted) {
+        throw RecordReferenceNotCounted{_name};
+    }
+    update_record(rid, [null_mapped = _header.record_descriptor.null_mapped](Byte *old) {
+        if (null_mapped) {
+            old += sizeof(NullFieldBitmap);
+        }
+        MemoryMapper::map_memory<uint32_t>(old)++;
+    });
+}
+
+void Table::drop_record_reference_count(RecordOffset rid) {
+    if (!_header.record_descriptor.reference_counted) {
+        throw RecordReferenceNotCounted{_name};
+    }
+    update_record(rid,[null_mapped = _header.record_descriptor.null_mapped, &name=_name](Byte *old) {
+            if (null_mapped) {
+                old += sizeof(NullFieldBitmap);
+            }
+            auto &ref_count = MemoryMapper::map_memory<uint32_t>(old);
+            if (ref_count == 0) {
+                throw NegativeRecordReferenceCount{name};
+            }
+            ref_count--;
+        });
 }
     
 }

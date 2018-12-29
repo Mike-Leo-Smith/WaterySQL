@@ -21,8 +21,9 @@ struct DropDatabaseActor {
         : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "DROP DATABASE ", name, ";");
+        Printer::println(std::cout, "DROP DATABASE ", name);
         SystemManager::instance().drop_database(name);
+        Printer::println(std::cout, "Done.");
     }
     
 };

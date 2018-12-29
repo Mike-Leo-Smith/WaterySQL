@@ -21,6 +21,10 @@ struct ColumnPredicate {
     PredicateOperator op;
     std::vector<Byte> operand;
     
+    bool cross_table{false};
+    std::string rhs_table_name;
+    std::string rhs_column_name;
+    
 };
 
 }

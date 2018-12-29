@@ -20,8 +20,9 @@ struct CreateDatabaseActor {
         : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "CREATE DATABASE ", name, ";");
+        Printer::println(std::cout, "CREATE DATABASE ", name);
         SystemManager::instance().create_database(name);
+        Printer::println(std::cout, "Done.");
     }
 };
 

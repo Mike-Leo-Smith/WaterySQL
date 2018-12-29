@@ -13,7 +13,8 @@ struct FieldNotFound : public Error {
     FieldNotFound(const std::string &table, const std::string &field)
         : Error{
         "FieldNotFound",
-        std::string{"Cannot find field \""}.append(field).append("\" in table \"").append(table).append("\".")} {}
+        std::string{"Cannot find field \""}
+            .append(field).append("\" in table \"").append(table).append("\".")} {}
 };
 
 }

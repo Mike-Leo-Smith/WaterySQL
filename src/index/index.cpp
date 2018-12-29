@@ -323,12 +323,10 @@ void Index::delete_index_entry(const Byte *data, RecordOffset rid) {
     auto key_compact = _make_key_compact(data, rid);
     auto entry_offset = _search_entry_in(_header.root_offset, key_compact);
     auto &node = _load_node_for_writing(_file_handle, entry_offset.page_offset);
-    Printer::println(std::cout, entry_offset.to_string(), ", ", node.header.key_count);
     if (_index_entry_key_matches(node, entry_offset.child_offset, key_compact)) {
         _move_trailing_index_entries(node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
         node.header.key_count--;
     } else {
-        Printer::println(std::cout, "Here...");
         throw IndexEntryNotFound{_name};
     }
 }

@@ -21,8 +21,9 @@ struct DropTableActor {
         : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "DROP TABLE ", name, ";");
+        Printer::println(std::cout, "DROP TABLE ", name);
         SystemManager::instance().drop_table(name);
+        Printer::println(std::cout, "Done.");
     }
     
 };

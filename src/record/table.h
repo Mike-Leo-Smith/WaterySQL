@@ -41,6 +41,10 @@ public:
     RecordOffset insert_record(const Byte *data);
     void delete_record(RecordOffset record_offset);
     
+    uint32_t record_reference_count(RecordOffset rid) const;
+    void add_record_reference_count(RecordOffset rid);
+    void drop_record_reference_count(RecordOffset rid);
+    
     template<typename Func>
     void update_record(RecordOffset record_offset, Func &&update) {
         if (record_offset.page_offset >= _header.page_count) {

@@ -19,8 +19,9 @@ struct UseDatabaseActor {
         : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "USE DATABASE ", name, ";");
+        Printer::println(std::cout, "USE DATABASE ", name);
         SystemManager::instance().use_database(name);
+        Printer::println(std::cout, "Done.");
     }
     
 };

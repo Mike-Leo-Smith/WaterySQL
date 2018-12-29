@@ -197,17 +197,30 @@ void SystemManager::create_index(const std::string &table_name, const std::strin
         throw SystemManagerError{"No database currently in use."};
     }
     
-    _visit_field_descriptor(
-        table_name, column_name,
-        [&tn = table_name, &cn = column_name, &im = IndexManager::instance()](FieldDescriptor &fd) {
-            if (fd.indexed) {
-                throw SystemManagerError{
-                    std::string{"Failed to create index for column \""}
-                        .append(cn).append("\" in table \"").append(tn).append("\" which is already indexed.")};
-            }
-            im.create_index(std::string{tn}.append(".").append(cn), fd.data_descriptor, fd.constraints.unique());
-            fd.indexed = true;
-        });
+    auto table = RecordManager::instance().open_table(table_name);
+    auto &desc = table->descriptor();
+    auto cid = table->column_offset(column_name);
+    auto &field_desc = desc.field_descriptors[cid];
+    
+    if (field_desc.indexed) {
+        throw SystemManagerError{
+            std::string{"Failed to create index for column \""}
+                .append(column_name).append("\" in table \"").append(table_name)
+                .append("\" which is already indexed.")};
+    }
+    auto index_name = (table_name + ".").append(column_name);
+    IndexManager::instance().create_index(index_name, field_desc.data_descriptor, field_desc.constraints.unique());
+    field_desc.indexed = true;
+    
+    auto index = IndexManager::instance().open_index(index_name);
+    
+    auto rid = table->record_offset_begin();
+    while (!table->is_record_offset_end(rid)) {
+        auto rec = table->get_record(rid);
+        index->insert_index_entry(rec + desc.field_offsets[cid], rid);
+        rid = table->next_record_offset(rid);
+    }
+    
 }
 
 void SystemManager::drop_index(const std::string &table_name, const std::string &column_name) {
