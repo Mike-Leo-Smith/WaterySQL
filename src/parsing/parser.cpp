@@ -522,6 +522,11 @@ Actor Parser::_parse_delete_statement() {
     _scanner.match_token(TokenTag::FROM);
     DeleteRecordActor actor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
     _parse_where_clause(actor.predicates);
+    for (auto &&pred : actor.predicates) {
+        if (pred.cross_table) {
+            throw ParserError{"Cross-table predicates are not allowed in DELETE commands.", _scanner.current_offset()};
+        }
+    }
     _scanner.match_token(TokenTag::SEMICOLON);
     return actor;
 }
@@ -531,6 +536,11 @@ Actor Parser::_parse_update_statement() {
     UpdateRecordActor actor{_scanner.match_token(TokenTag::IDENTIFIER).raw};
     _parse_set_clause(actor);
     _parse_where_clause(actor.predicates);
+    for (auto &&pred : actor.predicates) {
+        if (pred.cross_table) {
+            throw ParserError{"Cross-table predicates are not allowed in UPDATE commands.", _scanner.current_offset()};
+        }
+    }
     _scanner.match_token(TokenTag::SEMICOLON);
     return actor;
 }
