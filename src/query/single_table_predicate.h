@@ -18,7 +18,6 @@ namespace watery {
 
 struct SingleTablePredicate {
     
-    std::shared_ptr<Table> table;
     ColumnOffset column_offset;
     
     PredicateOperator op;
@@ -28,13 +27,12 @@ struct SingleTablePredicate {
     uint64_t estimated_cost;
     
     SingleTablePredicate(
-        std::shared_ptr<Table> t, ColumnOffset cid, PredicateOperator op,
-        std::vector<Byte> opr, QueryPlan qp, uint64_t c)
-        : table{std::move(t)}, column_offset{cid}, op{op}, query_plan{qp}, estimated_cost{c} {
+        ColumnOffset cid, PredicateOperator op,
+        std::vector<Byte> opr, DataDescriptor desc, QueryPlan qp, uint64_t c)
+        : column_offset{cid}, op{op}, query_plan{qp}, estimated_cost{c} {
         if (op != PredicateOperator::IS_NULL && op != PredicateOperator::NOT_NULL) {
-            auto &&data_desc = table->descriptor().field_descriptors[column_offset].data_descriptor;
-            operand.resize(data_desc.length);
-            ValueDecoder::decode(data_desc.type, opr.data(), operand.data());
+            operand.resize(desc.length);
+            ValueDecoder::decode(desc.type, opr.data(), operand.data());
         }
     }
     

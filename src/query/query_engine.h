@@ -52,6 +52,12 @@ private:
     static std::vector<RecordOffset> _gather_valid_single_table_record_offsets(
         const std::shared_ptr<Table> &table,
         const std::vector<SingleTablePredicate> &preds);
+    
+    static size_t _select_from_single_table(
+        const std::shared_ptr<Table> &table,
+        const std::vector<ColumnOffset> &cols,
+        const std::vector<SingleTablePredicate> &preds,
+        const std::function<void(const std::vector<std::string> &)> &receiver);
 
 protected:
     QueryEngine() = default;
@@ -72,7 +78,7 @@ public:
         const std::vector<std::string> &selected_columns,
         const std::vector<std::string> &from_tables,
         const std::vector<ColumnPredicate> &predicates,
-        std::function<void(const std::vector<std::string> &row)> receiver);
+        std::function<void(const std::vector<std::string> &)> receiver);
 };
 
 }

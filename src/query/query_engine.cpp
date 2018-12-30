@@ -202,6 +202,7 @@ void QueryEngine::_delete_record(const std::shared_ptr<Table> &table, RecordOffs
         throw DeletingReferencedRecord{table->name()};
     }
     
+    // TODO: ensure strong exception-safety
     for (auto i = 0; i < rec_desc.field_count; i++) {
         auto &field_desc = rec_desc.field_descriptors[i];
         auto field = rec + rec_desc.field_offsets[i];
@@ -287,13 +288,12 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_column_pred
             auto cid = table->column_offset(raw_pred.column_name);
             auto plan = _choose_column_query_plan(table, cid, raw_pred.op);
             auto cost = _estimate_single_column_predicate_cost(table, cid, raw_pred.op, plan);
-            predicates.emplace_back(table, cid, raw_pred.op, raw_pred.operand, plan, cost);
+            auto data_desc = table->descriptor().field_descriptors[cid].data_descriptor;
+            predicates.emplace_back(cid, raw_pred.op, raw_pred.operand, data_desc, plan, cost);
         }
     }
     std::sort(predicates.begin(), predicates.end());
-    
     return predicates;
-    
 }
 
 size_t QueryEngine::update_records(
@@ -336,6 +336,7 @@ void QueryEngine::_update_record(
     const std::shared_ptr<Table> &table, RecordOffset rid,
     const std::vector<ColumnOffset> &cols, const Byte *rec) {
     
+    // TODO: ensure strong exception-safety
     for (auto &&cid : cols) {
         table->update_record(rid, [c = cid, t = table, r = rec, rid](Byte *old) {
             auto &field_desc = t->descriptor().field_descriptors[c];
@@ -453,16 +454,27 @@ std::vector<RecordOffset> QueryEngine::_gather_valid_single_table_record_offsets
             case QueryPlan::PARTIAL_INDEX_SCAN_AND_COMPARE: {
                 auto index_name = (table->name() + ".").append(field_desc.name.data());
                 auto index = IndexManager::instance().open_index(index_name);
-                IndexEntryOffset begin{-1, -1};
-                IndexEntryOffset end{-1, -1};
-                IndexEntryOffset tmp{-1, -1};
-                if (preds[0].op == PredicateOperator::GREATER || preds[0].op == PredicateOperator::GREATER_EQUAL) {
-                    begin = index->search_index_entry(data, {-1, -1});
-                } else if (preds[0].op == PredicateOperator::LESS || preds[0].op == PredicateOperator::LESS_EQUAL) {
-                    begin = index->index_entry_offset_begin();
-                    tmp = index->search_index_entry(data, {max, max});
-                    end = index->next_index_entry_offset(tmp);
+                DataComparator cmp{field_desc.data_descriptor};
+                const Byte *upper_bound = nullptr;
+                const Byte *lower_bound = nullptr;
+                for (auto &&pred : preds) {
+                    if ((pred.op == PredicateOperator::GREATER || pred.op == PredicateOperator::GREATER_EQUAL) &&
+                        (lower_bound == nullptr || cmp.greater(pred.operand.data(), lower_bound))) {
+                        lower_bound = pred.operand.data();
+                    } else if ((pred.op == PredicateOperator::LESS || pred.op == PredicateOperator::LESS_EQUAL) &&
+                               (upper_bound == nullptr || cmp.less(pred.operand.data(), upper_bound))) {
+                        upper_bound = pred.operand.data();
+                    }
                 }
+                if (lower_bound != nullptr && upper_bound != nullptr && cmp.greater(lower_bound, upper_bound)) {
+                    break;  // empty set
+                }
+                auto begin = lower_bound != nullptr ?
+                             index->search_index_entry(lower_bound, {-1, -1}) :
+                             index->index_entry_offset_begin();
+                auto end = upper_bound != nullptr ?
+                           index->next_index_entry_offset(index->search_index_entry(upper_bound, {max, max})) :
+                           IndexEntryOffset{-1, -1};
                 for (auto it = begin; it != end; it = index->next_index_entry_offset(it)) {
                     auto rid = index->related_record_offset(it);
                     auto rec = table->get_record(rid);
@@ -494,38 +506,45 @@ size_t QueryEngine::select_records(
         cols.reserve(std::max(static_cast<size_t>(MAX_FIELD_COUNT), selected_columns.size()));
         
         if (selected_columns.empty()) {
-            for (auto i = 0; i < desc.field_count; i++) {
-                cols.emplace_back(i);
-            }
+            for (auto i = 0; i < desc.field_count; i++) { cols.emplace_back(i); }
         } else {
-            for (auto &&c : selected_columns) {
-                cols.emplace_back(table->column_offset(c));
-            }
+            for (auto &&c : selected_columns) { cols.emplace_back(table->column_offset(c)); }
         }
+        
         auto preds = _extract_single_table_column_predicates(table, predicates);
-        auto rids = _gather_valid_single_table_record_offsets(table, preds);
-        std::vector<std::string> row;
-        for (auto &&rid : rids) {
-            row.clear();
-            auto rec = table->get_record(rid);
-            for (auto &&col : cols) {
-                auto field_desc = desc.field_descriptors[col];
-                auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
-                if (null) {
-                    row.emplace_back("NULL");
-                } else {
-                    row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
-                }
-            }
-            receiver(row);
-        }
-        return rids.size();
+        return _select_from_single_table(table, cols, preds, receiver);
     }
     
     // multi-table selection
     
     
     return 0;
+}
+
+size_t QueryEngine::_select_from_single_table(
+    const std::shared_ptr<Table> &table,
+    const std::vector<ColumnOffset> &cols,
+    const std::vector<SingleTablePredicate> &preds,
+    const std::function<void(const std::vector<std::string> &)> &receiver) {
+    
+    auto &desc = table->descriptor();
+    auto rids = _gather_valid_single_table_record_offsets(table, preds);
+    std::vector<std::string> row;
+    for (auto &&rid : rids) {
+        row.clear();
+        auto rec = table->get_record(rid);
+        for (auto &&col : cols) {
+            auto field_desc = desc.field_descriptors[col];
+            auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
+            if (null) {
+                row.emplace_back("NULL");
+            } else {
+                row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
+            }
+        }
+        receiver(row);
+    }
+    return rids.size();
 }
     
 }
