@@ -6,11 +6,11 @@
 #define WATERYSQL_STRING_VIEW_COPIER_H
 
 #include <string_view>
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 
 namespace watery {
 
-struct StringViewCopier : NonTrivialConstructible {
+struct StringViewCopier : NonConstructible {
     
     static inline void copy(std::string_view sv, char *buffer) noexcept {
         sv.copy(buffer, sv.size());

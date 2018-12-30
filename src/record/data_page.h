@@ -10,11 +10,11 @@
 #include "data_page_header.h"
 #include "../utility/type/non_copyable.h"
 #include "../utility/type/non_movable.h"
-#include "../utility/type/non_trivial_constructible.h"
+#include "../utility/type/non_constructible.h"
 
 namespace watery {
 
-struct DataPage : NonCopyable, NonTrivialConstructible, NonMovable {
+struct DataPage : NonCopyable, NonConstructible, NonMovable {
     DataPageHeader header;
     alignas(8) Byte data[1];  // serves as a position indicator.
 };

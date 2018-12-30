@@ -37,7 +37,7 @@ set(SOURCE_FILES
     src/utility/io/error_printer.h
     src/utility/io/printer.h
     src/error/error.h
-    src/utility/type/non_trivial_constructible.h
+    src/utility/type/non_constructible.h
     src/record/record_offset.h
     src/record/record_manager.cpp
     src/record/record_manager.h
@@ -131,7 +131,7 @@ set(SOURCE_FILES
     src/query/query_plan.h
     src/query/cross_table_predicate.h
     src/query/selection_context.h
-    src/error/cross_table_predicate_type_mismatch.h src/data/aggregate_function.h)
+    src/error/cross_table_predicate_type_mismatch.h src/data/aggregate_function.h src/data/aggregate_function_helper.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)

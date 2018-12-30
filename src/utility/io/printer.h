@@ -6,11 +6,11 @@
 #define WATERYSQL_PRINTER_H
 
 #include <iostream>
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 
 namespace watery {
 
-struct Printer : NonTrivialConstructible {
+struct Printer : NonConstructible {
     
     template<typename OStream, typename ...Args>
     static void println(OStream &os, Args &&...args) noexcept {

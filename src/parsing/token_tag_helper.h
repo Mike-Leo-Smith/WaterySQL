@@ -9,12 +9,12 @@
 #include <unordered_map>
 
 
-#include "../utility/type/non_trivial_constructible.h"
+#include "../utility/type/non_constructible.h"
 #include "token_tag.h"
 
 namespace watery {
 
-struct TokenTagHelper : NonTrivialConstructible {
+struct TokenTagHelper : NonConstructible {
     
     static const std::unordered_map<std::string_view, TokenTag> &keyword_dict() noexcept;
     static std::string_view name(TokenTag tag) noexcept;

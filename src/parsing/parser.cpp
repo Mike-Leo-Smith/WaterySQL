@@ -617,6 +617,15 @@ Actor Parser::_parse_select_statement() {
         }
     }
     
+    if (actor.function != AggregateFunction::NONE &&
+        actor.function != AggregateFunction::COUNT &&
+        actor.wildcard) {
+        throw ParserError{
+            std::string{"Cannot apply aggregate function "}
+                .append(AggregateFunctionHelper::name(actor.function))
+                .append(" on multiple columns."), cmd.offset};
+    }
+    
     return actor;
 }
 
@@ -631,6 +640,45 @@ void Parser::_parse_selector(SelectRecordActor &actor) {
         actor.wildcard = true;
         return;
     }
+    
+    auto parse_aggregate_function = [&](auto func_token, auto func) {
+        _scanner.match_token(func_token);
+        actor.function = func;
+        _scanner.match_token(TokenTag::LEFT_PARENTHESIS);
+        if (_scanner.lookahead() == TokenTag::WILDCARD) {
+            _scanner.match_token(TokenTag::WILDCARD);
+            actor.wildcard = true;
+        } else {
+            actor.selected_tables.emplace_back();
+            actor.selected_columns.emplace_back();
+            _parse_column(actor.selected_tables.back(), actor.selected_columns.back());
+        }
+        _scanner.match_token(TokenTag::RIGHT_PARENTHESIS);
+    };
+    
+    switch (_scanner.lookahead()) {
+        case TokenTag::MIN:
+            parse_aggregate_function(TokenTag::MIN, AggregateFunction::MIN);
+            break;
+        case TokenTag::MAX:
+            parse_aggregate_function(TokenTag::MAX, AggregateFunction::MAX);
+            break;
+        case TokenTag::AVG:
+            parse_aggregate_function(TokenTag::AVG, AggregateFunction::AVERAGE);
+            break;
+        case TokenTag::SUM:
+            parse_aggregate_function(TokenTag::SUM, AggregateFunction::SUM);
+            break;
+        case TokenTag::COUNT:
+            parse_aggregate_function(TokenTag::COUNT, AggregateFunction::COUNT);
+            break;
+        default:
+            _parse_selected_columns(actor);
+            break;
+    }
+}
+
+void Parser::_parse_selected_columns(SelectRecordActor &actor) {
     actor.selected_tables.emplace_back();
     actor.selected_columns.emplace_back();
     _parse_column(actor.selected_tables.back(), actor.selected_columns.back());

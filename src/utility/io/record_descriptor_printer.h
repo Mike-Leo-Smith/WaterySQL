@@ -5,13 +5,13 @@
 #ifndef WATERYSQL_RECORD_DESCRIPTOR_PRINTER_H
 #define WATERYSQL_RECORD_DESCRIPTOR_PRINTER_H
 
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 #include "../../data/record_descriptor.h"
 #include "printer.h"
 
 namespace watery {
 
-struct RecordDescriptorPrinter : NonTrivialConstructible {
+struct RecordDescriptorPrinter : NonConstructible {
     
     template<typename Stream>
     static void print(Stream &os, const RecordDescriptor &descriptor) noexcept {

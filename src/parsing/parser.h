@@ -56,6 +56,8 @@ protected:
     void _parse_set_clause(UpdateRecordActor &actor);
     void _parse_selector(watery::SelectRecordActor &actor);
     void _parse_selection_table_list(std::vector<std::string> &tables);
+    void _parse_selected_columns(SelectRecordActor &actor);
+    Actor _parse_exit_statement();
     
 public:
     explicit Parser(std::string_view program = "");
@@ -64,7 +66,6 @@ public:
     bool end() const;
     Actor match();
     void skip();
-    Actor _parse_exit_statement();
 };
 
 }

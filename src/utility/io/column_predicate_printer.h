@@ -11,7 +11,7 @@
 
 namespace watery {
 
-struct ColumnPredicatePrinter : NonTrivialConstructible {
+struct ColumnPredicatePrinter : NonConstructible {
     
     template<typename Stream>
     static void print(Stream &os, const ColumnPredicate &pred) noexcept {

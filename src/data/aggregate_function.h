@@ -9,7 +9,7 @@ namespace watery {
 
 enum struct AggregateFunction {
     
-    SUM, AVERAGE, MIN, MAX, COUNT
+    SUM, AVERAGE, MIN, MAX, COUNT, NONE
 
 };
 

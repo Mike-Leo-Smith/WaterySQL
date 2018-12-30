@@ -15,6 +15,7 @@ enum struct TokenTag : uint32_t {
     USE, PRIMARY, KEY, NOT, NUL, INSERT, INTO, VALUES,
     DELETE, FROM, WHERE, UPDATE, SET, SELECT, IS, INT, UNIQUE,
     CHAR, DESCRIBE, REFERENCES, INDEX, AND, DATE, FLOAT, FOREIGN,
+    COUNT, AVG, MIN, MAX, SUM,
     
     // literals
         IDENTIFIER, NUMBER, STRING,  // dates are parsed as strings

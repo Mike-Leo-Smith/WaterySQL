@@ -7,12 +7,12 @@
 
 #include <type_traits>
 
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 #include "../../config/config.h"
 
 namespace watery {
 
-struct MemoryMapper : NonTrivialConstructible {
+struct MemoryMapper : NonConstructible {
     
     template<typename T, typename U>
     static inline T &map_memory(U *buffer) noexcept {

@@ -7,12 +7,12 @@
 
 #include <string_view>
 
-#include "../utility/type/non_trivial_constructible.h"
+#include "../utility/type/non_constructible.h"
 #include "type_tag.h"
 
 namespace watery {
 
-struct TypeTagHelper : NonTrivialConstructible {
+struct TypeTagHelper : NonConstructible {
     
     static constexpr std::string_view name(TypeTag tag) noexcept {
         switch (tag) {

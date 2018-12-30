@@ -10,11 +10,11 @@
 #include <filesystem>
 #include <fstream>
 
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 
 namespace watery {
 
-struct FileReader : NonTrivialConstructible {
+struct FileReader : NonConstructible {
     
     static std::string_view read_all(const std::string &file_name) {
         thread_local static std::string buffer;

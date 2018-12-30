@@ -10,14 +10,14 @@
 #include <string_view>
 #include <charconv>
 
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 #include "../../error/value_decoder_error.h"
 #include "../time/date_validator.h"
 #include "../../data/type_tag_helper.h"
 
 namespace watery {
 
-struct ValueDecoder : NonTrivialConstructible {
+struct ValueDecoder : NonConstructible {
     
     static int32_t decode_integer(std::string_view raw) {
         int32_t result;
@@ -45,6 +45,18 @@ struct ValueDecoder : NonTrivialConstructible {
             throw ValueDecoderError{raw, "DATE", "the date is not in a valid range."};
         }
         return (year << 16) | (month << 8) | day;
+    }
+    
+    static double decode_double(std::string_view raw) {
+        char *end;
+        auto result = std::strtod(raw.begin(), &end);
+        if (result == HUGE_VAL) {
+            throw ValueDecoderError{raw, "DOUBLE", "of overflow."};
+        }
+        if (end == raw.begin()) {
+            throw ValueDecoderError{raw, "DOUBLE", "of the mismatched pattern."};
+        }
+        return result;
     }
     
     static float decode_float(std::string_view raw) {

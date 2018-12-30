@@ -6,11 +6,11 @@
 #define WATERYSQL_DATE_VALIDATOR_H
 
 #include <cstdint>
-#include "../type/non_trivial_constructible.h"
+#include "../type/non_constructible.h"
 
 namespace watery {
 
-struct DateValidator : NonTrivialConstructible {
+struct DateValidator : NonConstructible {
     
     static bool validate(int32_t year, int32_t month, int32_t day) noexcept {
         static constexpr int days_in_month[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
