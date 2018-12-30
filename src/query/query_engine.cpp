@@ -532,13 +532,7 @@ size_t QueryEngine::select_records(
                 cols.emplace_back(i);
             }
         }
-        return _select_from_multiple_tables(tables,
-                                            cols,
-                                            src_tables,
-                                            ctx_tables,
-                                            ctx_records,
-                                            predicates,
-                                            receiver);
+        return _select_from_multiple_tables(tables, cols, src_tables, ctx_tables, ctx_records, predicates, receiver);
     }
     
     cols.reserve(MAX_FIELD_COUNT);
@@ -546,13 +540,7 @@ size_t QueryEngine::select_records(
         auto table = RecordManager::instance().open_table(sel_tables[i]);
         cols.emplace_back(table->column_offset(sel_columns[i]));
     }
-    return _select_from_multiple_tables(sel_tables,
-                                        cols,
-                                        src_tables,
-                                        ctx_tables,
-                                        ctx_records,
-                                        predicates,
-                                        receiver);
+    return _select_from_multiple_tables(sel_tables, cols, src_tables, ctx_tables, ctx_records, predicates, receiver);
 }
 
 size_t QueryEngine::_select_from_single_table(
@@ -662,8 +650,8 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_
 }
 
 size_t QueryEngine::_select_from_multiple_tables(
-    const std::vector<std::string> &selected_tables,
-    const std::vector<ColumnOffset> &selected_cols,
+    const std::vector<std::string> &sel_tables,
+    const std::vector<ColumnOffset> &sel_cols,
     const std::vector<std::string> &src_tables,
     std::vector<std::shared_ptr<Table>> &ctx_tables,
     std::vector<std::vector<Byte>> &ctx_records,
@@ -671,14 +659,26 @@ size_t QueryEngine::_select_from_multiple_tables(
     const std::function<void(const std::vector<std::string> &)> &recv) {
     
     if (ctx_tables.size() == src_tables.size()) {  // done
-        recv(_encode_selected_records(selected_tables, selected_cols, ctx_tables, ctx_records));
+        recv(_encode_selected_records(sel_tables, sel_cols, ctx_tables, ctx_records));
         return 1;
     }
     
-    // todo
-    auto index = ctx_tables.size();
-    
-    return 0;
+    auto ctx = ctx_tables.size();
+    auto table = RecordManager::instance().open_table(src_tables[ctx]);
+    auto predicates = _extract_contextual_single_table_predicates(table, preds, ctx_tables, ctx_records);
+    auto rids = _gather_valid_single_table_record_offsets(table, predicates);
+    auto count = 0ul;
+    ctx_tables.emplace_back(table);
+    for (auto &&rid : rids) {
+        std::vector<Byte> record;
+        record.resize(table->descriptor().length);
+        std::memmove(record.data(), table->get_record(rid), table->descriptor().length);
+        ctx_records.emplace_back(std::move(record));
+        count += _select_from_multiple_tables(sel_tables, sel_cols, src_tables, ctx_tables, ctx_records, preds, recv);
+        ctx_records.pop_back();
+    }
+    ctx_tables.pop_back();
+    return count;
 }
 
 std::vector<std::string> QueryEngine::_encode_selected_records(

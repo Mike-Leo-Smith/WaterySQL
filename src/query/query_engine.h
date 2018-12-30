@@ -68,8 +68,8 @@ private:
         const std::function<void(const std::vector<std::string> &)> &receiver);
     
     static size_t _select_from_multiple_tables(
-        const std::vector<std::string> &selected_tables,
-        const std::vector<ColumnOffset> &selected_cols,
+        const std::vector<std::string> &sel_tables,
+        const std::vector<ColumnOffset> &sel_cols,
         const std::vector<std::string> &src_tables,
         std::vector<std::shared_ptr<Table>> &ctx_tables,
         std::vector<std::vector<Byte>> &ctx_records,
