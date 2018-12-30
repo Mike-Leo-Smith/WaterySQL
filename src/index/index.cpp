@@ -175,31 +175,6 @@ IndexEntryOffset Index::next_index_entry_offset(IndexEntryOffset offset) const {
     return {-1, -1};
 }
 
-IndexEntryOffset Index::prev_index_entry_offset(IndexEntryOffset offset) const {
-    
-    if (is_index_entry_offset_end(offset)) {
-        return {-1, -1};
-    }
-    
-    const auto &node = _load_node_for_reading(_file_handle, offset.page_offset);
-    if (offset.child_offset > 0) {  // not first
-        return {offset.page_offset, offset.child_offset - 1};
-    }
-    
-    // find index entry in prev nodes.
-    auto prev_page = _get_index_node_link(node).prev;
-    while (prev_page != -1) {
-        const auto &prev_node = _load_node_for_reading(_file_handle, prev_page);
-        if (prev_node.header.key_count != 0) {
-            return {prev_page, static_cast<ChildOffset>(prev_node.header.key_count - 1)};
-        }
-        prev_page = _get_index_node_link(prev_node).prev;
-    }
-    
-    // the first in the index
-    return {-1, -1};
-}
-
 RecordOffset Index::related_record_offset(IndexEntryOffset offset) const {
     if (offset.page_offset < 0 || offset.child_offset < 0) { return {-1, -1}; }
     const auto &node = _load_node_for_reading(_file_handle, offset.page_offset);
@@ -342,16 +317,6 @@ void Index::delete_index_entry(const Byte *data, RecordOffset rid) {
     }
 }
 
-void Index::delete_index_entry(IndexEntryOffset entry_offset) {
-    auto &node = _load_node_for_writing(_file_handle, entry_offset.page_offset);
-    if (entry_offset.child_offset < node.header.key_count) {
-        _move_trailing_index_entries(node, entry_offset.child_offset + 1, node, entry_offset.child_offset);
-        node.header.key_count--;
-    } else {
-        throw IndexEntryOffsetOutOfRange{_name, entry_offset};
-    }
-}
-
 RecordOffset Index::search_unique_index_entry(const Byte *data) const {
     
     if (!_header.unique) {
@@ -368,25 +333,6 @@ RecordOffset Index::search_unique_index_entry(const Byte *data) const {
         return _get_index_entry_record_offset(node, entry_offset.child_offset);
     }
     throw IndexEntryNotFound{_name};
-}
-
-bool Index::contains(const Byte *data) const {
-    
-    if (_header.root_offset == -1) {  // searching in empty tree.
-        return false;
-    }
-    
-    auto key_compact = _make_key_compact(data, {-1, -1});
-    auto entry_offset = _search_entry_in(_header.root_offset, key_compact);
-    auto &node = _load_node_for_writing(_file_handle, entry_offset.page_offset);
-    return _index_entry_data_matches(node, entry_offset.child_offset, key_compact);
-}
-
-bool Index::data_matches(IndexEntryOffset entry_offset, const Byte *data) const {
-    const auto &node = _load_node_for_reading(_file_handle, entry_offset.page_offset);
-    auto stored_data = _get_index_entry_key(node, entry_offset.child_offset);
-    auto offset = _header.key_length - _header.data_length;
-    return std::memcmp(stored_data + offset, data, _header.data_length) == 0;
 }
 
 IndexEntryOffset Index::index_entry_offset_begin() const {

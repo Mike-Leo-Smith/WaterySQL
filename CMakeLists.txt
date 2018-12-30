@@ -131,7 +131,7 @@ set(SOURCE_FILES
     src/query/query_plan.h
     src/query/cross_table_predicate.h
     src/query/selection_context.h
-    src/error/cross_table_predicate_type_mismatch.h)
+    src/error/cross_table_predicate_type_mismatch.h src/data/aggregate_function.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)

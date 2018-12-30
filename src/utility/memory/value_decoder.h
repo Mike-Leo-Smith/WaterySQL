@@ -32,7 +32,10 @@ struct ValueDecoder : NonTrivialConstructible {
     }
     
     static int32_t decode_date(std::string_view raw) {  // string look like '1998-08-10'
-        if (raw.size() != 12 || raw[0] != '\'' || raw[5] != '-' || raw[8] != '-' || raw[11] != '\'') {
+        if (raw.size() != 12 || raw[0] != '\'' ||
+            (raw[5] != '-' && raw[5] != '/') ||
+            (raw[8] != '-' && raw[8] != '/') ||
+            raw[11] != '\'') {
             throw ValueDecoderError{raw, "DATE", "of unrecognized pattern."};
         }
         auto year = decode_integer(raw.substr(1, 4));

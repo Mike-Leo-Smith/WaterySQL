@@ -45,7 +45,6 @@ int main() {
         auto index = index_manager.open_index(name);
         
         index->insert_index_entry("hello, world", {1, 2});
-        Printer::println(std::cout, index->contains("hello, world") ? "true" : "false");
         index->delete_index_entry("hello, world", {1, 2});
         
         constexpr auto count = 5'000'000;

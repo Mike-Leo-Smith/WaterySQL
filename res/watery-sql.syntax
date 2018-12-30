@@ -6,7 +6,7 @@ Stmt                ->  SHOW ShowStmtBody ';'                               // d
                     |   INSERT INTO IDENTIFIER VALUES ValueTupleList ';'    // done
                     |   DELETE FROM IDENTIFIER WhereClause ';'              // done
                     |   UPDATE IDENTIFIER SetClause WhereClause ';'         // done
-                    |   SELECT Selector FROM TableList WhereClause ';'
+                    |   SELECT Selector FROM TableList WhereClause ';'      // done
 
 ShowStmtBody        ->  DATABASES                                           // done
                     |   TABLES                                              // done
@@ -84,6 +84,7 @@ SetClauseTail       ->  ',' SetClauseBody                                   // d
                     |   // empty, lookahead == WHERE || lookahead == ';'    // done
 
 Selector            ->  '*'                                                 // done
+                    |   Function '(' Column ')'                             // done
                     |   Column SelectorTail                                 // done with hack
 
 SelectorTail        ->  ',' Column SelectorTail                             // done
