@@ -111,6 +111,11 @@ void Table::delete_record(RecordOffset record_offset) {
 }
 
 RecordOffset Table::next_record_offset(RecordOffset rid) const {
+    
+    if (is_record_offset_end(rid)) {
+        return {-1, -1};
+    }
+    
     auto init_slot = rid.slot_offset + 1;
     auto init_page = rid.page_offset;
     if (init_slot > _header.slot_count_per_page) {
@@ -193,7 +198,7 @@ RecordOffset Table::record_offset_begin() const {
 }
 
 bool Table::is_record_offset_end(RecordOffset rid) const {
-    return rid == RecordOffset{-1, -1};
+    return rid.page_offset == -1;
 }
 
 uint32_t Table::record_reference_count(RecordOffset rid) const {

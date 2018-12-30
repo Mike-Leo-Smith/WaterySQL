@@ -57,7 +57,7 @@ struct DataView {
 //        }
 //    }
     
-    std::string to_string() const noexcept {
+    std::string to_string() const {
         switch (descriptor.type) {
             case TypeTag::DATE: {
                 std::string result = "0000-00-00";
@@ -65,14 +65,14 @@ struct DataView {
                 auto year = date >> 16;
                 auto month = (date >> 8) & 0xff;
                 auto day = date & 0xff;
-                result[0] = year / 1000 + '0';
-                result[1] = year / 100 % 10 + '0';
-                result[2] = year / 10 % 10 + '0';
-                result[3] = year % 10 + '0';
-                result[5] = month / 10 + '0';
-                result[6] = month % 10 + '0';
-                result[8] = day / 10 + '0';
-                result[9] = day % 10 + '0';
+                result[0] = static_cast<char>(year / 1000 + '0');
+                result[1] = static_cast<char>(year / 100 % 10 + '0');
+                result[2] = static_cast<char>(year / 10 % 10 + '0');
+                result[3] = static_cast<char>(year % 10 + '0');
+                result[5] = static_cast<char>(month / 10 + '0');
+                result[6] = static_cast<char>(month % 10 + '0');
+                result[8] = static_cast<char>(day / 10 + '0');
+                result[9] = static_cast<char>(day % 10 + '0');
                 return result;
             }
             case TypeTag::INTEGER:

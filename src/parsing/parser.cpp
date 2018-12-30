@@ -636,7 +636,13 @@ void Parser::_parse_selection_table_list(std::vector<std::string> &tables) {
     tables.emplace_back(_scanner.match_token(TokenTag::IDENTIFIER).raw);
     while (_scanner.lookahead() == TokenTag::COMMA) {
         _scanner.match_token(TokenTag::COMMA);
-        tables.emplace_back(_scanner.match_token(TokenTag::IDENTIFIER).raw);
+        auto table = _scanner.match_token(TokenTag::IDENTIFIER);
+        
+        // make sure that the list does not contain redundant tables.
+        if (std::find(tables.cbegin(), tables.cend(), table.raw) != tables.cend()) {
+            throw ParserError{"Redundant selection source table.", table.offset};
+        }
+        tables.emplace_back(table.raw);
     }
 }
 

@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-#include "../action/predicate_operator.h"
+#include "../data/predicate_operator.h"
 #include "../record/table.h"
 #include "../utility/memory/value_decoder.h"
 #include "query_plan.h"
@@ -28,13 +28,8 @@ struct SingleTablePredicate {
     
     SingleTablePredicate(
         ColumnOffset cid, PredicateOperator op,
-        std::vector<Byte> opr, DataDescriptor desc, QueryPlan qp, uint64_t c)
-        : column_offset{cid}, op{op}, query_plan{qp}, estimated_cost{c} {
-        if (op != PredicateOperator::IS_NULL && op != PredicateOperator::NOT_NULL) {
-            operand.resize(desc.length);
-            ValueDecoder::decode(desc.type, opr.data(), operand.data());
-        }
-    }
+        std::vector<Byte> opr, QueryPlan qp, uint64_t c)
+        : column_offset{cid}, op{op}, operand{std::move(opr)}, query_plan{qp}, estimated_cost{c} {}
     
     bool operator<(const SingleTablePredicate &rhs) const noexcept {
         return estimated_cost < rhs.estimated_cost;

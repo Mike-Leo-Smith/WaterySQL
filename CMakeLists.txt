@@ -5,7 +5,7 @@ project(WaterySQL C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(COMPILE_WITH_CLANG 1)
+set(COMPILE_WITH_CLANG 0)
 
 if (COMPILE_WITH_CLANG)
     set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
@@ -92,8 +92,8 @@ set(SOURCE_FILES
     src/utility/time/date_validator.h
     src/action/column_predicate.h
     src/action/delete_record_actor.h
-    src/action/predicate_operator.h
-    src/action/predicate_operator_helper.h
+    src/data/predicate_operator.h
+    src/data/predicate_operator_helper.h
     src/action/update_record_actor.h
     src/action/select_record_actor.h
     src/utility/memory/identifier_comparison.h
@@ -126,9 +126,13 @@ set(SOURCE_FILES
     src/error/deleting_referenced_record.h
     src/error/conflict_record_field_update.h
     src/error/invalid_primary_key_update.h
-    src/error/record_reference_not_counted.h src/utility/io/column_predicate_printer.h src/query/query_plan.h)
+    src/error/record_reference_not_counted.h
+    src/utility/io/column_predicate_printer.h
+    src/query/query_plan.h
+    src/query/cross_table_predicate.h
+    src/query/selection_context.h
+    src/error/cross_table_predicate_type_mismatch.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
-add_executable(WaterySQL-RecordManagerTest ${SOURCE_FILES} test/record_manager_test.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)
 add_executable(WaterySQL-CommandParsingTest ${SOURCE_FILES} test/command_parsing_test.cpp)

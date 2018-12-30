@@ -9,7 +9,7 @@
 #include <string>
 
 #include "../config/config.h"
-#include "predicate_operator.h"
+#include "../data/predicate_operator.h"
 
 namespace watery {
 

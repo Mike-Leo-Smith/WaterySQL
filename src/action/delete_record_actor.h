@@ -11,7 +11,7 @@
 
 #include "../config/config.h"
 #include "column_predicate.h"
-#include "predicate_operator_helper.h"
+#include "../data/predicate_operator_helper.h"
 #include "../utility/memory/string_view_copier.h"
 
 namespace watery {

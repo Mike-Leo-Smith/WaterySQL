@@ -7,7 +7,7 @@
 
 #include "printer.h"
 #include "../../action/column_predicate.h"
-#include "../../action/predicate_operator_helper.h"
+#include "../../data/predicate_operator_helper.h"
 
 namespace watery {
 

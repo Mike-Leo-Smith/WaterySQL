@@ -8,7 +8,7 @@
 #include "../config/config.h"
 #include "column_predicate.h"
 #include "../utility/memory/string_view_copier.h"
-#include "predicate_operator_helper.h"
+#include "../data/predicate_operator_helper.h"
 #include "../utility/io/printer.h"
 #include "../utility/io/column_predicate_printer.h"
 

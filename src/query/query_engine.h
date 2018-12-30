@@ -6,13 +6,16 @@
 #define WATERYSQL_QUERY_ENGINE_H
 
 #include <memory>
+#include <functional>
 
 #include "../config/config.h"
 #include "../record/table.h"
 #include "../index/index_manager.h"
 #include "../record/record_manager.h"
 #include "../action/column_predicate.h"
+
 #include "single_table_predicate.h"
+#include "cross_table_predicate.h"
 
 namespace watery {
 
@@ -41,9 +44,15 @@ private:
         const std::shared_ptr<Table> &table, const Byte *rec,
         const std::vector<SingleTablePredicate> &preds);
     
-    static std::vector<SingleTablePredicate> _extract_single_table_column_predicates(
+    static std::vector<SingleTablePredicate> _extract_single_table_predicates(
         const std::shared_ptr<Table> &table,
         const std::vector<ColumnPredicate> &preds);
+    
+    static std::vector<SingleTablePredicate> _extract_contextual_single_table_predicates(
+        const std::shared_ptr<Table> &table,
+        const std::vector<ColumnPredicate> &preds,
+        const std::vector<std::shared_ptr<Table>> &ctx_tables,
+        const std::vector<std::vector<Byte>> &ctx_records);
     
     static void _update_record(
         const std::shared_ptr<Table> &table, RecordOffset rid,

@@ -16,6 +16,8 @@
 #include "../error/conflict_record_field_update.h"
 #include "../error/invalid_primary_key_update.h"
 #include "../data/data_view.h"
+#include "../error/cross_table_predicate_type_mismatch.h"
+#include "../data/predicate_operator_helper.h"
 
 namespace watery {
 
@@ -145,7 +147,7 @@ void QueryEngine::_insert_record(
 size_t QueryEngine::delete_records(const std::string &table_name, const std::vector<ColumnPredicate> &raw_preds) {
     
     auto table = RecordManager::instance().open_table(table_name);
-    auto predicates = _extract_single_table_column_predicates(table, raw_preds);
+    auto predicates = _extract_single_table_predicates(table, raw_preds);
     auto rids = _gather_valid_single_table_record_offsets(table, predicates);
     
     // delete in a reversed order to reduce data copy
@@ -278,7 +280,7 @@ bool QueryEngine::_record_satisfies_predicates(
     return true;
 }
 
-std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_column_predicates(
+std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_predicates(
     const std::shared_ptr<Table> &table,
     const std::vector<ColumnPredicate> &preds) {
     
@@ -289,7 +291,12 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_column_pred
             auto plan = _choose_column_query_plan(table, cid, raw_pred.op);
             auto cost = _estimate_single_column_predicate_cost(table, cid, raw_pred.op, plan);
             auto data_desc = table->descriptor().field_descriptors[cid].data_descriptor;
-            predicates.emplace_back(cid, raw_pred.op, raw_pred.operand, data_desc, plan, cost);
+            std::vector<Byte> operand;
+            if (raw_pred.op != PredicateOperator::IS_NULL && raw_pred.op != PredicateOperator::NOT_NULL) {
+                operand.resize(data_desc.length);
+                ValueDecoder::decode(data_desc.type, raw_pred.operand.data(), operand.data());
+            }
+            predicates.emplace_back(cid, raw_pred.op, std::move(operand), plan, cost);
         }
     }
     std::sort(predicates.begin(), predicates.end());
@@ -322,7 +329,7 @@ size_t QueryEngine::update_records(
     }
     
     auto update_rec = _assemble_record(table, values.data(), sizes.data(), update_cols);
-    auto predicates = _extract_single_table_column_predicates(table, preds);
+    auto predicates = _extract_single_table_predicates(table, preds);
     auto rids = _gather_valid_single_table_record_offsets(table, predicates);
     for (auto &&rid : rids) {
         _update_record(table, rid, update_cols, update_rec);
@@ -488,7 +495,6 @@ std::vector<RecordOffset> QueryEngine::_gather_valid_single_table_record_offsets
     }
     
     return rids;
-    
 }
 
 size_t QueryEngine::select_records(
@@ -511,7 +517,7 @@ size_t QueryEngine::select_records(
             for (auto &&c : selected_columns) { cols.emplace_back(table->column_offset(c)); }
         }
         
-        auto preds = _extract_single_table_column_predicates(table, predicates);
+        auto preds = _extract_single_table_predicates(table, predicates);
         return _select_from_single_table(table, cols, preds, receiver);
     }
     
@@ -545,6 +551,86 @@ size_t QueryEngine::_select_from_single_table(
         receiver(row);
     }
     return rids.size();
+}
+
+std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_predicates(
+    const std::shared_ptr<Table> &table, const std::vector<ColumnPredicate> &preds,
+    const std::vector<std::shared_ptr<Table>> &ctx_tables, const std::vector<std::vector<Byte>> &ctx_records) {
+    
+    std::vector<SingleTablePredicate> predicates;
+    
+    auto get_rhs_operand = [](
+        const std::shared_ptr<Table> &lhs_table, ColumnOffset lhs_cid,
+        const std::shared_ptr<Table> &rhs_table, ColumnOffset rhs_cid,
+        const Byte *rhs_rec) {
+        
+        std::vector<Byte> field;
+        const auto &lhs_desc = lhs_table->descriptor();
+        const auto &rhs_desc = rhs_table->descriptor();
+        const auto &lhs_field_desc = lhs_desc.field_descriptors[lhs_cid];
+        const auto &rhs_field_desc = rhs_desc.field_descriptors[rhs_cid];
+        auto lhs_data_desc = lhs_field_desc.data_descriptor;
+        auto rhs_data_desc = rhs_field_desc.data_descriptor;
+        if (lhs_data_desc.type != rhs_data_desc.type) {
+            throw CrossTablePredicateTypeMismatch{
+                lhs_table->name(), lhs_field_desc.name.data(),
+                rhs_table->name(), rhs_field_desc.name.data()};
+        }
+        if (!rhs_field_desc.constraints.nullable() || !MemoryMapper::map_memory<NullFieldBitmap>(rhs_rec)[rhs_cid]) {
+            field.resize(lhs_data_desc.length);
+            auto p = rhs_rec + rhs_desc.field_offsets[rhs_cid];
+            std::memmove(field.data(), p, std::min(lhs_data_desc.length, rhs_data_desc.length));
+        }
+        return field;
+    };
+    
+    for (auto &&pred : preds) {
+        if (pred.table_name == table->name()) {  // as lhs
+            if (pred.cross_table) {  // rhs is a table
+                for (auto i = 0; i < ctx_tables.size(); i++) {  // find it if it is already in context
+                    if (ctx_tables[i]->name() == pred.rhs_table_name) {
+                        auto cid = table->column_offset(pred.column_name);
+                        auto rhs_cid = ctx_tables[i]->column_offset(pred.rhs_column_name);
+                        auto operand = get_rhs_operand(ctx_tables[i], rhs_cid, table, cid, ctx_records[i].data());
+                        auto plan = operand.empty() ?
+                                    QueryPlan::CONSTANT_EMPTY_RESULT :  // nulls make the pred constantly fail
+                                    _choose_column_query_plan(table, cid, pred.op);
+                        auto cost = _estimate_single_column_predicate_cost(table, cid, pred.op, plan);
+                        predicates.emplace_back(cid, pred.op, std::move(operand), plan, cost);
+                        break;
+                    }
+                }
+            } else {  // rhs is a value
+                std::vector<Byte> operand;
+                auto cid = table->column_offset(pred.column_name);
+                auto plan = _choose_column_query_plan(table, cid, pred.op);
+                auto cost = _estimate_single_column_predicate_cost(table, cid, pred.op, plan);
+                auto data_desc = table->descriptor().field_descriptors[cid].data_descriptor;
+                if (pred.op != PredicateOperator::IS_NULL && pred.op != PredicateOperator::NOT_NULL) {
+                    operand.resize(data_desc.length);
+                    ValueDecoder::decode(data_desc.type, pred.operand.data(), operand.data());
+                }
+                predicates.emplace_back(cid, pred.op, std::move(operand), plan, cost);
+            }
+        } else if (pred.cross_table && pred.rhs_table_name == table->name()) {  // as rhs
+            for (auto i = 0; i < ctx_tables.size(); i++) {  // find lhs table if any
+                if (ctx_tables[i]->name() == pred.table_name) {
+                    auto cid = table->column_offset(pred.rhs_column_name);
+                    auto op = PredicateOperatorHelper::reversed(pred.op);
+                    auto rhs_cid = ctx_tables[i]->column_offset(pred.column_name);
+                    auto operand = get_rhs_operand(ctx_tables[i], rhs_cid, table, cid, ctx_records[i].data());
+                    auto plan = operand.empty() ?
+                                QueryPlan::CONSTANT_EMPTY_RESULT :  // skip nulls
+                                _choose_column_query_plan(table, cid, op);
+                    auto cost = _estimate_single_column_predicate_cost(table, cid, op, plan);
+                    predicates.emplace_back(cid, op, std::move(operand), plan, cost);
+                    break;
+                }
+            }
+        }
+    }
+    std::sort(predicates.begin(), predicates.end());
+    return predicates;
 }
     
 }

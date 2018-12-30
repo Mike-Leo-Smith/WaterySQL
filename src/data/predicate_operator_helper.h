@@ -7,7 +7,7 @@
 
 #include <string_view>
 #include "predicate_operator.h"
-#include "column_predicate.h"
+#include "../action/column_predicate.h"
 
 namespace watery {
 
@@ -33,6 +33,21 @@ struct PredicateOperatorHelper {
                 return "IS NOT NULL";
             default:
                 return "UNKNOWN";
+        }
+    }
+    
+    static PredicateOperator reversed(PredicateOperator op) noexcept {
+        switch (op) {
+            case PredicateOperator::LESS:
+                return PredicateOperator::GREATER;
+            case PredicateOperator::LESS_EQUAL:
+                return PredicateOperator::GREATER_EQUAL;
+            case PredicateOperator::GREATER:
+                return PredicateOperator::LESS;
+            case PredicateOperator::GREATER_EQUAL:
+                return PredicateOperator::LESS_EQUAL;
+            default:
+                return op;
         }
     }
     
