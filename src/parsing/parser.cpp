@@ -607,6 +607,16 @@ Actor Parser::_parse_select_statement() {
         }
     }
     
+    if (actor.wildcard) {
+        for (auto &&t : actor.tables) {
+            if (std::find(
+                actor.selected_tables.cbegin(),
+                actor.selected_tables.cend(), t) == actor.selected_tables.cend()) {
+                throw ParserError{std::string{"Irrelevant table \""}.append(t).append("\" in source."), cmd.offset};
+            }
+        }
+    }
+    
     return actor;
 }
 

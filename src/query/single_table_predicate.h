@@ -24,15 +24,15 @@ struct SingleTablePredicate {
     std::vector<Byte> operand;
     
     QueryPlan query_plan;
-    uint64_t estimated_cost;
+    uint64_t cost;
     
     SingleTablePredicate(
         ColumnOffset cid, PredicateOperator op,
         std::vector<Byte> opr, QueryPlan qp, uint64_t c)
-        : column_offset{cid}, op{op}, operand{std::move(opr)}, query_plan{qp}, estimated_cost{c} {}
+        : column_offset{cid}, op{op}, operand{std::move(opr)}, query_plan{qp}, cost{c} {}
     
     bool operator<(const SingleTablePredicate &rhs) const noexcept {
-        return estimated_cost < rhs.estimated_cost;
+        return cost < rhs.cost;
     }
     
 };

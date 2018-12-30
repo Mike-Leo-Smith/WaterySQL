@@ -162,13 +162,6 @@ uint64_t QueryEngine::_estimate_single_column_predicate_cost(
     const std::shared_ptr<Table> &t, ColumnOffset cid,
     PredicateOperator op, QueryPlan plan) noexcept {
     
-    // hyper-parameters
-    constexpr auto table_scan_coeff = 3ull;
-    constexpr auto index_search_coeff = 8ull;
-    constexpr auto partial_index_scan_coeff = 2ull;
-    constexpr auto null_check_coeff = 2ull;
-    constexpr auto empty_result_coeff = 1ull;
-    
     const auto &field_desc = t->descriptor().field_descriptors[cid];
     auto len = field_desc.data_descriptor.length;
     auto count = t->record_count();
@@ -521,7 +514,9 @@ size_t QueryEngine::select_records(
     // multi-table selection
     std::vector<std::shared_ptr<Table>> ctx_tables;
     std::vector<std::vector<Byte>> ctx_records;
-    if (sel_tables.empty()) {  // wildcard, gather all columns
+    
+    // wildcard, gather all columns
+    if (sel_tables.empty()) {
         std::vector<std::string> tables;
         tables.reserve(src_tables.size() * MAX_FIELD_COUNT);
         cols.reserve(src_tables.size() * MAX_FIELD_COUNT);
@@ -535,6 +530,7 @@ size_t QueryEngine::select_records(
         return _select_from_multiple_tables(tables, cols, src_tables, ctx_tables, ctx_records, predicates, receiver);
     }
     
+    // select columns
     cols.reserve(MAX_FIELD_COUNT);
     for (auto i = 0; i < sel_columns.size(); i++) {
         auto table = RecordManager::instance().open_table(sel_tables[i]);
@@ -557,12 +553,9 @@ size_t QueryEngine::_select_from_single_table(
         auto rec = table->get_record(rid);
         for (auto &&col : cols) {
             auto &field_desc = desc.field_descriptors[col];
-            auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
-            if (null) {
-                row.emplace_back("NULL");
-            } else {
-                row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
-            }
+            field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col] ?
+            row.emplace_back("NULL") :
+            row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
         }
         receiver(row);
     }
@@ -607,7 +600,7 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_
                     if (ctx_tables[i]->name() == pred.rhs_table_name) {
                         auto cid = table->column_offset(pred.column_name);
                         auto rhs_cid = ctx_tables[i]->column_offset(pred.rhs_column_name);
-                        auto operand = get_rhs_operand(ctx_tables[i], rhs_cid, table, cid, ctx_records[i].data());
+                        auto operand = get_rhs_operand(table, cid, ctx_tables[i], rhs_cid, ctx_records[i].data());
                         auto plan = operand.empty() ?
                                     QueryPlan::CONSTANT_EMPTY_RESULT :  // nulls make the pred constantly fail
                                     _choose_column_query_plan(table, cid, pred.op);
@@ -634,7 +627,7 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_
                     auto cid = table->column_offset(pred.rhs_column_name);
                     auto op = PredicateOperatorHelper::reversed(pred.op);
                     auto rhs_cid = ctx_tables[i]->column_offset(pred.column_name);
-                    auto operand = get_rhs_operand(ctx_tables[i], rhs_cid, table, cid, ctx_records[i].data());
+                    auto operand = get_rhs_operand(table, cid, ctx_tables[i], rhs_cid, ctx_records[i].data());
                     auto plan = operand.empty() ?
                                 QueryPlan::CONSTANT_EMPTY_RESULT :  // skip nulls
                                 _choose_column_query_plan(table, cid, op);
@@ -664,8 +657,31 @@ size_t QueryEngine::_select_from_multiple_tables(
     }
     
     auto ctx = ctx_tables.size();
-    auto table = RecordManager::instance().open_table(src_tables[ctx]);
-    auto predicates = _extract_contextual_single_table_predicates(table, preds, ctx_tables, ctx_records);
+    
+    // find the best table to do selection
+    std::vector<std::string> sorted_src;
+    sorted_src.reserve(src_tables.size());
+    for (auto i = 0; i < ctx; i++) {
+        sorted_src.emplace_back(src_tables[i]);
+    }
+    std::vector<SingleTablePredicate> predicates;
+    auto min_table_index = 0ul;
+    for (uint64_t i = ctx, min_score = std::numeric_limits<uint64_t>::max(); i < src_tables.size(); i++) {
+        auto src_table = RecordManager::instance().open_table(src_tables[i]);
+        auto pds = _extract_contextual_single_table_predicates(src_table, preds, ctx_tables, ctx_records);
+        auto &desc = src_table->descriptor();
+        auto score = pds.empty() ? table_scan_coeff * desc.length * src_table->record_count() : pds[0].cost;
+        if (score <= min_score) {
+            min_score = score;
+            min_table_index = i;
+            predicates = std::move(pds);
+        }
+    }
+    sorted_src.emplace_back(src_tables[min_table_index]);
+    for (auto i = ctx; i < min_table_index; i++) { sorted_src.emplace_back(src_tables[i]); }
+    for (auto i = min_table_index + 1; i < src_tables.size(); i++) { sorted_src.emplace_back(src_tables[i]); }
+    
+    auto table = RecordManager::instance().open_table(sorted_src[ctx]);
     auto rids = _gather_valid_single_table_record_offsets(table, predicates);
     auto count = 0ul;
     ctx_tables.emplace_back(table);
@@ -674,7 +690,7 @@ size_t QueryEngine::_select_from_multiple_tables(
         record.resize(table->descriptor().length);
         std::memmove(record.data(), table->get_record(rid), table->descriptor().length);
         ctx_records.emplace_back(std::move(record));
-        count += _select_from_multiple_tables(sel_tables, sel_cols, src_tables, ctx_tables, ctx_records, preds, recv);
+        count += _select_from_multiple_tables(sel_tables, sel_cols, sorted_src, ctx_tables, ctx_records, preds, recv);
         ctx_records.pop_back();
     }
     ctx_tables.pop_back();
@@ -706,7 +722,6 @@ std::vector<std::string> QueryEngine::_encode_selected_records(
         }
     }
     return row;
-    
 }
     
 }

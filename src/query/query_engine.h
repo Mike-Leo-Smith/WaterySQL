@@ -21,6 +21,14 @@ namespace watery {
 
 class QueryEngine : public Singleton<QueryEngine> {
 
+public:
+    // hyper-parameters
+    static constexpr auto table_scan_coeff = 3ull;
+    static constexpr auto index_search_coeff = 10ull;
+    static constexpr auto partial_index_scan_coeff = 2ull;
+    static constexpr auto null_check_coeff = 2ull;
+    static constexpr auto empty_result_coeff = 1ull;
+
 private:
     static const Byte *_assemble_record(
         const std::shared_ptr<Table> &table, const Byte *raw,
