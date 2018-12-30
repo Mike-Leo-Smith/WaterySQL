@@ -39,23 +39,6 @@ struct DataView {
                 throw DataError{"Unknown type tag."};
         }
     }
-
-//    DataView(DataDescriptor desc, std::string_view raw) : descriptor{desc} {
-//        switch (descriptor.type) {
-//            case TypeTag::INTEGER:
-//            case TypeTag::DATE:
-//                holder = ValueDecoder::decode_integer(raw);
-//                break;
-//            case TypeTag::FLOAT:
-//                holder = ValueDecoder::decode_float(raw);
-//                break;
-//            case TypeTag::CHAR:
-//                holder = raw;
-//                break;
-//            default:
-//                throw DataError{"Unknown type tag."};
-//        }
-//    }
     
     std::string to_string() const {
         switch (descriptor.type) {

@@ -287,7 +287,10 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_single_table_predicates(
             std::vector<Byte> operand;
             if (raw_pred.op != PredicateOperator::IS_NULL && raw_pred.op != PredicateOperator::NOT_NULL) {
                 operand.resize(data_desc.length);
-                ValueDecoder::decode(data_desc.type, raw_pred.operand.data(), operand.data());
+                ValueDecoder::decode(
+                    data_desc.type,
+                    std::string_view{raw_pred.operand.data(), raw_pred.operand.size()},
+                    operand.data());
             }
             predicates.emplace_back(cid, raw_pred.op, std::move(operand), plan, cost);
         }
@@ -617,7 +620,10 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_
                 auto data_desc = table->descriptor().field_descriptors[cid].data_descriptor;
                 if (pred.op != PredicateOperator::IS_NULL && pred.op != PredicateOperator::NOT_NULL) {
                     operand.resize(data_desc.length);
-                    ValueDecoder::decode(data_desc.type, pred.operand.data(), operand.data());
+                    ValueDecoder::decode(
+                        data_desc.type,
+                        std::string_view{pred.operand.data(), pred.operand.size()},
+                        operand.data());
                 }
                 predicates.emplace_back(cid, pred.op, std::move(operand), plan, cost);
             }

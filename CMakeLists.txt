@@ -5,7 +5,7 @@ project(WaterySQL C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(COMPILE_WITH_CLANG 0)
+set(COMPILE_WITH_CLANG 1)
 
 if (COMPILE_WITH_CLANG)
     set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
