@@ -19,7 +19,7 @@ struct DropIndexActor {
     std::string column_name;
     
     DropIndexActor(std::string_view tab, std::string_view col) noexcept
-        : table_name{tab}, column_name{tab} {}
+        : table_name{tab}, column_name{col} {}
     
     void operator()() const {
         Printer::println(std::cout, "DROP INDEX ", table_name, "(", column_name, ")");

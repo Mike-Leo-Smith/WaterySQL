@@ -607,7 +607,7 @@ Actor Parser::_parse_select_statement() {
         }
     }
     
-    if (actor.wildcard) {
+    if (!actor.wildcard) {
         for (auto &&t : actor.tables) {
             if (std::find(
                 actor.selected_tables.cbegin(),
