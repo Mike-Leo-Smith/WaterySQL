@@ -498,33 +498,61 @@ std::vector<RecordOffset> QueryEngine::_gather_valid_single_table_record_offsets
 }
 
 size_t QueryEngine::select_records(
-    const std::vector<std::string> &selected_tables,
-    const std::vector<std::string> &selected_columns,
-    const std::vector<std::string> &from_tables,
+    const std::vector<std::string> &sel_tables,
+    const std::vector<std::string> &sel_columns,
+    const std::vector<std::string> &src_tables,
     const std::vector<ColumnPredicate> &predicates,
     std::function<void(const std::vector<std::string> &row)> receiver) {
     
+    std::vector<ColumnOffset> cols;
+    
     // single table selection
-    if (from_tables.size() == 1) {
-        auto table = RecordManager::instance().open_table(from_tables[0]);
-        auto &desc = table->descriptor();
-        std::vector<ColumnOffset> cols;
-        cols.reserve(std::max(static_cast<size_t>(MAX_FIELD_COUNT), selected_columns.size()));
-        
-        if (selected_columns.empty()) {
-            for (auto i = 0; i < desc.field_count; i++) { cols.emplace_back(i); }
+    if (src_tables.size() == 1) {
+        cols.reserve(MAX_FIELD_COUNT);
+        auto table = RecordManager::instance().open_table(src_tables[0]);
+        if (sel_columns.empty()) {  // wildcard
+            for (auto i = 0; i < table->descriptor().field_count; i++) { cols.emplace_back(i); }
         } else {
-            for (auto &&c : selected_columns) { cols.emplace_back(table->column_offset(c)); }
+            for (auto &&c : sel_columns) { cols.emplace_back(table->column_offset(c)); }
         }
-        
-        auto preds = _extract_single_table_predicates(table, predicates);
-        return _select_from_single_table(table, cols, preds, receiver);
+        return _select_from_single_table(table, cols, _extract_single_table_predicates(table, predicates), receiver);
     }
     
     // multi-table selection
+    std::vector<std::shared_ptr<Table>> ctx_tables;
+    std::vector<std::vector<Byte>> ctx_records;
+    if (sel_tables.empty()) {  // wildcard, gather all columns
+        std::vector<std::string> tables;
+        tables.reserve(src_tables.size() * MAX_FIELD_COUNT);
+        cols.reserve(src_tables.size() * MAX_FIELD_COUNT);
+        for (auto &&src_table_name : src_tables) {
+            auto src_table = RecordManager::instance().open_table(src_table_name);
+            for (auto i = 0; i < src_table->descriptor().field_count; i++) {
+                tables.emplace_back(src_table_name);
+                cols.emplace_back(i);
+            }
+        }
+        return _select_from_multiple_tables(tables,
+                                            cols,
+                                            src_tables,
+                                            ctx_tables,
+                                            ctx_records,
+                                            predicates,
+                                            receiver);
+    }
     
-    
-    return 0;
+    cols.reserve(MAX_FIELD_COUNT);
+    for (auto i = 0; i < sel_columns.size(); i++) {
+        auto table = RecordManager::instance().open_table(sel_tables[i]);
+        cols.emplace_back(table->column_offset(sel_columns[i]));
+    }
+    return _select_from_multiple_tables(sel_tables,
+                                        cols,
+                                        src_tables,
+                                        ctx_tables,
+                                        ctx_records,
+                                        predicates,
+                                        receiver);
 }
 
 size_t QueryEngine::_select_from_single_table(
@@ -540,7 +568,7 @@ size_t QueryEngine::_select_from_single_table(
         row.clear();
         auto rec = table->get_record(rid);
         for (auto &&col : cols) {
-            auto field_desc = desc.field_descriptors[col];
+            auto &field_desc = desc.field_descriptors[col];
             auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
             if (null) {
                 row.emplace_back("NULL");
@@ -631,6 +659,54 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_
     }
     std::sort(predicates.begin(), predicates.end());
     return predicates;
+}
+
+size_t QueryEngine::_select_from_multiple_tables(
+    const std::vector<std::string> &selected_tables,
+    const std::vector<ColumnOffset> &selected_cols,
+    const std::vector<std::string> &src_tables,
+    std::vector<std::shared_ptr<Table>> &ctx_tables,
+    std::vector<std::vector<Byte>> &ctx_records,
+    const std::vector<ColumnPredicate> &preds,
+    const std::function<void(const std::vector<std::string> &)> &recv) {
+    
+    if (ctx_tables.size() == src_tables.size()) {  // done
+        recv(_encode_selected_records(selected_tables, selected_cols, ctx_tables, ctx_records));
+        return 1;
+    }
+    
+    // todo
+    auto index = ctx_tables.size();
+    
+    return 0;
+}
+
+std::vector<std::string> QueryEngine::_encode_selected_records(
+    const std::vector<std::string> &selected_tables,
+    const std::vector<ColumnOffset> &selected_cols,
+    const std::vector<std::shared_ptr<Table>> &ctx_tables,
+    const std::vector<std::vector<Byte>> &ctx_records) {
+    
+    std::vector<std::string> row;
+    for (auto i = 0; i < selected_cols.size(); i++) {
+        for (auto ctx = 0; ctx < ctx_tables.size(); ctx++) {
+            if (ctx_tables[ctx]->name() == selected_tables[i]) {
+                auto col = selected_cols[i];
+                const auto &desc = ctx_tables[ctx]->descriptor();
+                const auto &field_desc = desc.field_descriptors[col];
+                const auto rec = ctx_records[ctx].data();
+                auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
+                if (null) {
+                    row.emplace_back("NULL");
+                } else {
+                    row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
+                }
+                break;
+            }
+        }
+    }
+    return row;
+    
 }
     
 }
