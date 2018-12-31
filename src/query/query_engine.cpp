@@ -18,6 +18,7 @@
 #include "../data/data_view.h"
 #include "../error/cross_table_predicate_type_mismatch.h"
 #include "../data/predicate_operator_helper.h"
+#include "../utility/memory/value_string_padder.h"
 
 namespace watery {
 
@@ -551,15 +552,17 @@ size_t QueryEngine::_select_from_single_table(
     
     auto &desc = table->descriptor();
     auto rids = _gather_valid_single_table_record_offsets(table, preds);
+    static const std::string null_string{"NULL"};
     std::vector<std::string> row;
     for (auto &&rid : rids) {
         row.clear();
         auto rec = table->get_record(rid);
         for (auto &&col : cols) {
             auto &field_desc = desc.field_descriptors[col];
-            field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col] ?
-            row.emplace_back("NULL") :
-            row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
+            auto field = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col] ?
+                         null_string :
+                         DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string();
+            row.emplace_back(ValueStringPadder::pad(field_desc.data_descriptor, std::move(field)));
         }
         receiver(row);
     }
@@ -711,19 +714,20 @@ std::vector<std::string> QueryEngine::_encode_selected_records(
     const std::vector<std::vector<Byte>> &ctx_records) {
     
     std::vector<std::string> row;
+    static const std::string null_str{"NULL"};
     for (auto i = 0; i < selected_cols.size(); i++) {
         for (auto ctx = 0; ctx < ctx_tables.size(); ctx++) {
             if (ctx_tables[ctx]->name() == selected_tables[i]) {
                 auto col = selected_cols[i];
                 const auto &desc = ctx_tables[ctx]->descriptor();
                 const auto &field_desc = desc.field_descriptors[col];
+                auto data_desc = field_desc.data_descriptor;
                 const auto rec = ctx_records[ctx].data();
                 auto null = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col];
-                if (null) {
-                    row.emplace_back("NULL");
-                } else {
-                    row.emplace_back(DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string());
-                }
+                auto field_str = null ?
+                                 null_str :
+                                 DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string();
+                row.emplace_back(ValueStringPadder::pad(data_desc, std::move(field_str)));
                 break;
             }
         }

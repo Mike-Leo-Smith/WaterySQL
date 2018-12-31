@@ -5,7 +5,7 @@ project(WaterySQL C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(COMPILE_WITH_CLANG 0)
+set(COMPILE_WITH_CLANG 1)
 
 if (COMPILE_WITH_CLANG)
     set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
@@ -131,7 +131,7 @@ set(SOURCE_FILES
     src/query/query_plan.h
     src/query/cross_table_predicate.h
     src/query/selection_context.h
-    src/error/cross_table_predicate_type_mismatch.h src/data/aggregate_function.h src/data/aggregate_function_helper.h)
+    src/error/cross_table_predicate_type_mismatch.h src/data/aggregate_function.h src/data/aggregate_function_helper.h src/utility/memory/value_string_padder.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)

@@ -1,4 +1,4 @@
-select restaurant.name, food.name, orders.quantity, orders.date from
+select restaurant.name, food.name, orders.quantity, orders.date, restaurant.rate from
  restaurant, food, orders where
   food.restaurant_id = restaurant.id and
   orders.food_id = food.id and

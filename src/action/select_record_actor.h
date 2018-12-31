@@ -53,6 +53,7 @@ struct SelectRecordActor {
         } else {
             Printer::print(std::cout, "ALL\n");
         }
+        Printer::println(std::cout);
         
         auto accum = 0.0;
         auto[ms, n] = timed_run(
