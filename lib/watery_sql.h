@@ -5,14 +5,15 @@
 #ifndef WATERYSQL_WATERY_SQL_H
 #define WATERYSQL_WATERY_SQL_H
 
-#include <functional>
-#include <string>
-#include <vector>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace watery {
+void watery_sql_init();
+void watery_sql_execute(const char *command, void (*recv)(const char *row[], unsigned long field_count));
 
-void execute_sql(const std::string &command, const std::function<void(const std::vector<std::string> &)> &recv);
-
-}
+#ifdef __cplusplus
+};
+#endif
 
 #endif  // WATERYSQL_WATERY_SQL_H

@@ -6,17 +6,24 @@
 #include "../src/parsing/parser.h"
 #include "../src/utility/io/error_printer.h"
 
-namespace watery {
+extern "C" {
 
-void execute_sql(const std::string &command, const std::function<void(const std::vector<std::string> &)> &recv) {
+void watery_sql_execute(const char *command, void (*recv)(const char *row[], unsigned long field_count)) {
     
-    Parser parser{command};
+    watery::Parser parser{command};
     try {
         parser.match()();
     } catch (const std::exception &e) {
-        print_error(std::cerr, e);
+        watery::print_error(std::cerr, e);
     }
     
+}
+
+void watery_sql_init() {
+    watery::PageManager::instance();
+    if (std::filesystem::exists(watery::DATABASE_BASE_PATH)) {
+        std::filesystem::create_directories(watery::DATABASE_BASE_PATH);
+    }
 }
 
 }
