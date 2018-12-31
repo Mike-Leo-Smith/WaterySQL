@@ -36,11 +36,11 @@ int main() {
             command.push_back(static_cast<char>(std::cin.get()));
         }
         Printer::print(std::cout, "\n[OUT]\n");
-        try {
+//        try {
             parser.parse(command).match()();
-        } catch (const std::exception &e) {
-            print_error(std::cerr, e);
-        }
+//        } catch (const std::exception &e) {
+//            print_error(std::cerr, e);
+//        }
     }
     
     return 0;

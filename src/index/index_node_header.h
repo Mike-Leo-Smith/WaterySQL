@@ -14,8 +14,8 @@
 namespace watery {
 
 struct IndexNodeHeader {
-    uint32_t key_count;
-    bool is_leaf;
+    uint32_t key_count{0};
+    bool is_leaf{false};
 };
 
 }

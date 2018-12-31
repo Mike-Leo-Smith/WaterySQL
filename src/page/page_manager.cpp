@@ -3,6 +3,7 @@
 //
 
 #include <filesystem>
+#include <iostream>
 
 #include "page_manager.h"
 #include "../error/page_manager_error.h"
@@ -50,9 +51,9 @@ void PageManager::_flush_cache(CacheHandle h) {
         file.seekp(cache_desc.page_handle.page_offset * PAGE_SIZE, std::ios::beg);
         file.write(_cache[h].data(), PAGE_SIZE);
     }
-    cache_desc.dirty = false;
     _cached_pages.erase(cache_desc.page_handle);
     _cache_usage.erase(cache_desc.time_stamp);
+    cache_desc.dirty = false;
     _available_cache_handles.emplace(h);
     _file_associated_cache_sets[page_handle.file_handle].erase(h);
 }
@@ -91,6 +92,10 @@ FileHandle PageManager::open_file(const std::string &file_name) {
 }
 
 void PageManager::close_file(FileHandle h) {
+    
+    if (!_open_files[h].is_open()) {
+        return;
+    }
     
     // flush all the cached pages associated to the file.
     while (!_file_associated_cache_sets[h].empty()) {

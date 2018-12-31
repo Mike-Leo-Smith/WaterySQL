@@ -31,6 +31,7 @@ const Byte *QueryEngine::_assemble_record(
     }
     
     thread_local static std::vector<Byte> record_buffer;
+    record_buffer.clear();
     record_buffer.resize(desc.length);
     
     if (desc.null_mapped) {  // reset null field bitmap if any

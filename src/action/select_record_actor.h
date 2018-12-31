@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <array>
+#include <iomanip>
 
 #include "../config/config.h"
 #include "column_predicate.h"
@@ -101,7 +102,15 @@ struct SelectRecordActor {
         
         if (function != AggregateFunction::NONE) {
             n = 1;
-            Printer::print(std::cout, "  result = ", accum, "\n");
+            auto as_int = static_cast<int64_t>(accum);
+            if (as_int == accum) {
+                Printer::print(std::cout, "  result = ", as_int, "\n");
+            } else {
+                Printer::print(
+                    std::cout, "  result = ",
+                    std::setprecision(std::numeric_limits<double>::max_digits10 - 1),
+                    accum, "\n");
+            }
         }
         Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " selected.\n");
     }

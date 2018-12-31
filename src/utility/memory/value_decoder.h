@@ -48,20 +48,34 @@ struct ValueDecoder : NonConstructible {
     }
     
     static double decode_double(std::string_view raw) {
+        
+        thread_local static std::vector<Byte> buffer;
+        if (buffer.size() < raw.size() + 1) {
+            buffer.resize(raw.size() + 1);
+        }
+        StringViewCopier::copy(raw, buffer.data());
+        
         char *end;
-        auto result = std::strtod(raw.begin(), &end);
+        auto result = std::strtod(buffer.data(), &end);
         if (result == HUGE_VAL) {
             throw ValueDecoderError{raw, "DOUBLE", "of overflow."};
         }
-        if (end == raw.begin()) {
+        if (end == buffer.data()) {
             throw ValueDecoderError{raw, "DOUBLE", "of the mismatched pattern."};
         }
         return result;
     }
     
     static float decode_float(std::string_view raw) {
+    
+        thread_local static std::vector<Byte> buffer;
+        if (buffer.size() < raw.size() + 1) {
+            buffer.resize(raw.size() + 1);
+        }
+        StringViewCopier::copy(raw, buffer.data());
+        
         char *end;
-        auto result = std::strtof(raw.begin(), &end);
+        auto result = std::strtof(buffer.data(), &end);
         if (result == HUGE_VALF) {
             throw ValueDecoderError{raw, "FLOAT", "of overflow."};
         }

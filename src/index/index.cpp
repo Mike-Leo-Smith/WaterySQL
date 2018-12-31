@@ -295,6 +295,7 @@ void Index::insert_index_entry(const Byte *data, RecordOffset rid) {
         auto root_node_offset = static_cast<PageOffset>(_header.page_count);
         auto &root = _allocate_index_node();
         root.header.key_count = 1;
+        root.header.is_leaf = false;
         _write_index_entry_key(root, 0, k);
         _write_index_entry_page_offset(root, 0, _header.root_offset);
         _write_index_entry_page_offset(root, 1, split_page_offset);

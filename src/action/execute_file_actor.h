@@ -25,11 +25,7 @@ struct ExecuteFileActor {
         Parser parser{command};
         
         while (!parser.end()) {
-            try {
-                parser.match()();
-            } catch (const std::exception &e) {
-                print_error(std::cerr, e);
-            }
+            parser.match()();
         }
         
     }

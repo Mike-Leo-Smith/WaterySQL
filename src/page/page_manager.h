@@ -29,7 +29,7 @@ public:
 
 private:
     TimeStamp _current_time_stamp{0};
-    std::map<TimeStamp, CacheHandle> _cache_usage;
+    std::unordered_map<TimeStamp, CacheHandle> _cache_usage;
     std::unordered_map<PageHandle, CacheHandle, PageHandle::Hash> _cached_pages;
     std::vector<CacheDescriptor> _cache_descriptors;
     std::vector<std::array<Byte, PAGE_SIZE>> _cache;

@@ -6,6 +6,8 @@
 #define WATERYSQL_DATA_VIEW_H
 
 #include <variant>
+#include <sstream>
+#include <iomanip>
 
 #include "type_tag.h"
 #include "../config/config.h"
@@ -60,8 +62,11 @@ struct DataView {
             }
             case TypeTag::INTEGER:
                 return std::to_string(std::get<int32_t>(holder));
-            case TypeTag::FLOAT:
-                return std::to_string(std::get<float>(holder));
+            case TypeTag::FLOAT: {
+                std::stringstream ss;
+                ss << std::setprecision(7) << std::get<float>(holder);
+                return ss.str();
+            }
             case TypeTag::CHAR:
                 return std::string{std::get<std::string_view>(holder)};
             default:

@@ -3,6 +3,7 @@
 //
 
 #include <cstring>
+#include <iostream>
 #include "table.h"
 #include "data_page.h"
 #include "record_manager.h"
