@@ -605,6 +605,20 @@ Actor Parser::_parse_select_statement() {
         } else if (std::find(actor.tables.cbegin(), actor.tables.cend(), t) == actor.tables.cend()) {
             throw ParserError{std::string{"Irrelevant table \""}.append(t).append("\" in predicate."), cmd.offset};
         }
+        if (pred.cross_table) {
+            auto &&rhs_tab = pred.rhs_table_name;
+            if (rhs_tab.empty()) {
+                if (actor.tables.size() == 1) {
+                    rhs_tab = actor.tables[0];
+                } else {
+                    throw ParserError{"Unspecific table name in multi-table query predicate.", cmd.offset};
+                }
+            } else if (std::find(actor.tables.cbegin(), actor.tables.cend(), rhs_tab) == actor.tables.cend()) {
+                throw ParserError{
+                    std::string{"Irrelevant table \""}.append(rhs_tab).append("\" in predicate."),
+                    cmd.offset};
+            }
+        }
     }
     
     if (actor.function != AggregateFunction::NONE &&
@@ -715,5 +729,5 @@ void Parser::_parse_column_predicate_operand(ColumnPredicate &pred) {
         _parse_value(pred.operand);
     }
 }
-
+    
 }

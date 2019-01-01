@@ -18,15 +18,15 @@ struct PredicateOperatorHelper {
             case PredicateOperator::EQUAL:
                 return "=";
             case PredicateOperator::UNEQUAL:
-                return "<>";
+                return "&lt;&gt;";
             case PredicateOperator::LESS:
-                return "<";
+                return "&lt;";
             case PredicateOperator::LESS_EQUAL:
-                return "<=";
+                return "&lt;=";
             case PredicateOperator::GREATER:
-                return ">";
+                return "&gt;";
             case PredicateOperator::GREATER_EQUAL:
-                return ">=";
+                return "&gt;=";
             case PredicateOperator::IS_NULL:
                 return "IS NULL";
             case PredicateOperator::NOT_NULL:

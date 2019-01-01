@@ -23,7 +23,7 @@ struct DescribeTableActor {
     void operator()() const {
         {
             std::ofstream f{RESULT_FILE_NAME, std::ios::app};
-            Printer::println(std::cout, "DESCRIBE TABLE ", name);
+            Printer::println(f, "DESCRIBE TABLE ", name);
         }
         auto[ms, desc] = timed_run([name = name] {
             return SystemManager::instance().describe_table(name);
