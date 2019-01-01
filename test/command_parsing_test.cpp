@@ -25,7 +25,7 @@ int main() {
     
     std::ostream::sync_with_stdio(false);
     
-    constexpr auto query = "select (*.app_le) from PERSON\n where age<>'apple';\n";
+    constexpr auto query = "select (*.app_le) from PERSON<br/>where age<>'apple';<br/>";
     Scanner scanner{query};
     
     while (!scanner.end()) {

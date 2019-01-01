@@ -19,7 +19,7 @@ def fill_message_template(template: str, arg_names: [str]) -> str:
 def assemble_message(messages: [str]) -> str:
     result = "std::string{" + messages[0] + "}"
     for msg in messages[1:]:
-        result = f"{result}\n            .append({msg})"
+        result = f"{result}\n.append({msg})"
     return result
 
 

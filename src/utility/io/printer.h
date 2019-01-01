@@ -15,7 +15,7 @@ struct Printer : NonConstructible {
     template<typename OStream, typename ...Args>
     static void println(OStream &os, Args &&...args) noexcept {
         print(os, std::forward<Args>(args)...);
-        os << std::endl;
+        os << "<br/>" << std::endl;
     }
     
     template<typename OStream, typename ...Args>

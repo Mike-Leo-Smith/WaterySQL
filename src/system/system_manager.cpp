@@ -302,4 +302,8 @@ void SystemManager::finish() {
     _current_database = "";
 }
 
+const std::string &SystemManager::current_database() const noexcept {
+    return _current_database;
+}
+
 }

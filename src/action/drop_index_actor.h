@@ -22,14 +22,16 @@ struct DropIndexActor {
         : table_name{tab}, column_name{col} {}
     
     void operator()() const {
-        
-        Printer::println(std::cout, "DROP INDEX ", table_name, "(", column_name, ")");
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::println(f, "DROP INDEX ", table_name, "(", column_name, ")");
+        }
         auto ms = timed_run([tn = table_name, cn = column_name] {
             SystemManager::instance().drop_index(tn, cn);
         }).first;
         
-        std::ofstream f{RESULT_FILE_NAME};
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
     }
     
 };

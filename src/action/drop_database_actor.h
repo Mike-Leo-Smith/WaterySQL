@@ -21,12 +21,10 @@ struct DropDatabaseActor {
         : name{n} {}
     
     void operator()() const {
-        
-        Printer::println(std::cout, "DROP DATABASE ", name);
         auto ms = timed_run([name = name] { SystemManager::instance().drop_database(name); }).first;
-        
-        std::ofstream f{RESULT_FILE_NAME};
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(f, "DROP DATABASE ", name);
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
     }
     
 };

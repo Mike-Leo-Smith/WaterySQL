@@ -25,21 +25,25 @@ struct DeleteRecordActor {
         : table_name{tab} {}
     
     void operator()() const {
-        Printer::print(std::cout, "DELETE FROM ", table_name);
-        if (!predicates.empty()) {
-            Printer::print(std::cout, " WHERE\n");
-            for (auto &&pred : predicates) {
-                ColumnPredicatePrinter::print(std::cout, pred);
+    
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::print(f, "DELETE FROM ", table_name);
+            if (!predicates.empty()) {
+                Printer::print(f, " WHERE<br/>");
+                for (auto &&pred : predicates) {
+                    ColumnPredicatePrinter::print(f, pred);
+                }
+            } else {
+                Printer::print(f, " ALL<br/>");
             }
-        } else {
-            Printer::print(std::cout, " ALL\n");
         }
         auto[ms, n] = timed_run([tn = table_name, &preds = predicates] {
             return QueryEngine::instance().delete_records(tn, preds);
         });
         
-        std::ofstream f{RESULT_FILE_NAME};
-        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " deleted.\n");
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " deleted.<br/>");
     }
     
 };

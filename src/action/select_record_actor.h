@@ -28,38 +28,42 @@ struct SelectRecordActor {
     bool wildcard{false};
     
     void operator()() const {
-        Printer::print(std::cout, "SELECT\n");
-        if (wildcard) {
-            if (function == AggregateFunction::NONE) {
-                Printer::print(std::cout, "  *\n");
-            } else {
-                Printer::print(std::cout, "  ", AggregateFunctionHelper::name(function), "(*)\n");
-            }
-        } else {
-            if (function == AggregateFunction::NONE) {
-                for (auto i = 0; i < selected_tables.size(); i++) {
-                    Printer::print(std::cout, "  ", selected_tables[i], ".", selected_columns[i], "\n");
+    
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::print(f, "SELECT<br/>");
+            if (wildcard) {
+                if (function == AggregateFunction::NONE) {
+                    Printer::print(f, "  *<br/>");
+                } else {
+                    Printer::print(f, "  ", AggregateFunctionHelper::name(function), "(*)<br/>");
                 }
             } else {
-                Printer::print(
-                    std::cout, "  ", AggregateFunctionHelper::name(function),
-                    "(", selected_tables[0], ".", selected_columns[0], ")\n");
+                if (function == AggregateFunction::NONE) {
+                    for (auto i = 0; i < selected_tables.size(); i++) {
+                        Printer::print(f, "  ", selected_tables[i], ".", selected_columns[i], "<br/>");
+                    }
+                } else {
+                    Printer::print(
+                        f, "  ", AggregateFunctionHelper::name(function),
+                        "(", selected_tables[0], ".", selected_columns[0], ")<br/>");
+                }
             }
+            Printer::print(f, "FROM<br/>");
+            for (auto &&t: tables) { Printer::print(f, "  ", t, "<br/>"); }
+            if (!predicates.empty()) {
+                Printer::print(f, "WHERE<br/>");
+                for (auto &&pred : predicates) { ColumnPredicatePrinter::print(f, pred); }
+            } else {
+                Printer::print(f, "ALL<br/>");
+            }
+            Printer::println(f);
         }
-        Printer::print(std::cout, "FROM\n");
-        for (auto &&t: tables) { Printer::print(std::cout, "  ", t, "\n"); }
-        if (!predicates.empty()) {
-            Printer::print(std::cout, "WHERE\n");
-            for (auto &&pred : predicates) { ColumnPredicatePrinter::print(std::cout, pred); }
-        } else {
-            Printer::print(std::cout, "ALL\n");
-        }
-        Printer::println(std::cout);
     
         double ms = 0.0;
         size_t n = 0;
-        std::ofstream result_file{RESULT_FILE_NAME};
         {
+            std::ofstream result_file{RESULT_FILE_NAME, std::ios::app};
             HtmlTablePrinter printer{result_file};
         
             if (function != AggregateFunction::NONE) {
@@ -129,7 +133,9 @@ struct SelectRecordActor {
                 }
             }
         }
-        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " selected.\n");
+    
+        std::ofstream result_file{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(result_file, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " selected.<br/>");
     }
     
 };

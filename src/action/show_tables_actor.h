@@ -13,12 +13,15 @@ namespace watery {
 struct ShowTablesActor {
     
     void operator()() const {
-        Printer::println(std::cout, "SHOW TABLES");
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::println(f, "SHOW TABLES");
+        }
         auto[ms, list] = timed_run([] {
             return SystemManager::instance().table_list();
         });
         
-        std::ofstream f{RESULT_FILE_NAME};
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
         {
             HtmlTablePrinter p{f};
             p.print_header({"Tables"});
@@ -26,7 +29,7 @@ struct ShowTablesActor {
                 p.print_row({t});
             }
         }
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
     }
     
 };

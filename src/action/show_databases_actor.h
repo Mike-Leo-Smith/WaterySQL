@@ -13,12 +13,15 @@ namespace watery {
 struct ShowDatabasesActor {
     
     void operator()() const {
-        Printer::println(std::cout, "SHOW DATABASES");
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::println(f, "SHOW DATABASES");
+        }
         auto[ms, list] = timed_run([] {
             return SystemManager::instance().database_list();
         });
         
-        std::ofstream f{RESULT_FILE_NAME};
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
         {
             HtmlTablePrinter p{f};
             p.print_header({"Databases"});
@@ -26,7 +29,7 @@ struct ShowDatabasesActor {
                 p.print_row({db});
             }
         }
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
     }
     
 };

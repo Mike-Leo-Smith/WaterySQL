@@ -30,7 +30,7 @@ struct ColumnPredicatePrinter : NonConstructible {
                 Printer::print(os, std::string_view{pred.operand.data(), pred.operand.size()});
             }
         }
-        Printer::print(os, "\n");
+        Printer::print(os, "<br/>");
     }
     
 };

@@ -29,13 +29,13 @@ int main() {
     
     Parser parser;
     while (true) {
-        Printer::print(std::cout, "\n[IN]\n");
+        Printer::print(std::cout, "<br/>[IN]<br/>");
         std::string command;
         command.push_back(static_cast<char>(std::cin.get()));
         while (command.back() != EOF && command.back() != ';') {
             command.push_back(static_cast<char>(std::cin.get()));
         }
-        Printer::print(std::cout, "\n[OUT]\n");
+        Printer::print(std::cout, "<br/>[OUT]<br/>");
         try {
             parser.parse(command).match()();
         } catch (const std::exception &e) {

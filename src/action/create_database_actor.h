@@ -21,10 +21,14 @@ struct CreateDatabaseActor {
         : name{n} {}
     
     void operator()() const {
-        Printer::println(std::cout, "CREATE DATABASE ", name);
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::println(f, "CREATE DATABASE ", name);
+        }
         auto ms = timed_run([name = name] { SystemManager::instance().create_database(name); }).first;
-        std::ofstream f{RESULT_FILE_NAME};
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
     }
 };
 

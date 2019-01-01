@@ -21,15 +21,17 @@ struct DescribeTableActor {
         : name{n} {}
     
     void operator()() const {
-        
-        Printer::println(std::cout, "DESCRIBE TABLE ", name);
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::println(std::cout, "DESCRIBE TABLE ", name);
+        }
         auto[ms, desc] = timed_run([name = name] {
             return SystemManager::instance().describe_table(name);
         });
         
-        std::ofstream f{RESULT_FILE_NAME};
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
         RecordDescriptorPrinter::print(f, desc);
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
     }
     
 };

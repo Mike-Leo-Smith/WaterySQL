@@ -19,8 +19,11 @@ struct ExecuteFileActor {
     std::string file_name;
     
     void operator()() const {
-        
-        Printer::println(std::cout, "SOURCE ", file_name);
+    
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::println(f, "SOURCE ", file_name);
+        }
         
         std::string command{FileReader::read_all(file_name)};
         Parser parser{command};
@@ -31,9 +34,8 @@ struct ExecuteFileActor {
             }
         }).first;
         
-        
-        std::ofstream f{RESULT_FILE_NAME};
-        Printer::println(f, "Done in ", ms, "ms.\n");
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(f, "Done in ", ms, "ms.<br/>");
         
     }
     

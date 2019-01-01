@@ -19,12 +19,13 @@ void Java_EngineJNI_execute(JNIEnv *env, jclass, jstring command) {
     
     jboolean a{JNI_FALSE};
     watery::Parser parser{env->GetStringUTFChars(command, &a)};
-    
+    std::filesystem::remove_all("result.html");
     while (!parser.end()) {
         try {
             parser.match()();
         } catch (const std::exception &e) {
-            watery::Printer::print(std::cerr, e.what());
+            std::ofstream f{watery::RESULT_FILE_NAME, std::ios::app};
+            watery::Printer::print(f, "<p style='color:red'>", e.what(), "</p>");
             parser.skip();
         }
     }

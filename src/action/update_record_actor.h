@@ -26,30 +26,32 @@ struct UpdateRecordActor {
         : table_name{n} {}
     
     void operator()() const {
-        Printer::print(std::cout, "UPDATE ", table_name, " SET\n");
-        auto p = 0ul;
-        auto idx = 0;
-        for (auto &&col: columns) {
-            auto l = lengths[idx++];
-            Printer::print(
-                std::cout, "  ", col, " = ",
-                (l == 0 ? "NULL" : std::string_view{values.data() + p, l}), "\n");
-            p += l;
-        }
-        if (!predicates.empty()) {
-            Printer::print(std::cout, "WHERE\n");
-            for (auto &&pred : predicates) {
-                ColumnPredicatePrinter::print(std::cout, pred);
+        {
+            std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+            Printer::print(f, "UPDATE ", table_name, " SET<br/>");
+            auto p = 0ul;
+            auto idx = 0;
+            for (auto &&col: columns) {
+                auto l = lengths[idx++];
+                Printer::print(
+                    f, "  ", col, " = ", (l == 0 ? "NULL" : std::string_view{values.data() + p, l}), "<br/>");
+                p += l;
             }
-        } else {
-            Printer::print(std::cout, "ALL\n");
+            if (!predicates.empty()) {
+                Printer::print(f, "WHERE<br/>");
+                for (auto &&pred : predicates) {
+                    ColumnPredicatePrinter::print(f, pred);
+                }
+            } else {
+                Printer::print(f, "ALL<br/>");
+            }
         }
         auto[ms, n] = timed_run([t = table_name, &c = columns, &v = values, &l = lengths, &p = predicates] {
             return QueryEngine::instance().update_records(t, c, v, l, p);
         });
         
-        std::ofstream f{RESULT_FILE_NAME};
-        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " updated.\n");
+        std::ofstream f{RESULT_FILE_NAME, std::ios::app};
+        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " updated.<br/>");
     }
     
 };

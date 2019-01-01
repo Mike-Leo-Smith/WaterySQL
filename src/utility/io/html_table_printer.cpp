@@ -13,7 +13,7 @@ HtmlTablePrinter::HtmlTablePrinter(std::ofstream &s)
 }
 
 HtmlTablePrinter::~HtmlTablePrinter() {
-    Printer::print(_stream, "</table>\n<br/>\n");
+    Printer::print(_stream, "</table><br/>\n");
 }
 
 void HtmlTablePrinter::print_header(const std::vector<std::string> &header) noexcept {
