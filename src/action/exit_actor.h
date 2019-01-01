@@ -13,7 +13,8 @@ namespace watery {
 struct ExitActor {
     void operator()() const noexcept {
         Printer::println(std::cout, "Bye.");
-        SystemManager::instance().quit();
+        SystemManager::instance().finish();
+        std::exit(0);
     }
 };
 

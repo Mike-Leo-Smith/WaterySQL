@@ -37,7 +37,9 @@ struct DeleteRecordActor {
         auto[ms, n] = timed_run([tn = table_name, &preds = predicates] {
             return QueryEngine::instance().delete_records(tn, preds);
         });
-        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " deleted.\n");
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " deleted.\n");
     }
     
 };

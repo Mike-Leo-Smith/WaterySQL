@@ -19,9 +19,12 @@ struct UseDatabaseActor {
         : name{n} {}
     
     void operator()() const {
+        
         Printer::println(std::cout, "USE DATABASE ", name);
         auto ms = timed_run([name = name] { SystemManager::instance().use_database(name); }).first;
-        Printer::println(std::cout, "Done in ", ms, "ms.\n");
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        Printer::println(f, "Done in ", ms, "ms.\n");
     }
     
 };

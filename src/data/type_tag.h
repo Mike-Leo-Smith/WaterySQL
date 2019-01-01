@@ -14,30 +14,9 @@ enum struct TypeTag : uint8_t {
     INTEGER = 0,
     FLOAT = 1,
     CHAR = 2,
-    DATE = 3
+    DATE = 3,
+    BITMAP = 4
 };
-
-template<typename OS>
-OS &operator<<(OS &os, TypeTag tag) {
-    switch (tag) {
-        case TypeTag::INTEGER:
-            os << "INT";
-            break;
-        case TypeTag::FLOAT:
-            os << "FLOAT";
-            break;
-        case TypeTag::CHAR:
-            os << "CHAR";
-            break;
-        case TypeTag::DATE:
-            os << "DATE";
-            break;
-        default:
-            os << "UNKNOWN";
-            break;
-    }
-    return os;
-}
 
 }
 

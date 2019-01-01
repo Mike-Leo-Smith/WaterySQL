@@ -24,11 +24,13 @@ struct CreateTableActor {
     
     void operator()() const {
         Printer::println(std::cout, "CREATE TABLE ", name);
-        RecordDescriptorPrinter::print(std::cout, descriptor);
         auto ms = timed_run([name = name, &desc = descriptor] {
             SystemManager::instance().create_table(name, desc);
         }).first;
-        Printer::println(std::cout, "Done in ", ms, "ms.\n");
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        RecordDescriptorPrinter::print(f, descriptor);
+        Printer::println(f, "Done in ", ms, "ms.\n");
     }
     
 };

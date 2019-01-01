@@ -48,7 +48,8 @@ struct UpdateRecordActor {
             return QueryEngine::instance().update_records(t, c, v, l, p);
         });
         
-        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " updated.\n");
+        std::ofstream f{RESULT_FILE_NAME};
+        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " updated.\n");
     }
     
 };

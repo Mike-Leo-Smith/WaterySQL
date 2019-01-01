@@ -14,13 +14,19 @@ struct ShowDatabasesActor {
     
     void operator()() const {
         Printer::println(std::cout, "SHOW DATABASES");
-        auto [ms, list] = timed_run([]{
+        auto[ms, list] = timed_run([] {
             return SystemManager::instance().database_list();
         });
-        for (auto &&db : list) {
-            Printer::print(std::cout, "  ", db, "\n");
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        {
+            HtmlTablePrinter p{f};
+            p.print_header({"Databases"});
+            for (auto &&db : list) {
+                p.print_row({db});
+            }
         }
-        Printer::println(std::cout, "Done in ", ms, "ms.\n");
+        Printer::println(f, "Done in ", ms, "ms.\n");
     }
     
 };

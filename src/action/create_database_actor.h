@@ -23,7 +23,8 @@ struct CreateDatabaseActor {
     void operator()() const {
         Printer::println(std::cout, "CREATE DATABASE ", name);
         auto ms = timed_run([name = name] { SystemManager::instance().create_database(name); }).first;
-        Printer::println(std::cout, "Done in ", ms, "ms.\n");
+        std::ofstream f{RESULT_FILE_NAME};
+        Printer::println(f, "Done in ", ms, "ms.\n");
     }
 };
 

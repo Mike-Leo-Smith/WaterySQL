@@ -6,8 +6,6 @@
 #include "../src/parsing/parser.h"
 #include "../src/utility/io/error_printer.h"
 
-extern "C" {
-
 void watery_sql_execute(const char *command, void (*recv)(const char *row[], unsigned long field_count)) {
     
     watery::Parser parser{command};
@@ -26,4 +24,3 @@ void watery_sql_init() {
     }
 }
 
-}

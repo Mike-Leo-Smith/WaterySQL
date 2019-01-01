@@ -6,6 +6,7 @@
 #define WATERYSQL_EXECUTE_FILE_ACTOR_H
 
 #include <string>
+#include <fstream>
 
 #include "../parsing/parser.h"
 #include "../utility/io/file_reader.h"
@@ -24,9 +25,15 @@ struct ExecuteFileActor {
         std::string command{FileReader::read_all(file_name)};
         Parser parser{command};
         
-        while (!parser.end()) {
-            parser.match()();
-        }
+        auto ms = timed_run([&] {
+            while (!parser.end()) {
+                parser.match()();
+            }
+        }).first;
+        
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        Printer::println(f, "Done in ", ms, "ms.\n");
         
     }
     

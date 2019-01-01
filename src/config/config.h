@@ -40,6 +40,8 @@ static constexpr auto DATABASE_DIRECTORY_EXTENSION = ".db";
 static constexpr auto TABLE_FILE_EXTENSION = ".tab";
 static constexpr auto INDEX_FILE_EXTENSION = ".idx";
 
+static constexpr auto RESULT_FILE_NAME = "result.html";
+
 using Identifier = std::array<Byte, MAX_IDENTIFIER_LENGTH + 1>;
 using NullFieldBitmap = std::bitset<MAX_FIELD_COUNT>;
 

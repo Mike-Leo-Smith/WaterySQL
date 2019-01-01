@@ -14,13 +14,19 @@ struct ShowTablesActor {
     
     void operator()() const {
         Printer::println(std::cout, "SHOW TABLES");
-        auto [ms, list] = timed_run([] {
+        auto[ms, list] = timed_run([] {
             return SystemManager::instance().table_list();
         });
-        for (auto &&t : list) {
-            Printer::print(std::cout, "  ", t, "\n");
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        {
+            HtmlTablePrinter p{f};
+            p.print_header({"Tables"});
+            for (auto &&t : list) {
+                p.print_row({t});
+            }
         }
-        Printer::println(std::cout, "Done in ", ms, "ms.\n");
+        Printer::println(f, "Done in ", ms, "ms.\n");
     }
     
 };

@@ -295,10 +295,11 @@ const RecordDescriptor &SystemManager::describe_table(const std::string &table_n
     return RecordManager::instance().open_table(table_name)->descriptor();
 }
 
-void SystemManager::quit() {
+void SystemManager::finish() {
     IndexManager::instance().close_all_indices();
     RecordManager::instance().close_all_tables();
-    std::exit(0);
+    _table_list.clear();
+    _current_database = "";
 }
 
 }

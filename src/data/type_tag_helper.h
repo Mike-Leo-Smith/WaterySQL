@@ -24,6 +24,8 @@ struct TypeTagHelper : NonConstructible {
                 return "CHAR";
             case TypeTag::DATE:
                 return "DATE";
+            case TypeTag::BITMAP:
+                return "BITMAP";
             default:
                 return "UNKNOWN";
         }

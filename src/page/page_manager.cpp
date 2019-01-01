@@ -86,7 +86,7 @@ FileHandle PageManager::open_file(const std::string &file_name) {
     _available_file_handles.pop();
     _open_files[handle] = std::fstream{file_name, std::ios::binary | std::ios::in | std::ios::out};
     if (!_open_files[handle].is_open()) {
-        throw PageManagerError{std::string{"Failed to open file "}.append(file_name).append("\".")};
+        throw PageManagerError{std::string{"Failed to open file \""}.append(file_name).append("\".")};
     }
     return handle;
 }

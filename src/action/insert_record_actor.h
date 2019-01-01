@@ -32,29 +32,30 @@ struct InsertRecordActor {
         auto field_index = 0ul;
         bool first_row = true;
         auto count = 0;
-        for (auto &&c : field_counts) {
-            if (++count > 10) {
-                Printer::print(std::cout, "    ... (", field_counts.size(), " rows totally)\n");
-                break;
+        
+        std::ofstream f{RESULT_FILE_NAME};
+        {
+            HtmlTablePrinter printer{f};
+            for (auto &&c : field_counts) {
+                std::vector<std::string> row;
+                
+                for (auto i = field_index; i < field_index + c; i++) {
+                    auto l = field_sizes[i];
+                    row.emplace_back(l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l});
+                    field_pos += l;
+                }
+                field_index += c;
+                if (++count > 10) { break; }
             }
-            Printer::print(std::cout, "  (");
-            bool first = true;
-            for (auto i = field_index; i < field_index + c; i++) {
-                if (!first) { Printer::print(std::cout, ", "); }
-                first = false;
-                auto l = field_sizes[i];
-                Printer::print(
-                    std::cout, (l == 0 ? "NULL" : std::string_view{buffer.data() + field_pos, l}),
-                    " [", l, " bytes]");
-                field_pos += l;
-            }
-            field_index += c;
-            Printer::print(std::cout, ")\n");
+        }
+        if (count < field_counts.size()) {
+            Printer::print(f, "    ... (", field_counts.size(), " rows totally)\n");
         }
         auto[ms, n] = timed_run([tn = table_name, &buf = buffer, &fs = field_sizes, &fc = field_counts] {
             return QueryEngine::instance().insert_records(tn, buf, fs, fc);
         });
-        Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " inserted.\n");
+        
+        Printer::println(f, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " inserted.\n");
     }
     
 };

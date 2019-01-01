@@ -519,6 +519,7 @@ size_t QueryEngine::select_records(
     // multi-table selection
     std::vector<std::shared_ptr<Table>> ctx_tables;
     std::vector<std::vector<Byte>> ctx_records;
+    auto src = src_tables;
     
     // wildcard, gather all columns
     if (sel_tables.empty()) {
@@ -532,7 +533,7 @@ size_t QueryEngine::select_records(
                 cols.emplace_back(i);
             }
         }
-        return _select_from_multiple_tables(tables, cols, src_tables, ctx_tables, ctx_records, predicates, receiver);
+        return _select_from_multiple_tables(tables, cols, src, ctx_tables, ctx_records, predicates, receiver);
     }
     
     // select columns
@@ -541,7 +542,7 @@ size_t QueryEngine::select_records(
         auto table = RecordManager::instance().open_table(sel_tables[i]);
         cols.emplace_back(table->column_offset(sel_columns[i]));
     }
-    return _select_from_multiple_tables(sel_tables, cols, src_tables, ctx_tables, ctx_records, predicates, receiver);
+    return _select_from_multiple_tables(sel_tables, cols, src, ctx_tables, ctx_records, predicates, receiver);
 }
 
 size_t QueryEngine::_select_from_single_table(
@@ -562,7 +563,7 @@ size_t QueryEngine::_select_from_single_table(
             auto field = field_desc.constraints.nullable() && MemoryMapper::map_memory<NullFieldBitmap>(rec)[col] ?
                          null_string :
                          DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string();
-            row.emplace_back(ValueStringPadder::pad(field_desc.data_descriptor, std::move(field)));
+            row.emplace_back(std::move(field));
         }
         receiver(row);
     }
@@ -655,7 +656,7 @@ std::vector<SingleTablePredicate> QueryEngine::_extract_contextual_single_table_
 size_t QueryEngine::_select_from_multiple_tables(
     const std::vector<std::string> &sel_tables,
     const std::vector<ColumnOffset> &sel_cols,
-    const std::vector<std::string> &src_tables,
+    std::vector<std::string> &src_tables,
     std::vector<std::shared_ptr<Table>> &ctx_tables,
     std::vector<std::vector<Byte>> &ctx_records,
     const std::vector<ColumnPredicate> &preds,
@@ -668,7 +669,7 @@ size_t QueryEngine::_select_from_multiple_tables(
     
     auto ctx = ctx_tables.size();
     
-    // find the best table to do selection
+    // find the best table to do selection first
     std::vector<std::string> sorted_src;
     sorted_src.reserve(src_tables.size());
     for (auto i = 0; i < ctx; i++) {
@@ -727,7 +728,7 @@ std::vector<std::string> QueryEngine::_encode_selected_records(
                 auto field_str = null ?
                                  null_str :
                                  DataView{field_desc.data_descriptor, rec + desc.field_offsets[col]}.to_string();
-                row.emplace_back(ValueStringPadder::pad(data_desc, std::move(field_str)));
+                row.emplace_back(std::move(field_str));
                 break;
             }
         }

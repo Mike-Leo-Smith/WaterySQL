@@ -68,7 +68,7 @@ public:
     const std::set<std::string> &database_list() const;
     const std::set<std::string> &table_list() const;
     
-    void quit();
+    void finish();
     
 };
 

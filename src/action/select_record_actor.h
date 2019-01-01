@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 #include <iomanip>
+#include <sstream>
 
 #include "../config/config.h"
 #include "column_predicate.h"
@@ -54,63 +55,78 @@ struct SelectRecordActor {
             Printer::print(std::cout, "ALL\n");
         }
         Printer::println(std::cout);
+    
+        double ms = 0.0;
+        size_t n = 0;
+        std::ofstream result_file{RESULT_FILE_NAME};
+        {
+            HtmlTablePrinter printer{result_file};
         
-        auto accum = 0.0;
-        auto[ms, n] = timed_run(
-            [&st = selected_tables, &sc = selected_columns, &t = tables, &p = predicates, f = function, &a = accum] {
-                auto first = true;
-                return QueryEngine::instance().select_records(
-                    st, sc, t, p, [&a, f, &first](const std::vector<std::string> &row) {
-                        switch (f) {
-                            case AggregateFunction::SUM:
-                            case AggregateFunction::AVERAGE:
-                                a += ValueDecoder::decode_double(row[0]);
-                                break;
-                            case AggregateFunction::MIN: {
-                                auto x = ValueDecoder::decode_double(row[0]);
-                                a = first ? x : std::min(a, x);
-                                break;
-                            }
-                            case AggregateFunction::MAX: {
-                                auto x = ValueDecoder::decode_double(row[0]);
-                                a = first ? x : std::max(a, x);
-                                break;
-                            }
-                            case AggregateFunction::NONE:
-                                Printer::print(std::cout, "  | ");
-                                for (auto &&s : row) {
-                                    Printer::print(std::cout, s, " | ");
+            if (function != AggregateFunction::NONE) {
+                printer.print_header({std::string{AggregateFunctionHelper::name(function)}.append("(").
+                    append(selected_tables[0]).append(".").append(selected_columns[0])});
+            } else if (!wildcard) {
+                std::vector<std::string> header;
+                for (auto i = 0; i < selected_columns.size(); i++) {
+                    header.emplace_back((selected_tables[i] + ".").append(selected_columns[i]));
+                }
+                printer.print_header(header);
+            }
+        
+            auto accum = 0.0;
+            std::tie(ms, n) = timed_run(
+                [&st = selected_tables, &sc = selected_columns, &t = tables,
+                    &p = predicates, f = function, &a = accum, &result_file, &printer] {
+                    auto first = true;
+                    return QueryEngine::instance().select_records(
+                        st, sc, t, p, [&a, f, &first, &result_file, &printer](const std::vector<std::string> &row) {
+                            switch (f) {
+                                case AggregateFunction::SUM:
+                                case AggregateFunction::AVERAGE:
+                                    a += ValueDecoder::decode_double(row[0]);
+                                    break;
+                                case AggregateFunction::MIN: {
+                                    auto x = ValueDecoder::decode_double(row[0]);
+                                    a = first ? x : std::min(a, x);
+                                    break;
                                 }
-                                Printer::print(std::cout, "\n");
-                                break;
-                            default:
-                                break;
-                        }
-                        first = false;
-                    });
-            });
+                                case AggregateFunction::MAX: {
+                                    auto x = ValueDecoder::decode_double(row[0]);
+                                    a = first ? x : std::max(a, x);
+                                    break;
+                                }
+                                case AggregateFunction::NONE:
+                                    printer.print_row(row);
+                                    break;
+                                default:
+                                    break;
+                            }
+                            first = false;
+                        });
+                });
         
-        switch (function) {
-            case AggregateFunction::AVERAGE:
-                accum /= n;
-                break;
-            case AggregateFunction::COUNT:
-                accum = n;
-                break;
-            default:
-                break;
-        }
+            switch (function) {
+                case AggregateFunction::AVERAGE:
+                    accum /= n;
+                    break;
+                case AggregateFunction::COUNT:
+                    accum = n;
+                    break;
+                default:
+                    break;
+            }
         
-        if (function != AggregateFunction::NONE) {
-            n = 1;
-            auto as_int = static_cast<int64_t>(accum);
-            if (as_int == accum) {
-                Printer::print(std::cout, "  result = ", as_int, "\n");
-            } else {
-                Printer::print(
-                    std::cout, "  result = ",
-                    std::setprecision(std::numeric_limits<double>::max_digits10 - 1),
-                    accum, "\n");
+            if (function != AggregateFunction::NONE) {
+                n = 1;
+                auto as_int = static_cast<int64_t>(accum);
+                if (as_int == accum) {
+                    printer.print_row({std::to_string(as_int)});
+                } else {
+                    printer.print_row(
+                        {(std::stringstream{}
+                            << std::setprecision(std::numeric_limits<double>::max_digits10 - 1)
+                            << accum).str()});
+                }
             }
         }
         Printer::println(std::cout, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " selected.\n");

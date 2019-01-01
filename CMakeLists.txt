@@ -135,10 +135,17 @@ set(SOURCE_FILES
     src/error/cross_table_predicate_type_mismatch.h
     src/data/aggregate_function.h
     src/data/aggregate_function_helper.h
-    src/utility/memory/value_string_padder.h)
+    src/utility/memory/value_string_padder.h src/utility/io/html_table_printer.cpp src/utility/io/html_table_printer.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)
 add_executable(WaterySQL-CommandParsingTest ${SOURCE_FILES} test/command_parsing_test.cpp)
 
 add_library(WaterySQLEngine SHARED ${SOURCE_FILES} lib/watery_sql.cpp lib/watery_sql.h)
+
+find_package(JNI REQUIRED)
+if (JNI_FOUND)
+    include_directories(${JNI_INCLUDE_DIRS})
+    add_library(WaterySQLEngineJNI SHARED ${SOURCE_FILES} lib/EngineJNI.h lib/EngineJNI.cpp)
+    target_link_libraries(WaterySQLEngineJNI ${JNI_LIBRARIES})
+endif ()
