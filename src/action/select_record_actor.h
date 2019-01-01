@@ -28,29 +28,29 @@ struct SelectRecordActor {
     bool wildcard{false};
     
     void operator()() const {
-    
+        
         {
             std::ofstream f{RESULT_FILE_NAME, std::ios::app};
             Printer::print(f, "SELECT<br/>");
             if (wildcard) {
                 if (function == AggregateFunction::NONE) {
-                    Printer::print(f, "  *<br/>");
+                    Printer::print(f, "&nbsp;&nbsp;*<br/>");
                 } else {
-                    Printer::print(f, "  ", AggregateFunctionHelper::name(function), "(*)<br/>");
+                    Printer::print(f, "&nbsp;&nbsp;", AggregateFunctionHelper::name(function), "(*)<br/>");
                 }
             } else {
                 if (function == AggregateFunction::NONE) {
                     for (auto i = 0; i < selected_tables.size(); i++) {
-                        Printer::print(f, "  ", selected_tables[i], ".", selected_columns[i], "<br/>");
+                        Printer::print(f, "&nbsp;&nbsp;", selected_tables[i], ".", selected_columns[i], "<br/>");
                     }
                 } else {
                     Printer::print(
-                        f, "  ", AggregateFunctionHelper::name(function),
+                        f, "&nbsp;&nbsp;", AggregateFunctionHelper::name(function),
                         "(", selected_tables[0], ".", selected_columns[0], ")<br/>");
                 }
             }
             Printer::print(f, "FROM<br/>");
-            for (auto &&t: tables) { Printer::print(f, "  ", t, "<br/>"); }
+            for (auto &&t: tables) { Printer::print(f, "&nbsp;&nbsp;", t, "<br/>"); }
             if (!predicates.empty()) {
                 Printer::print(f, "WHERE<br/>");
                 for (auto &&pred : predicates) { ColumnPredicatePrinter::print(f, pred); }
@@ -59,16 +59,20 @@ struct SelectRecordActor {
             }
             Printer::println(f);
         }
-    
+        
         double ms = 0.0;
         size_t n = 0;
         {
             std::ofstream result_file{RESULT_FILE_NAME, std::ios::app};
             HtmlTablePrinter printer{result_file};
-        
+            
             if (function != AggregateFunction::NONE) {
-                printer.print_header({std::string{AggregateFunctionHelper::name(function)}.append("(").
-                    append(selected_tables[0]).append(".").append(selected_columns[0])});
+                if (function != AggregateFunction::COUNT || !wildcard) {
+                    printer.print_header({std::string{AggregateFunctionHelper::name(function)}.append("(").
+                        append(selected_tables[0]).append(".").append(selected_columns[0]).append(")")});
+                } else {
+                    printer.print_header({std::string{AggregateFunctionHelper::name(function)}});
+                }
             } else if (!wildcard) {
                 std::vector<std::string> header;
                 for (auto i = 0; i < selected_columns.size(); i++) {
@@ -76,7 +80,7 @@ struct SelectRecordActor {
                 }
                 printer.print_header(header);
             }
-        
+            
             auto accum = 0.0;
             std::tie(ms, n) = timed_run(
                 [&st = selected_tables, &sc = selected_columns, &t = tables,
@@ -108,7 +112,7 @@ struct SelectRecordActor {
                             first = false;
                         });
                 });
-        
+            
             switch (function) {
                 case AggregateFunction::AVERAGE:
                     accum /= n;
@@ -119,7 +123,7 @@ struct SelectRecordActor {
                 default:
                     break;
             }
-        
+            
             if (function != AggregateFunction::NONE) {
                 n = 1;
                 auto as_int = static_cast<int64_t>(accum);
@@ -133,7 +137,7 @@ struct SelectRecordActor {
                 }
             }
         }
-    
+        
         std::ofstream result_file{RESULT_FILE_NAME, std::ios::app};
         Printer::println(result_file, "Done in ", ms, "ms with ", n, " row", n > 1 ? "s" : "", " selected.<br/>");
     }

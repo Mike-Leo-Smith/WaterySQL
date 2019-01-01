@@ -34,7 +34,7 @@ struct UpdateRecordActor {
             for (auto &&col: columns) {
                 auto l = lengths[idx++];
                 Printer::print(
-                    f, "  ", col, " = ", (l == 0 ? "NULL" : std::string_view{values.data() + p, l}), "<br/>");
+                    f, "&nbsp;&nbsp;", col, " = ", (l == 0 ? "NULL" : std::string_view{values.data() + p, l}), "<br/>");
                 p += l;
             }
             if (!predicates.empty()) {

@@ -36,3 +36,7 @@ void Java_EngineJNI_finish(JNIEnv *, jclass) {
     watery::SystemManager::instance().finish();
     watery::Printer::println(std::cout, "Bye.");
 }
+
+jstring Java_EngineJNI_getCurrentDatabaseName(JNIEnv *env, jclass) {
+    return env->NewStringUTF(watery::SystemManager::instance().current_database().c_str());
+}

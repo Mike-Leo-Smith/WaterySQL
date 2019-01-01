@@ -31,6 +31,14 @@ JNIEXPORT void JNICALL Java_EngineJNI_finish
 JNIEXPORT void JNICALL Java_EngineJNI_execute
     (JNIEnv *, jclass, jstring);
 
+/*
+ * Class:     EngineJNI
+ * Method:    getCurrentDatabaseName
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_EngineJNI_getCurrentDatabaseName
+    (JNIEnv *env, jclass);
+
 #ifdef __cplusplus
 }
 #endif

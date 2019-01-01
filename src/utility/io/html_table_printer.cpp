@@ -9,7 +9,7 @@ namespace watery {
 
 HtmlTablePrinter::HtmlTablePrinter(std::ofstream &s)
     : _stream{s} {
-    Printer::print(_stream, "<table border='1' cellspacing='0'>\n");
+    Printer::print(_stream, "<table>\n");
 }
 
 HtmlTablePrinter::~HtmlTablePrinter() {

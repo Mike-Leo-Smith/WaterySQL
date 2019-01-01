@@ -15,7 +15,7 @@ struct ColumnPredicatePrinter : NonConstructible {
     
     template<typename Stream>
     static void print(Stream &os, const ColumnPredicate &pred) noexcept {
-        Printer::print(std::cout, "  ");
+        Printer::print(std::cout, "&nbsp;&nbsp;");
         if (!pred.table_name.empty()) {
             Printer::print(os, pred.table_name, ".");
         }
