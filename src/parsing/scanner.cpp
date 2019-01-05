@@ -6,6 +6,7 @@
 #include "scanner.h"
 #include "../config/config.h"
 #include "token_tag_helper.h"
+#include "../utility/io/error_printer.h"
 
 namespace watery {
 
@@ -247,10 +248,6 @@ TokenOffset Scanner::current_offset() const {
 
 bool Scanner::end() const {
     return _lookahead_token.tag == TokenTag::END;
-}
-
-void Scanner::skip() {
-    _read_next_token();
 }
 
 Scanner &Scanner::append(std::string_view more) {

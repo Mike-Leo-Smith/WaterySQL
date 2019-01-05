@@ -49,7 +49,6 @@ public:
     Scanner &append(std::string_view more);
     TokenTag lookahead() const;
     Token match_token(TokenTag tag);
-    void skip();
     TokenOffset current_offset() const;
     bool end() const;
 };

@@ -72,6 +72,7 @@ public:
     
     void finish();
     
+    void commit();
 };
 
 }

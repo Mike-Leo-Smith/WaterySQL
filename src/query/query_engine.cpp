@@ -93,8 +93,8 @@ void QueryEngine::_insert_record(
     }
     auto record = _assemble_record(table, raw, sizes, columns);
     
-    std::vector<int32_t> indexed_column_indices;
-    std::vector<int32_t> foreign_key_column_indices;
+    std::vector<int32_t> indexed_column_indexes;
+    std::vector<int32_t> foreign_key_column_indexes;
     std::vector<RecordOffset> foreign_record_offsets;
     std::string string_buffer;
     const auto &desc = table->descriptor();
@@ -110,7 +110,7 @@ void QueryEngine::_insert_record(
                 (string_buffer = table->name()).append(".").append(field_desc.name.data());
                 auto index = IndexManager::instance().open_index(string_buffer);
                 index->insert_index_entry(p, rid);
-                indexed_column_indices.emplace_back(i);  // save column index for rollbacks
+                indexed_column_indexes.emplace_back(i);  // save column index for rollbacks
             }
             if (field_desc.constraints.foreign() && !null) {  // update foreign key ref count if not null
                 string_buffer.clear();
@@ -120,7 +120,7 @@ void QueryEngine::_insert_record(
                 auto foreign_rid = foreign_index->search_unique_index_entry(p);
                 auto foreign_table = RecordManager::instance().open_table(field_desc.foreign_table_name.data());
                 foreign_table->add_record_reference_count(foreign_rid);
-                foreign_key_column_indices.emplace_back(i);
+                foreign_key_column_indexes.emplace_back(i);
                 foreign_record_offsets.emplace_back(foreign_rid);  // save column index for rollbacks
             }
         }
@@ -129,14 +129,14 @@ void QueryEngine::_insert_record(
         if (rid != RecordOffset{-1, -1}) {  // recover insertion into the table
             table->delete_record(rid);
         }
-        for (auto &&i : indexed_column_indices) {  // recover insertion into indices
+        for (auto &&i : indexed_column_indexes) {  // recover insertion into indexes
             auto &&field_desc = desc.field_descriptors[i];
             (string_buffer = table->name()).append(".").append(field_desc.name.data());
             auto index = IndexManager::instance().open_index(string_buffer);
             index->delete_index_entry(record + desc.field_offsets[i], rid);
         }
-        for (auto i = 0; i < foreign_key_column_indices.size(); i++) {  // recover foreign key ref count updates
-            auto col = foreign_key_column_indices[i];
+        for (auto i = 0; i < foreign_key_column_indexes.size(); i++) {  // recover foreign key ref count updates
+            auto col = foreign_key_column_indexes[i];
             auto foreign_rid = foreign_record_offsets[i];
             auto &field_desc = desc.field_descriptors[col];
             auto foreign_table = RecordManager::instance().open_table(field_desc.foreign_table_name.data());

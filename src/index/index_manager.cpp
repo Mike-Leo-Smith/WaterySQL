@@ -46,36 +46,36 @@ void IndexManager::delete_index(std::string name) {
 }
 
 std::shared_ptr<Index> IndexManager::open_index(const std::string &name) {
-    if (_open_indices.count(name) == 0) {
+    if (_open_indexes.count(name) == 0) {
         FileHandle file_handle = PageManager::instance().open_file(name + INDEX_FILE_EXTENSION);
         auto cache_handle = PageManager::instance().load_page({file_handle, 0});
         auto cache = PageManager::instance().access_cache_for_reading(cache_handle);
         const auto &index_header = MemoryMapper::map_memory<IndexHeader>(cache);
-        _open_indices.emplace(name, std::make_shared<Index>(name, file_handle, index_header));
+        _open_indexes.emplace(name, std::make_shared<Index>(name, file_handle, index_header));
     }
-    return _open_indices[name];
+    return _open_indexes[name];
 }
 
 void IndexManager::close_index(const std::string &name) {
-    if (auto it = _open_indices.find(name); it != _open_indices.end()) {
+    if (auto it = _open_indexes.find(name); it != _open_indexes.end()) {
         if (!it->second.unique()) {
             throw ClosingSharedIndex{name};
         }
-        _open_indices.erase(it);
+        _open_indexes.erase(it);
     }
 }
 
 IndexManager::~IndexManager() {
-    _open_indices.clear();
+    _open_indexes.clear();
 }
 
-void IndexManager::close_all_indices() {
-    for (auto &&entry : _open_indices) {
+void IndexManager::close_all_indexes() {
+    for (auto &&entry : _open_indexes) {
         if (!entry.second.unique()) {
             throw ClosingSharedIndex{entry.first};
         }
     }
-    _open_indices.clear();
+    _open_indexes.clear();
 }
 
 }

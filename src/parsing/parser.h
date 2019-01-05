@@ -32,6 +32,7 @@ protected:
     Actor _parse_select_statement();
     Actor _parse_describe_statement();
     Actor _parse_execute_statement();
+    Actor _parse_commit_statement();
     
     void _parse_field_list(CreateTableActor &actor);
     void _parse_field(CreateTableActor &actor);
@@ -65,7 +66,7 @@ public:
     Parser &append(std::string_view more);
     bool end() const;
     Actor match();
-    void skip();
+    void skip() noexcept;
 };
 
 }

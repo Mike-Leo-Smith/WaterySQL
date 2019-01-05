@@ -22,7 +22,7 @@ namespace watery {
 class IndexManager : public Singleton<IndexManager> {
 
 private:
-    std::map<std::string, std::shared_ptr<Index>> _open_indices;
+    std::map<std::string, std::shared_ptr<Index>> _open_indexes;
 
 protected:
     IndexManager() = default;
@@ -34,7 +34,7 @@ public:
     void delete_index(std::string name);
     std::shared_ptr<Index> open_index(const std::string &name);
     void close_index(const std::string &name);
-    void close_all_indices();
+    void close_all_indexes();
 };
 
 }

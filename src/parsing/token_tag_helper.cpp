@@ -31,7 +31,9 @@ const std::unordered_map<std::string_view, TokenTag> &TokenTagHelper::keyword_di
         {"SELECT",     TokenTag::SELECT},
         {"IS",         TokenTag::IS},
         {"INT",        TokenTag::INT},
+        {"INTEGER",    TokenTag::INT},
         {"CHAR",       TokenTag::CHAR},
+        {"VARCHAR",    TokenTag::CHAR},
         {"DESC",       TokenTag::DESCRIBE},
         {"DESCRIBE",   TokenTag::DESCRIBE},
         {"REFERENCES", TokenTag::REFERENCES},
@@ -39,6 +41,7 @@ const std::unordered_map<std::string_view, TokenTag> &TokenTagHelper::keyword_di
         {"AND",        TokenTag::AND},
         {"DATE",       TokenTag::DATE},
         {"FLOAT",      TokenTag::FLOAT},
+        {"REAL",       TokenTag::FLOAT},
         {"FOREIGN",    TokenTag::FOREIGN},
         {"UNIQUE",     TokenTag::UNIQUE},
         {"EXIT",       TokenTag::EXIT},
@@ -48,7 +51,8 @@ const std::unordered_map<std::string_view, TokenTag> &TokenTagHelper::keyword_di
         {"MAX",        TokenTag::MAX},
         {"AVG",        TokenTag::AVG},
         {"SUM",        TokenTag::SUM},
-        {"COUNT",      TokenTag::COUNT}
+        {"COUNT",      TokenTag::COUNT},
+        {"COMMIT",     TokenTag::COMMIT}
     };
     return dict;
 }
@@ -165,8 +169,8 @@ std::string_view TokenTagHelper::name(TokenTag tag) noexcept {
             return "SUM";
         case TokenTag::COUNT:
             return "COUNT";
-        default:
-            return "<UNKNOWN>";
+        case TokenTag::COMMIT:
+            return "COMMIT";
     }
 }
 

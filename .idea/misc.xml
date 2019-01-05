@@ -16,6 +16,7 @@
     <option name="version" value="3" />
   </component>
   <component name="RustProjectSettings">
-    <option name="toolchainHomeDirectory" value="/usr/local/bin" />
+    <option name="explicitPathToStdlib" value="$USER_HOME$/.rustup/toolchains/stable-x86_64-apple-darwin/lib" />
+    <option name="toolchainHomeDirectory" value="$USER_HOME$/.rustup/toolchains/stable-x86_64-apple-darwin/bin" />
   </component>
 </project>

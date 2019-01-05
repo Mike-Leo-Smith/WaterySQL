@@ -28,6 +28,7 @@
 #include "../action/select_record_actor.h"
 #include "../action/exit_actor.h"
 #include "../action/execute_file_actor.h"
+#include "../action/commit_actor.h"
 
 namespace watery {
 
@@ -65,6 +66,8 @@ Actor Parser::match() {
             return _parse_select_statement();
         case TokenTag::SOURCE:
             return _parse_execute_statement();
+        case TokenTag::COMMIT:
+            return _parse_commit_statement();
         default: {
             auto token = _scanner.match_token(_scanner.lookahead());
             throw ParserError{std::string{"Unexpected command token \""}.append(token.raw).append("\"."), token.offset};
@@ -359,11 +362,13 @@ bool Parser::end() const {
     return _scanner.end();
 }
 
-void Parser::skip() {
+void Parser::skip() noexcept {
     while (!_scanner.end()) {
-        auto token = _scanner.match_token(_scanner.lookahead());
-        if (token.tag == TokenTag::SEMICOLON) {
-            break;
+        try {
+            auto token = _scanner.match_token(_scanner.lookahead());
+            if (token.tag == TokenTag::SEMICOLON) { break; }
+        } catch (const std::exception &e) {
+            print_error(std::cerr, e);
         }
     }
 }
@@ -728,6 +733,12 @@ void Parser::_parse_column_predicate_operand(ColumnPredicate &pred) {
     } else {
         _parse_value(pred.operand);
     }
+}
+
+Actor Parser::_parse_commit_statement() {
+    _scanner.match_token(TokenTag::COMMIT);
+    _scanner.match_token(TokenTag::SEMICOLON);
+    return CommitActor{};
 }
     
 }

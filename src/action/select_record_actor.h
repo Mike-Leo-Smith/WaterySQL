@@ -59,9 +59,10 @@ struct SelectRecordActor {
             }
             Printer::println(f);
         }
-        
-        double ms = 0.0;
-        size_t n = 0;
+    
+        double ms;
+        auto accum = 0.0;
+        auto n = 0ul;
         {
             std::ofstream result_file{RESULT_FILE_NAME, std::ios::app};
             HtmlTablePrinter printer{result_file};
@@ -81,60 +82,68 @@ struct SelectRecordActor {
                 printer.print_header(header);
             }
             
-            auto accum = 0.0;
-            std::tie(ms, n) = timed_run(
-                [&st = selected_tables, &sc = selected_columns, &t = tables,
-                    &p = predicates, f = function, &a = accum, &result_file, &printer] {
-                    auto first = true;
-                    return QueryEngine::instance().select_records(
-                        st, sc, t, p, [&a, f, &first, &result_file, &printer](const std::vector<std::string> &row) {
-                            switch (f) {
-                                case AggregateFunction::SUM:
-                                case AggregateFunction::AVERAGE:
-                                    a += ValueDecoder::decode_double(row[0]);
-                                    break;
-                                case AggregateFunction::MIN: {
-                                    auto x = ValueDecoder::decode_double(row[0]);
-                                    a = first ? x : std::min(a, x);
-                                    break;
+            ms = timed_run([&] {
+                auto first = true;
+                auto count = 0ul;
+                QueryEngine::instance().select_records(
+                    selected_tables, selected_columns, tables, predicates, [&](const std::vector<std::string> &row) {
+                        switch (function) {
+                            case AggregateFunction::SUM:
+                            case AggregateFunction::AVERAGE:
+                                if (row[0] != "NULL") {
+                                    accum += ValueDecoder::decode_double(row[0]);
+                                    first = false;
+                                    count++;
                                 }
-                                case AggregateFunction::MAX: {
+                                break;
+                            case AggregateFunction::MIN:
+                                if (row[0] != "NULL") {
                                     auto x = ValueDecoder::decode_double(row[0]);
-                                    a = first ? x : std::max(a, x);
-                                    break;
+                                    accum = first ? x : std::min(accum, x);
+                                    first = false;
+                                    count++;
                                 }
-                                case AggregateFunction::NONE:
-                                    printer.print_row(row);
-                                    break;
-                                default:
-                                    break;
-                            }
-                            first = false;
-                        });
-                });
-            
-            switch (function) {
-                case AggregateFunction::AVERAGE:
-                    accum /= n;
-                    break;
-                case AggregateFunction::COUNT:
-                    accum = n;
-                    break;
-                default:
-                    break;
-            }
-            
-            if (function != AggregateFunction::NONE) {
-                n = 1;
-                auto as_int = static_cast<int64_t>(accum);
-                if (as_int == accum) {
-                    printer.print_row({std::to_string(as_int)});
-                } else {
-                    printer.print_row(
-                        {(std::stringstream{}
-                            << std::setprecision(std::numeric_limits<double>::max_digits10 - 1)
-                            << accum).str()});
+                                break;
+                            case AggregateFunction::MAX:
+                                if (row[0] != "NULL") {
+                                    auto x = ValueDecoder::decode_double(row[0]);
+                                    accum = first ? x : std::max(accum, x);
+                                    first = false;
+                                    count++;
+                                }
+                                break;
+                            case AggregateFunction::COUNT:
+                                if (wildcard || row[0] != "NULL") {
+                                    accum += 1;
+                                    count++;
+                                }
+                                break;
+                            case AggregateFunction::NONE:
+                                printer.print_row(row);
+                                accum += 1;
+                                count++;
+                                break;
+                            default:
+                                break;
+                        }
+                    });
+                if (count == 0) {
+                    accum = std::nan("0");
+                } else if (function == AggregateFunction::AVERAGE) {
+                    accum /= count;
                 }
+                
+            }).first;
+            
+            if (std::isnan(accum)) {
+                printer.print_row({"NULL"});
+            } else if (function == AggregateFunction::NONE) {
+                n = static_cast<uint64_t>(accum);
+            } else {
+                n = 1;
+                printer.print_row({(std::stringstream{}
+                    << std::setprecision(std::numeric_limits<double>::max_digits10 - 1)
+                    << accum).str()});
             }
         }
         

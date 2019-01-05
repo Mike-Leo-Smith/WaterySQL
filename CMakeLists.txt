@@ -135,7 +135,7 @@ set(SOURCE_FILES
     src/error/cross_table_predicate_type_mismatch.h
     src/data/aggregate_function.h
     src/data/aggregate_function_helper.h
-    src/utility/memory/value_string_padder.h src/utility/io/html_table_printer.cpp src/utility/io/html_table_printer.h)
+    src/utility/memory/value_string_padder.h src/utility/io/html_table_printer.cpp src/utility/io/html_table_printer.h src/action/commit_actor.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
 add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)

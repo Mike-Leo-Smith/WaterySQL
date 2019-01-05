@@ -36,7 +36,7 @@ void SystemManager::drop_database(const std::string &name) {
     
     if (name == _current_database) {
         RecordManager::instance().close_all_tables();
-        IndexManager::instance().close_all_indices();
+        IndexManager::instance().close_all_indexes();
         _table_list.clear();
         _current_database = "";
     }
@@ -80,7 +80,7 @@ void SystemManager::use_database(const std::string &name) {
     }
     
     RecordManager::instance().close_all_tables();
-    IndexManager::instance().close_all_indices();
+    IndexManager::instance().close_all_indexes();
     _scan_tables();
 }
 
@@ -106,10 +106,10 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
             std::string{"Failed to create table \""}.append(name).append("\" which already exists.")};
     }
     
-    static thread_local std::vector<std::string> indices;
+    static thread_local std::vector<std::string> indexes;
     static thread_local std::vector<std::string> foreign_tables;
     
-    indices.clear();
+    indexes.clear();
     foreign_tables.clear();
     bool table_created = false;
     
@@ -137,7 +137,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
                 auto index_name = std::string{name}.append(".").append(field_desc.name.data());
                 IndexManager::instance().create_index(index_name, field_desc.data_descriptor, true);
                 field_desc.indexed = true;
-                indices.emplace_back(index_name);
+                indexes.emplace_back(index_name);
             }
         }
         // now actually able to create the table
@@ -152,7 +152,7 @@ void SystemManager::create_table(const std::string &name, RecordDescriptor descr
         for (auto &&ft : foreign_tables) {
             RecordManager::instance().open_table(ft)->drop_foreign_key_reference(name);
         }
-        for (auto &&idx : indices) {
+        for (auto &&idx : indexes) {
             IndexManager::instance().delete_index(idx);
         }
         std::rethrow_exception(e);  // rethrow
@@ -296,10 +296,14 @@ const RecordDescriptor &SystemManager::describe_table(const std::string &table_n
 }
 
 void SystemManager::finish() {
-    IndexManager::instance().close_all_indices();
-    RecordManager::instance().close_all_tables();
+    commit();
     _table_list.clear();
     _current_database = "";
+}
+
+void SystemManager::commit() {
+    IndexManager::instance().close_all_indexes();
+    RecordManager::instance().close_all_tables();
 }
 
 const std::string &SystemManager::current_database() const noexcept {
