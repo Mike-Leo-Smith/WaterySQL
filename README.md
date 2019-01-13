@@ -1,2 +1,2 @@
 # WaterySQL
-![](res/screenshot.png)
+![Screenshot](doc/Screenshot.png)
