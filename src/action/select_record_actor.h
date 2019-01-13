@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 #include <iomanip>
+#include <string>
 #include <sstream>
 
 #include "../config/config.h"
@@ -59,7 +60,7 @@ struct SelectRecordActor {
             }
             Printer::println(f);
         }
-    
+        
         double ms;
         auto accum = 0.0;
         auto n = 0ul;
@@ -141,9 +142,9 @@ struct SelectRecordActor {
                 n = static_cast<uint64_t>(accum);
             } else {
                 n = 1;
-                printer.print_row({(std::stringstream{}
-                    << std::setprecision(std::numeric_limits<double>::max_digits10 - 1)
-                    << accum).str()});
+                std::stringstream number;
+                number << std::setprecision(std::numeric_limits<double>::max_digits10 - 1) << accum;
+                printer.print_row({number.str()});
             }
         }
         

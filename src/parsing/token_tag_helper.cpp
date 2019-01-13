@@ -171,6 +171,8 @@ std::string_view TokenTagHelper::name(TokenTag tag) noexcept {
             return "COUNT";
         case TokenTag::COMMIT:
             return "COMMIT";
+        default:
+            return "UNKNOWN";
     }
 }
 

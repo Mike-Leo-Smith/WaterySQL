@@ -5,18 +5,9 @@ project(WaterySQL C CXX)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-set(COMPILE_WITH_CLANG 1)
-
-if (COMPILE_WITH_CLANG)
-    set(CMAKE_C_COMPILER "/usr/local/opt/llvm/bin/clang")
-    set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
-    link_directories(/usr/local/opt/llvm/lib)
-    link_libraries(c++fs)
-else ()
-    set(CMAKE_C_COMPILER gcc-8)
-    set(CMAKE_CXX_COMPILER g++-8)
-    link_libraries(stdc++fs)
-endif ()
+set(CMAKE_C_COMPILER gcc-8)
+set(CMAKE_CXX_COMPILER g++-8)
+link_libraries(stdc++fs)
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native -mtune=native -fomit-frame-pointer")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native -mtune=native -fomit-frame-pointer")
@@ -135,17 +126,18 @@ set(SOURCE_FILES
     src/error/cross_table_predicate_type_mismatch.h
     src/data/aggregate_function.h
     src/data/aggregate_function_helper.h
-    src/utility/memory/value_string_padder.h src/utility/io/html_table_printer.cpp src/utility/io/html_table_printer.h src/action/commit_actor.h)
+    src/utility/memory/value_string_padder.h
+    src/utility/io/html_table_printer.cpp
+    src/utility/io/html_table_printer.h
+    src/action/commit_actor.h)
 
 add_executable(WaterySQL ${SOURCE_FILES} src/main.cpp)
-add_executable(WaterySQL-IndexManagerTest ${SOURCE_FILES} test/index_manager_test.cpp)
-add_executable(WaterySQL-CommandParsingTest ${SOURCE_FILES} test/command_parsing_test.cpp)
-
-add_library(WaterySQLEngine SHARED ${SOURCE_FILES} lib/watery_sql.cpp lib/watery_sql.h)
 
 find_package(JNI REQUIRED)
 if (JNI_FOUND)
     include_directories(${JNI_INCLUDE_DIRS})
-    add_library(WaterySQLEngineJNI SHARED ${SOURCE_FILES} lib/EngineJNI.h lib/EngineJNI.cpp)
+    add_library(WaterySQLEngineJNI SHARED ${SOURCE_FILES} jni/EngineJNI.h jni/EngineJNI.cpp)
     target_link_libraries(WaterySQLEngineJNI ${JNI_LIBRARIES})
+    add_custom_command(TARGET WaterySQLEngineJNI POST_BUILD
+                       COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:WaterySQLEngineJNI> ${CMAKE_HOME_DIRECTORY}/ui)
 endif ()
